@@ -1,6 +1,7 @@
 // 📁 src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../config/axios'; // Asegúrate de tener la ruta correcta
 
 const AuthContext = createContext();
 
@@ -12,24 +13,35 @@ export const AuthProvider = ({ children }) => {
 
   // Cargar usuario desde localStorage al iniciar
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const storedUser = localStorage.getItem('usuario');
       const storedToken = localStorage.getItem('token');
+
+      if (storedToken)
+        console.log("Usuario y Token", {storedUser, storedToken})
       
-      if (storedUser && storedToken) {
+      if (storedToken) {
         try {
-          const parsedUser = JSON.parse(storedUser);
-          setUsuario(parsedUser);
+
+          var parsedUser = JSON.parse(storedUser);
+          // Configurar el token en los headers para todas las peticiones
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+
+          console.log("Entra a llamada axios con id", parsedUser._id)
+
+          const { data } = await axiosInstance.get(`/usuarios/${parsedUser._id}`);
+          console.log(data)
+
+          setUsuario(data);
           setIsAuthenticated(true);
-          console.log("AuthContext - Usuario autenticado:", parsedUser);
+          console.log("AuthContext - Usuario autenticado:", data);
         } catch (error) {
-          console.error('Error al parsear usuario:', error);
-          localStorage.removeItem('usuario');
-          localStorage.removeItem('token');
-          setIsAuthenticated(false);
+          console.log("Ejecución Logout 1")
+          logout();
         }
       } else {
-        setIsAuthenticated(false);
+        console.log("Ejecución Logout 2")
+        logout();
       }
       setLoading(false);
     };
@@ -42,6 +54,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
     localStorage.setItem('usuario', JSON.stringify(usuario));
     localStorage.setItem('token', token);
+    // Configurar el token para todas las peticiones futuras
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   };
 
   const logout = () => {
@@ -49,7 +63,21 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     localStorage.removeItem('usuario');
     localStorage.removeItem('token');
+    // Eliminar el token de los headers
+    delete axiosInstance.defaults.headers.common['Authorization'];
+
     navigate('/auth/login');
+  };
+
+  // Función para verificar si el usuario tiene un rol específico
+  const tieneRol = (roles) => {
+    if (!usuario || !usuario.rol) return false;
+    
+    if (Array.isArray(roles)) {
+      return roles.includes(usuario.rol);
+    }
+    
+    return usuario.rol === roles;
   };
 
   // Valor expuesto por el contexto
@@ -58,7 +86,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     loading,
     login,
-    logout
+    logout,
+    tieneRol // Exportamos la nueva función
   };
 
   return (

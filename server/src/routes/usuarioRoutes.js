@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const usuarioController = require('../controllers/usuarioController');
 const equipoController = require('../controllers/equipoController');
-const { protegerRuta } = require('../middleware/authMiddleware');
+const { auth, checkRole } = require('../middleware/authMiddleware');
 const upload = require('../helpers/uploadImages');
 
 // 🔒 Específicas sin parámetros
 
 // Agregar usuario a equipo (requiere token)
-router.patch('/usuarios/equipo', protegerRuta, usuarioController.agregarJugadorAEquipo);
+router.patch('/usuarios/equipo', auth, checkRole('capitan'), usuarioController.agregarJugadorAEquipo);
 
 // Registro
 router.post('/auth/register', usuarioController.registro);
@@ -17,22 +17,22 @@ router.post('/auth/register', usuarioController.registro);
 router.post('/auth/login', usuarioController.login);
 
 // Perfil (requiere token)
-router.get('/auth/perfil', protegerRuta, usuarioController.perfil);
+router.get('/auth/perfil', auth, usuarioController.perfil);
 
 // Obtener todos los usuarios (requiere token)
-router.get('/usuarios', protegerRuta, usuarioController.obtenerUsuarios);
+router.get('/usuarios', auth, usuarioController.obtenerUsuarios);
 
 // Crear nuevo equipo (requiere token)
-router.post('/equipos', protegerRuta, upload, equipoController.nuevoEquipo);
+router.post('/equipos', auth, checkRole('capitan'), upload, equipoController.nuevoEquipo);
 
 // Obtener todos los equipos (requiere token)
-router.get('/equipos', protegerRuta, equipoController.obtenerEquipos);
+router.get('/equipos', auth, equipoController.obtenerEquipos);
 
 // Registrar jugadores en un equipo (requiere token)
-router.post('/equipos/registrarJugadores', protegerRuta, equipoController.registrarJugadores);
+router.post('/equipos/registrarJugadores', auth, checkRole('capitan'), equipoController.registrarJugadores);
 
 // Borrar jugadores de un equipo (requiere token)
-router.delete('/equipos/borrarJugadores', protegerRuta, equipoController.borrarJugadores);
+router.delete('/equipos/borrarJugadores', auth, equipoController.borrarJugadores);
 
 // 🔒 Específicas con identificadores compuestos o rutas con nombre fijo
 // (No hay en tu caso, aquí irían rutas como /equipos/categoria/:categoria o /usuarios/rol/:rol)
@@ -40,21 +40,21 @@ router.delete('/equipos/borrarJugadores', protegerRuta, equipoController.borrarJ
 // 🔓 Genéricas con parámetros
 
 // Obtener usuario por ID (requiere token)
-router.get('/usuarios/:id', protegerRuta, usuarioController.obtenerUsuarioId);
+router.get('/usuarios/:id', auth, usuarioController.obtenerUsuarioId);
 
 // Eliminar usuario (requiere token)
-router.delete('/usuarios/:id', protegerRuta, usuarioController.eliminarUsuario);
+router.delete('/usuarios/:id', auth, usuarioController.eliminarUsuario);
 
 // Actualizar perfil (requiere token)
-router.patch('/usuarios/:id', protegerRuta, upload, usuarioController.actualizarPerfil);
+router.patch('/usuarios/:id', auth, upload, usuarioController.actualizarPerfil);
 
 // Obtener equipo por ID (requiere token)
-router.get('/equipos/:id', protegerRuta, equipoController.obtenerEquipo);
+router.get('/equipos/:id', auth, equipoController.obtenerEquipo);
 
 // Actualizar equipo (requiere token)
-router.patch('/equipos/:id', protegerRuta, upload, equipoController.actualizarEquipo);
+router.patch('/equipos/:id', auth, checkRole('capitan'), upload, equipoController.actualizarEquipo);
 
 // Eliminar equipo (requiere token)
-router.delete('/equipos/:id', protegerRuta, equipoController.eliminarEquipo);
+router.delete('/equipos/:id', auth, checkRole('capitan'), equipoController.eliminarEquipo);
 
 module.exports = router;

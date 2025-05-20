@@ -142,7 +142,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
         </Box>
       </Box>
 
-      {rol === 'jugador' && (
+      {(rol === 'jugador' || rol === 'capitan') && (
         <>
           <Button
             onClick={handleExpandClick}
