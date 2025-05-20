@@ -205,11 +205,25 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       return res.status(400).json({ mensaje: 'El número ya está en uso por otro jugador en el equipo' });
     }
 
+    // Validar si el jugador ya está en un equipo con el mismo tipo base de categoría
+    const reglaNueva = reglasCategorias[equipo.categoria];
+    if (!reglaNueva) {
+      return res.status(400).json({ mensaje: 'Categoría no válida' });
+    }
+
+    // Obtener equipos del jugador
     const equiposJugador = jugador.equipos.map(e => e.equipo);
-    const equipos = await Equipo.find({ _id: { $in: equiposJugador } });
-    const yaEstaEnCategoria = equipos.some(e => e.categoria === equipo.categoria);
-    if (yaEstaEnCategoria) {
-      return res.status(400).json({ mensaje: `El jugador ya participa en un equipo de la categoría ${equipo.categoria}` });
+    const equiposDelJugador = await Equipo.find({ _id: { $in: equiposJugador } });
+    
+    // Verificar si ya está en un equipo con el mismo tipo base
+    for (const equipoActual of equiposDelJugador) {
+      const reglaActual = reglasCategorias[equipoActual.categoria];
+      
+      if (reglaActual && reglaActual.tipoBase === reglaNueva.tipoBase) {
+        return res.status(400).json({ 
+          mensaje: `No puedes inscribirte a ${equipo.categoria} porque ya estás inscrito en ${equipoActual.categoria}. Ambas pertenecen al mismo tipo base (${reglaNueva.tipoBase}).`
+        });
+      }
     }
 
     // --- Extraer sexo y edad desde CURP ---
@@ -243,15 +257,14 @@ exports.agregarJugadorAEquipo = async (req, res) => {
     const sexoJugador = sexoCurp === 'H' ? 'M' : sexoCurp === 'M' ? 'F' : null;
 
     // --- Validación con reglas desde helper ---
-    const regla = reglasCategorias[equipo.categoria];
-    if (regla) {
-      if (!regla.sexoPermitido.includes(sexoJugador)) {
+    if (reglaNueva) {
+      if (!reglaNueva.sexoPermitido.includes(sexoJugador)) {
         return res.status(400).json({ mensaje: `No puedes inscribirte a la categoría ${getCategoryName(equipo.categoria)} por restricción de sexo.` });
       }
-      if (edadJugador < regla.edadMin) {
-        return res.status(400).json({ mensaje: `Debes tener al menos ${regla.edadMin} años para inscribirte en la categoría ${getCategoryName(equipo.categoria)}.` });
+      if (edadJugador < reglaNueva.edadMin) {
+        return res.status(400).json({ mensaje: `Debes tener al menos ${reglaNueva.edadMin} años para inscribirte en la categoría ${getCategoryName(equipo.categoria)}.` });
       }
-      if (regla.edadMax !== null && edadJugador > regla.edadMax) {
+      if (reglaNueva.edadMax !== null && edadJugador > reglaNueva.edadMax) {
         return res.status(400).json({ mensaje: `No puedes inscribirte en la categoría ${getCategoryName(equipo.categoria)} por restricción de edad máxima.` });
       }
     }
@@ -262,6 +275,7 @@ exports.agregarJugadorAEquipo = async (req, res) => {
 
     return res.status(200).json({ mensaje: 'Jugador agregado al equipo correctamente' });
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al agregar jugador al equipo', error });
+    console.error('Error al agregar jugador al equipo:', error);
+    res.status(500).json({ mensaje: 'Error al agregar jugador al equipo', error: error.message });
   }
 }

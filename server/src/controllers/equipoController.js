@@ -40,6 +40,7 @@ exports.obtenerEquipo = async (req, res) => {
       res.status(500).json({ mensaje: 'Error al obtener el equipo', error });
   }
 }
+// Controlador para actualizar un equipo
 exports.actualizarEquipo = async (req, res) => {
   try {
     // Obtener el equipo actual primero
@@ -49,19 +50,39 @@ exports.actualizarEquipo = async (req, res) => {
       return res.status(404).json({ mensaje: 'Equipo no encontrado' });
     }
 
+    // Verificar si se está cambiando la categoría
+    if (req.body.categoria && req.body.categoria !== equipo.categoria) {
+      // Buscar jugadores asociados a este equipo
+      const jugadoresAsociados = await Usuario.find({
+        'equipos.equipo': equipo._id
+      });
+
+      // Si hay jugadores asociados, no permitir el cambio de categoría
+      if (jugadoresAsociados.length > 0) {
+        return res.status(400).json({
+          mensaje: 'No se puede cambiar la categoría del equipo porque tiene jugadores asignados',
+          jugadoresAsociados: jugadoresAsociados.length
+        });
+      }
+    }
+
+    // Actualizar los campos del equipo
     Object.keys(req.body).forEach(key => {
       equipo[key] = req.body[key];
     });
 
+    // Actualizar la imagen si se proporciona una nueva
     if (req.file && req.file.filename) {
       equipo.imagen = req.file.filename;
     }
 
+    // Guardar los cambios
     await equipo.save();
 
     res.json({ mensaje: 'Equipo actualizado correctamente', equipo });
   } catch (error) {
-    res.status(400).json({ mensaje: 'Error al actualizar el equipo', error });
+    console.error('Error al actualizar equipo:', error);
+    res.status(400).json({ mensaje: 'Error al actualizar el equipo', error: error.message });
   }
 }
 exports.eliminarEquipo = async (req, res) => {
@@ -138,12 +159,31 @@ exports.registrarJugadores = async (req, res) => {
           continue;
         }
 
-        // Validación: ya está en un equipo de la misma categoría
+        // Obtener la regla de la categoría del equipo nuevo
+        const reglaNueva = reglasCategorias[equipo.categoria];
+        if (!reglaNueva) {
+          errores.push(`Jugador #${index + 1} (${jugador.nombre}): Categoría del equipo no válida`);
+          continue;
+        }
+
+        // Validación: verificar si ya está en un equipo con el mismo tipo base
         const equiposJugador = jugador.equipos.map(e => e.equipo);
-        const equipos = await Equipo.find({ _id: { $in: equiposJugador } });
-        const yaEstaEnCategoria = equipos.some(e => e.categoria === equipo.categoria);
-        if (yaEstaEnCategoria) {
-          errores.push(`Jugador #${index + 1} (${jugador.nombre}): Ya participa en un equipo de la categoría ${equipo.categoria}`);
+        const equiposDelJugador = await Equipo.find({ _id: { $in: equiposJugador } });
+        
+        // Buscar si hay equipos con el mismo tipo base
+        let mismoTipoBaseEncontrado = false;
+        for (const equipoActual of equiposDelJugador) {
+          const reglaActual = reglasCategorias[equipoActual.categoria];
+          
+          if (reglaActual && reglaActual.tipoBase === reglaNueva.tipoBase) {
+            errores.push(`Jugador #${index + 1} (${jugador.nombre}): No puede inscribirse a ${equipo.categoria} porque ya está inscrito en ${equipoActual.categoria}. Ambas pertenecen al mismo tipo base (${reglaNueva.tipoBase}).`);
+            mismoTipoBaseEncontrado = true;
+            break;
+          }
+        }
+        
+        // Si ya encontramos un equipo con el mismo tipo base, saltamos el resto de validaciones
+        if (mismoTipoBaseEncontrado) {
           continue;
         }
 
@@ -179,17 +219,16 @@ exports.registrarJugadores = async (req, res) => {
         const sexoJugador = sexoCurp === 'H' ? 'M' : sexoCurp === 'M' ? 'F' : null;
 
         // --- Validación con reglas desde helper ---
-        const regla = reglasCategorias[equipo.categoria];
-        if (regla) {
-          if (!regla.sexoPermitido.includes(sexoJugador)) {
+        if (reglaNueva) {
+          if (!reglaNueva.sexoPermitido.includes(sexoJugador)) {
             errores.push(`Jugador #${index + 1} (${jugador.nombre}): No puede inscribirse a la categoría ${getCategoryName(equipo.categoria)} por restricción de sexo.`);
             continue;
           }
-          if (edadJugador < regla.edadMin) {
-            errores.push(`Jugador #${index + 1} (${jugador.nombre}): Debe tener al menos ${regla.edadMin} años para inscribirse en la categoría ${getCategoryName(equipo.categoria)}.`);
+          if (edadJugador < reglaNueva.edadMin) {
+            errores.push(`Jugador #${index + 1} (${jugador.nombre}): Debe tener al menos ${reglaNueva.edadMin} años para inscribirse en la categoría ${getCategoryName(equipo.categoria)}.`);
             continue;
           }
-          if (regla.edadMax !== null && edadJugador > regla.edadMax) {
+          if (reglaNueva.edadMax !== null && edadJugador > reglaNueva.edadMax) {
             errores.push(`Jugador #${index + 1} (${jugador.nombre}): No puede inscribirse en la categoría ${getCategoryName(equipo.categoria)} por restricción de edad máxima.`);
             continue;
           }
