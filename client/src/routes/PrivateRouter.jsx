@@ -5,9 +5,6 @@ import { useAuth } from '../context/AuthContext';
 export const PrivateRoutes = () => {
   const { usuario, isAuthenticated, loading } = useAuth();
   
-  // Agregar console.log para depuración
-  console.log("PrivateRoutes - Auth state:", { usuario, isAuthenticated, loading });
-  
   // Mostrar componente de carga mientras verificamos la autenticación
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Cargando...</div>;

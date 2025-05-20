@@ -4,9 +4,7 @@ const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');
 
 exports.nuevoEquipo = async (req, res) => {
-  const equipo = new Equipos(req.body);
-
-  console.log(equipo);
+  const equipo = new Equipo(req.body);
 
   try {
     if (req.file && req.file.filename) {
@@ -260,8 +258,6 @@ exports.borrarJugadores = async (req, res) => {
     if (indiceEquipo === -1) {
       return res.status(400).json({ mensaje: 'El jugador no está inscrito en este equipo' });
     }
-
-    console.log("Equipo encontrado:", jugador.equipos[indiceEquipo]);
 
     // Elimina la relación jugador-equipo
     jugador.equipos.splice(indiceEquipo, 1);

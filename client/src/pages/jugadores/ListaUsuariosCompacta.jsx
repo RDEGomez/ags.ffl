@@ -35,8 +35,6 @@ export const ListaUsuariosCompacta = ({ usuarios, eliminarUsuario }) => {
         const { _id, nombre, documento, imagen, equipos = [] } = jugador
         const isExpanded = expandedJugadorId === _id
 
-        console.log(equipos);
-
         return (
           <Box key={_id}
             sx={{

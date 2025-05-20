@@ -13,7 +13,6 @@ export const AuthProvider = ({ children }) => {
   // Cargar usuario desde localStorage al iniciar
   useEffect(() => {
     const checkAuth = () => {
-      console.log("AuthContext - Verificando autenticación...");
       const storedUser = localStorage.getItem('usuario');
       const storedToken = localStorage.getItem('token');
       
@@ -30,7 +29,6 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(false);
         }
       } else {
-        console.log("AuthContext - No hay usuario almacenado");
         setIsAuthenticated(false);
       }
       setLoading(false);
@@ -40,7 +38,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = ({ usuario, token }) => {
-    console.log("AuthContext - Login:", usuario);
     setUsuario(usuario);
     setIsAuthenticated(true);
     localStorage.setItem('usuario', JSON.stringify(usuario));
@@ -48,7 +45,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log("AuthContext - Logout");
     setUsuario(null);
     setIsAuthenticated(false);
     localStorage.removeItem('usuario');

@@ -21,7 +21,6 @@ export const Equipos = () => {
   const obtenerEquipos = async () => {
     try {
       const { data } = await axiosInstance.get('/equipos')
-      console.log("Equipos", data)
       setEquipos(data)
     } catch (error) {
       console.error(error)

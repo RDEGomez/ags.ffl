@@ -14,11 +14,8 @@ const eliminarImagenSubida = (filename) => {
     // Usa la ruta base configurada
     const filePath = path.join(BASE_UPLOAD_DIR, filename);
     
-    console.log(`Intentando eliminar archivo: ${filePath}`);
-    
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      console.log(`Archivo eliminado exitosamente: ${filename}`);
     } else {
       console.log(`El archivo no existe en la ruta: ${filePath}`);
     }

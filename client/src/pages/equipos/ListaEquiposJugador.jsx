@@ -24,7 +24,6 @@ export const ListaEquiposJugador = ({ jugadorId = "", equipos = [], setEquipos =
   // Guardar nuevo número
   const handleGuardarNumero = async () => {
     try {
-      console.log(selectedEquipo.equipo._id, jugadorId, nuevoNumero);
       await axiosInstance.patch(
         `/equipos/${selectedEquipo.equipo._id}/jugadores/${jugadorId}`, 
         { numero: nuevoNumero }
@@ -57,7 +56,6 @@ export const ListaEquiposJugador = ({ jugadorId = "", equipos = [], setEquipos =
 
   // Abrir diálogo para confirmar eliminación
   const handleConfirmDelete = (equipo) => {
-    console.log("Delete equipo", equipo);
     setSelectedEquipo(equipo);
     setDeleteDialogOpen(true);
   };
