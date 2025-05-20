@@ -8,7 +8,6 @@ import { Layout } from '../layout/Layout';
 import { EditarPerfil } from '../pages/profile/EditarPerfil';
 import { Usuarios } from '../pages/jugadores/Usuarios';
 import { EditarEquipo, Equipos, NuevoEquipo } from '../pages/equipos';
-import AsignarJugadoresAEquipoWrapper from '../pages/equipos/AsignarJugadoresAEquipoWrapper';
 import { RegistrarJugadores } from '../pages/equipos/RegistrarJugadores';
 
 // Componente ProtectedRoute para proteger rutas

@@ -28,6 +28,12 @@ router.post('/equipos', protegerRuta, upload, equipoController.nuevoEquipo);
 // Obtener todos los equipos (requiere token)
 router.get('/equipos', protegerRuta, equipoController.obtenerEquipos);
 
+// Registrar jugadores en un equipo (requiere token)
+router.post('/equipos/registrarJugadores', protegerRuta, equipoController.registrarJugadores);
+
+// Borrar jugadores de un equipo (requiere token)
+router.delete('/equipos/borrarJugadores', protegerRuta, equipoController.borrarJugadores);
+
 // 🔒 Específicas con identificadores compuestos o rutas con nombre fijo
 // (No hay en tu caso, aquí irían rutas como /equipos/categoria/:categoria o /usuarios/rol/:rol)
 

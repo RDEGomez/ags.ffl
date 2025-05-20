@@ -45,6 +45,7 @@ export const RegistrarJugadores = () => {
   
   const [loading, setLoading] = useState(true);
   const [savingData, setSavingData] = useState(false);
+  const [deletingPlayer, setDeletingPlayer] = useState(false);
   const [equipo, setEquipo] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
   const [jugadoresSeleccionados, setJugadoresSeleccionados] = useState([]);
@@ -52,6 +53,8 @@ export const RegistrarJugadores = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [openRosterDialog, setOpenRosterDialog] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
+  // Estado para recordar jugador a eliminar
+  const [jugadorAEliminar, setJugadorAEliminar] = useState(null);
   
   const imagenUrlBase = import.meta.env.VITE_BACKEND_URL + '/uploads/';
 
@@ -147,6 +150,84 @@ export const RegistrarJugadores = () => {
     setOpenRosterDialog(false);
   };
 
+  // Iniciar proceso de eliminación de jugador
+  const iniciarEliminarJugador = async (jugadorId) => {
+    // Guardar el ID del jugador a eliminar
+    setJugadorAEliminar(jugadorId);
+    
+    // Cerrar el diálogo primero
+    setOpenRosterDialog(false);
+    
+    // Esperar a que se cierre el diálogo antes de mostrar la alerta
+    setTimeout(async () => {
+      // Mostrar confirmación después de que el diálogo se cierre
+      const result = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: "El jugador será eliminado del equipo",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      });
+      
+      if (result.isConfirmed) {
+        // Proceder con la eliminación
+        await eliminarJugadorDelEquipo(jugadorId);
+      } else {
+        // Si el usuario cancela, volver a abrir el diálogo
+        setOpenRosterDialog(true);
+      }
+      
+      // Limpiar el ID del jugador a eliminar
+      setJugadorAEliminar(null);
+    }, 100); // Pequeño retraso para asegurar que el diálogo se cierre primero
+  };
+
+  // Eliminar jugador del equipo
+  const eliminarJugadorDelEquipo = async (jugadorId) => {
+    try {
+      setDeletingPlayer(true);
+      
+      // Enviar solicitud al servidor
+      await axiosInstance.delete('/equipos/borrarJugadores', {
+        data: {
+          equipoId: id,
+          jugadorId
+        }
+      });
+      
+      // Actualizar la lista de jugadores actuales
+      setJugadoresActuales(jugadoresActuales.filter(j => j._id !== jugadorId));
+      
+      // Obtener el jugador eliminado
+      const jugadorEliminado = jugadoresActuales.find(j => j._id === jugadorId);
+      
+      // Añadir el jugador a la lista de disponibles si existe
+      if (jugadorEliminado) {
+        setUsuarios([...usuarios, jugadorEliminado]);
+      }
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Jugador eliminado',
+        text: 'El jugador ha sido eliminado del equipo correctamente',
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch (error) {
+      console.error('Error al eliminar jugador:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.mensaje || 'Error al eliminar el jugador del equipo',
+      });
+    } finally {
+      setDeletingPlayer(false);
+    }
+  };
+
   // Guardar jugadores en el equipo
   const guardarJugadores = async () => {
     // Verificar que todos los jugadores tengan número de camiseta
@@ -212,11 +293,25 @@ export const RegistrarJugadores = () => {
       navigate('/equipos');
     } catch (error) {
       console.error('Error al registrar jugadores:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.mensaje || 'Error al registrar jugadores',
-      });
+      
+      if (error.response?.data?.errores && Array.isArray(error.response.data.errores)) {
+        // Mostrar lista de errores específicos
+        const erroresMensaje = error.response.data.errores.join('\n');
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudieron registrar los jugadores',
+          html: `<div style="text-align: left; max-height: 300px; overflow-y: auto;">
+                  <p>${erroresMensaje.replace(/\n/g, '<br>')}</p>
+                </div>`,
+        });
+      } else {
+        // Mensaje genérico si no hay lista de errores
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.response?.data?.mensaje || 'Error al registrar jugadores',
+        });
+      }
     } finally {
       setSavingData(false);
     }
@@ -449,6 +544,7 @@ export const RegistrarJugadores = () => {
                     <TableCell>Jugador</TableCell>
                     <TableCell>Documento</TableCell>
                     <TableCell align="center">Número</TableCell>
+                    <TableCell align="center">Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -482,6 +578,19 @@ export const RegistrarJugadores = () => {
                         >
                           {jugador.numero}
                         </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Eliminar del equipo">
+                          <span>
+                            <IconButton 
+                              color="error"
+                              disabled={deletingPlayer}
+                              onClick={() => iniciarEliminarJugador(jugador._id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
