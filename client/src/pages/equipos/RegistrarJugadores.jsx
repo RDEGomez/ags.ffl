@@ -31,6 +31,7 @@ import {
   useMediaQuery,
   useTheme,
   Container,
+  InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -38,6 +39,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PeopleIcon from '@mui/icons-material/People';
 import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
 import axiosInstance from '../../config/axios';
 import Swal from 'sweetalert2';
 import { getCategoryName } from '../../helpers/mappings';
@@ -53,6 +55,8 @@ export const RegistrarJugadores = () => {
   const [deletingPlayer, setDeletingPlayer] = useState(false);
   const [equipo, setEquipo] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
+  const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
+  const [filtroUsuarios, setFiltroUsuarios] = useState('');
   const [jugadoresSeleccionados, setJugadoresSeleccionados] = useState([]);
   const [jugadoresActuales, setJugadoresActuales] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -93,6 +97,7 @@ export const RegistrarJugadores = () => {
         
         setJugadoresActuales(usuariosEnEquipo);
         setUsuarios(jugadoresFiltrados);
+        setUsuariosFiltrados(jugadoresFiltrados);
         setLoading(false);
       } catch (error) {
         console.error('Error al cargar datos:', error);
@@ -103,6 +108,23 @@ export const RegistrarJugadores = () => {
     
     fetchData();
   }, [id]);
+
+  // Filtrar usuarios cuando cambia el texto de búsqueda
+  useEffect(() => {
+    if (filtroUsuarios.trim() === '') {
+      setUsuariosFiltrados(usuarios);
+      return;
+    }
+    
+    const filtroLowerCase = filtroUsuarios.toLowerCase();
+    const resultado = usuarios.filter(
+      usuario => 
+        usuario.nombre.toLowerCase().includes(filtroLowerCase) || 
+        usuario.documento.toLowerCase().includes(filtroLowerCase)
+    );
+    
+    setUsuariosFiltrados(resultado);
+  }, [filtroUsuarios, usuarios]);
 
   // Agregar jugador a la lista de seleccionados
   const agregarJugador = (jugador) => {
@@ -153,6 +175,11 @@ export const RegistrarJugadores = () => {
   // Cerrar diálogo de roster
   const handleCloseRoster = () => {
     setOpenRosterDialog(false);
+  };
+
+  // Manejar cambio en el filtro de búsqueda
+  const handleFiltroChange = (e) => {
+    setFiltroUsuarios(e.target.value);
   };
 
   // Iniciar proceso de eliminación de jugador
@@ -391,15 +418,47 @@ export const RegistrarJugadores = () => {
             <Typography variant="h6" fontWeight="bold" gutterBottom>
               Jugadores Disponibles
             </Typography>
+            
+            {/* Campo de búsqueda */}
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              placeholder="Buscar por nombre o documento"
+              value={filtroUsuarios}
+              onChange={handleFiltroChange}
+              sx={{ mb: 2 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
             <Divider sx={{ mb: 2 }} />
             
-            {usuarios.length === 0 ? (
+            {usuariosFiltrados.length === 0 ? (
               <Typography variant="body1" sx={{ textAlign: 'center', py: 4 }}>
-                No hay jugadores disponibles para agregar
+                {filtroUsuarios ? 'No se encontraron jugadores con ese criterio' : 'No hay jugadores disponibles para agregar'}
               </Typography>
             ) : (
-              <List sx={{ width: '100%' }}>
-                {usuarios.map(usuario => (
+              <List 
+                sx={{ 
+                  width: '100%',
+                  height: 350,
+                  overflow: 'auto',
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'rgba(0,0,0,.3)',
+                    borderRadius: '4px',
+                  }
+                }}
+              >
+                {usuariosFiltrados.map(usuario => (
                   <ListItem
                     key={usuario._id}
                     sx={{
@@ -450,7 +509,20 @@ export const RegistrarJugadores = () => {
                 Aún no has agregado jugadores
               </Typography>
             ) : (
-              <List sx={{ width: '100%' }}>
+              <List 
+                sx={{ 
+                  width: '100%',
+                  height: 400, // Altura fija para la lista
+                  overflow: 'auto', // Hacer que sea scrollable
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'rgba(0,0,0,.3)',
+                    borderRadius: '4px',
+                  }
+                }}
+              >
                 {jugadoresSeleccionados.map(jugador => (
                   <ListItem
                     key={jugador.usuario._id}
