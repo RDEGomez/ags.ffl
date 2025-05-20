@@ -41,13 +41,13 @@ const reglasCategorias = {
     sexoPermitido: ['M'],
     edadMin: 35,
     edadMax: 99,
-    tipoBase: 'var'
+    tipoBase: 'varmas'
   },
   femmast: {
     sexoPermitido: ['F'],
     edadMin: 30,
     edadMax: 99,
-    tipoBase: 'fem'
+    tipoBase: 'femmas'
   }
 };
 

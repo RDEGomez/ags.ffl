@@ -2,6 +2,7 @@ const upload = require('../helpers/uploadImages');
 const Usuario = require('../models/Usuario');
 const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');
+const { getCategoryName } = require('../../../client/src/helpers/mappings');
 
 exports.nuevoEquipo = async (req, res) => {
   const equipo = new Equipo(req.body);
@@ -171,20 +172,12 @@ exports.registrarJugadores = async (req, res) => {
         const equiposDelJugador = await Equipo.find({ _id: { $in: equiposJugador } });
         
         // Buscar si hay equipos con el mismo tipo base
-        let mismoTipoBaseEncontrado = false;
         for (const equipoActual of equiposDelJugador) {
           const reglaActual = reglasCategorias[equipoActual.categoria];
           
           if (reglaActual && reglaActual.tipoBase === reglaNueva.tipoBase) {
-            errores.push(`Jugador #${index + 1} (${jugador.nombre}): No puede inscribirse a ${equipo.categoria} porque ya está inscrito en ${equipoActual.categoria}. Ambas pertenecen al mismo tipo base (${reglaNueva.tipoBase}).`);
-            mismoTipoBaseEncontrado = true;
-            break;
+            throw new Error(`No puede inscribirse a ${equipo.categoria} porque ya está inscrito en ${equipoActual.categoria}. Ambas pertenecen al mismo tipo base (${reglaNueva.tipoBase}).`);
           }
-        }
-        
-        // Si ya encontramos un equipo con el mismo tipo base, saltamos el resto de validaciones
-        if (mismoTipoBaseEncontrado) {
-          continue;
         }
 
         // --- Extraer sexo y edad desde CURP ---
@@ -221,16 +214,13 @@ exports.registrarJugadores = async (req, res) => {
         // --- Validación con reglas desde helper ---
         if (reglaNueva) {
           if (!reglaNueva.sexoPermitido.includes(sexoJugador)) {
-            errores.push(`Jugador #${index + 1} (${jugador.nombre}): No puede inscribirse a la categoría ${getCategoryName(equipo.categoria)} por restricción de sexo.`);
-            continue;
+            throw new Error(`No puede inscribirse a la categoría ${getCategoryName(equipo.categoria)} por restricción de sexo.`);
           }
           if (edadJugador < reglaNueva.edadMin) {
-            errores.push(`Jugador #${index + 1} (${jugador.nombre}): Debe tener al menos ${reglaNueva.edadMin} años para inscribirse en la categoría ${getCategoryName(equipo.categoria)}.`);
-            continue;
+            throw new Error(`Debe tener al menos ${reglaNueva.edadMin} años para inscribirse en la categoría ${getCategoryName(equipo.categoria)}.`);
           }
           if (reglaNueva.edadMax !== null && edadJugador > reglaNueva.edadMax) {
-            errores.push(`Jugador #${index + 1} (${jugador.nombre}): No puede inscribirse en la categoría ${getCategoryName(equipo.categoria)} por restricción de edad máxima.`);
-            continue;
+            throw new Error(`No puede inscribirse en la categoría ${getCategoryName(equipo.categoria)} por restricción de edad máxima.`);
           }
         }
 
@@ -242,7 +232,8 @@ exports.registrarJugadores = async (req, res) => {
         });
       } catch (error) {
         console.error(`Error al validar jugador #${index + 1}:`, error);
-        errores.push(`Jugador #${index + 1}: Error en la validación`);
+        // Proporcionar un mensaje de error más detallado
+        errores.push(`Jugador #${index + 1}: ${error.message || 'Error en la validación'}`);
       }
     }
 
