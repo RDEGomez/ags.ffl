@@ -28,6 +28,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  useMediaQuery,
+  useTheme,
+  Container,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -42,6 +45,8 @@ import { getCategoryName } from '../../helpers/mappings';
 export const RegistrarJugadores = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [loading, setLoading] = useState(true);
   const [savingData, setSavingData] = useState(false);
@@ -326,50 +331,62 @@ export const RegistrarJugadores = () => {
   }
   
   return (
-    <Box sx={{ maxWidth: '1200px', mx: 'auto', p: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigate('/equipos')} sx={{ mr: 2 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" fontWeight="bold">
-          Registrar Jugadores
-        </Typography>
+    <Box sx={{ mx: 'auto', p: 2 }}>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <IconButton onClick={() => navigate('/equipos')} sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" fontWeight="bold">
+            Registrar Jugadores
+          </Typography>
+        </Box>
+        
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {errorMessage}
+          </Alert>
+        )}
+        
+        {equipo && (
+          <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Avatar 
+                src={`${imagenUrlBase}${equipo.imagen}`} 
+                sx={{ width: 64, height: 64, mr: 2 }}
+              />
+              <Box>
+                <Typography variant="h5">{equipo.nombre}</Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {getCategoryName(equipo.categoria)}
+                </Typography>
+              </Box>
+            </Box>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              startIcon={<PeopleIcon />}
+              onClick={handleOpenRoster}
+              sx={{ minWidth: isMobile ? '48px' : 'auto', px: isMobile ? 1 : 2 }}
+            >
+              {!isMobile && (
+                <Typography sx={{ ml: 0.5 }}>
+                  Ver Roster ({jugadoresActuales.length})
+                </Typography>
+              )}
+              {isMobile && (
+                <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  ({jugadoresActuales.length})
+                </Typography>
+              )}
+            </Button>
+          </Paper>
+        )}
       </Box>
       
-      {errorMessage && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {errorMessage}
-        </Alert>
-      )}
-      
-      {equipo && (
-        <Paper elevation={3} sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar 
-              src={`${imagenUrlBase}${equipo.imagen}`} 
-              sx={{ width: 64, height: 64, mr: 2 }}
-            />
-            <Box>
-              <Typography variant="h5">{equipo.nombre}</Typography>
-              <Typography variant="body1" color="text.secondary">
-                {getCategoryName(equipo.categoria)}
-              </Typography>
-            </Box>
-          </Box>
-          <Button 
-            variant="outlined" 
-            color="primary" 
-            startIcon={<PeopleIcon />}
-            onClick={handleOpenRoster}
-          >
-            Ver Roster ({jugadoresActuales.length})
-          </Button>
-        </Paper>
-      )}
-      
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
         {/* Lista de jugadores disponibles */}
-        <Grid item xs={12} md={6} sx={{ width: '48%' }}>
+        <Box sx={{ flexBasis: { md: '50%' } }}>
           <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
               Jugadores Disponibles
@@ -418,10 +435,10 @@ export const RegistrarJugadores = () => {
               </List>
             )}
           </Paper>
-        </Grid>
+        </Box>
         
         {/* Lista de jugadores seleccionados */}
-        <Grid item xs={12} md={6} sx={{ width: '48%' }}>
+        <Box sx={{ flexBasis: { md: '50%' } }}>
           <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
               Jugadores a Registrar
@@ -507,8 +524,8 @@ export const RegistrarJugadores = () => {
               </Button>
             </Box>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Diálogo para mostrar el roster actual */}
       <Dialog

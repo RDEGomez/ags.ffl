@@ -16,9 +16,6 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       const storedUser = localStorage.getItem('usuario');
       const storedToken = localStorage.getItem('token');
-
-      if (storedToken)
-        console.log("Usuario y Token", {storedUser, storedToken})
       
       if (storedToken) {
         try {
@@ -27,20 +24,15 @@ export const AuthProvider = ({ children }) => {
           // Configurar el token en los headers para todas las peticiones
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
-          console.log("Entra a llamada axios con id", parsedUser._id)
-
           const { data } = await axiosInstance.get(`/usuarios/${parsedUser._id}`);
-          console.log(data)
 
           setUsuario(data);
           setIsAuthenticated(true);
           console.log("AuthContext - Usuario autenticado:", data);
         } catch (error) {
-          console.log("Ejecución Logout 1")
           logout();
         }
       } else {
-        console.log("Ejecución Logout 2")
         logout();
       }
       setLoading(false);

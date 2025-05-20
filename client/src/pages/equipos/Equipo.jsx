@@ -66,7 +66,6 @@ export const Equipo = ({ equipo, eliminarEquipo }) => {
         <Typography variant="body2" mt={1} mb={2}>
           {getCategoryName(categoria)}
         </Typography>
-        {isAdmin && (
           <Box>
             <IconButton
               component={Link}
@@ -89,7 +88,6 @@ export const Equipo = ({ equipo, eliminarEquipo }) => {
               </IconButton>
             </Tooltip>
           </Box>
-        )}
       </Box>
     </Card>
   )
