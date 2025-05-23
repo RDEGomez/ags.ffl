@@ -13,12 +13,21 @@ import {
   Grid,
   Avatar,
   Chip,
-  Button
+  Button,
+  Badge,
+  Tooltip
 } from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit'
-import DeleteIcon from '@mui/icons-material/Delete'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Groups as GroupsIcon,
+  Person as PersonIcon,
+  AdminPanelSettings as AdminIcon
+} from '@mui/icons-material'
+import SportsFootballIcon from '@mui/icons-material/SportsFootball';
+import { motion } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
 
 export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
@@ -30,194 +39,384 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
     setExpanded(!expanded)
   }
 
+  // Determinar color del rol
+  const getRolColor = (rol) => {
+    switch(rol) {
+      case 'admin': return '#f44336'
+      case 'capitan': return '#ff9800'
+      case 'jugador': return '#4caf50'
+      default: return '#9e9e9e'
+    }
+  }
+
+  // Determinar icono del rol
+  const getRolIcon = (rol) => {
+    switch(rol) {
+      case 'admin': return <AdminIcon />
+      case 'capitan': return <GroupsIcon />
+      case 'jugador': return <PersonIcon />
+      default: return <PersonIcon />
+    }
+  }
+
+  const getRolLabel = (rol) => {
+    switch(rol) {
+      case 'admin': return 'Administrador'
+      case 'capitan': return 'Capitán'
+      case 'jugador': return 'Jugador'
+      default: return 'Usuario'
+    }
+  }
+
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        height: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: 2,
-        boxShadow: 2,
-        width: '100%',
-        maxWidth: '100%',
-      }}
+    <motion.div
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.3 }}
+      style={{ height: '100%' }}
     >
-      <Box
+      <Card
         sx={{
+          height: '100%',
           display: 'flex',
-          flexDirection: 'row',
-          minHeight: 160,
-          width: '100%',
-          maxWidth: '100%',
+          flexDirection: 'column',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: 3,
           overflow: 'hidden',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(100, 181, 246, 0.3)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          }
         }}
       >
-        {/* Imagen */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 2,
-            flexShrink: 0,
-            width: { xs: 120, sm: 140 },
-          }}
-        >
-          <CardMedia
-            component="img"
-            image={`${imagenUrl}${imagen}`}
-            alt={`Foto de ${nombre}`}
+        {/* Header con imagen y información básica */}
+        <Box sx={{ 
+          position: 'relative',
+          background: 'linear-gradient(135deg, rgba(100, 181, 246, 0.1) 0%, rgba(100, 181, 246, 0.05) 100%)',
+          p: 3
+        }}>
+          {/* Badge del rol */}
+          <Chip
+            icon={getRolIcon(rol)}
+            label={getRolLabel(rol)}
+            size="small"
             sx={{
-              width: { xs: 100, sm: 120 },
-              height: { xs: 100, sm: 120 },
-              objectFit: 'contain',
-              backgroundColor: 'background.paper',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              padding: 1,
-              boxShadow: '0 3px 5px rgba(0, 0, 0, 0.2)',
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              backgroundColor: getRolColor(rol),
+              color: 'white',
+              fontWeight: 'bold',
+              '& .MuiChip-icon': {
+                color: 'white'
+              }
             }}
           />
+
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            pt: 1
+          }}>
+            {/* Avatar con badge de equipos */}
+            <Badge
+              badgeContent={equipos.length}
+              color="primary"
+              overlap="circular"
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              invisible={equipos.length === 0}
+            >
+              <Avatar
+                src={`${imagenUrl}${imagen}`}
+                alt={`Foto de ${nombre}`}
+                sx={{
+                  width: 80,
+                  height: 80,
+                  border: '3px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                  mb: 2
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 40 }} />
+              </Avatar>
+            </Badge>
+
+            {/* Información del usuario */}
+            <Typography
+              variant="h6"
+              component="h3"
+              sx={{
+                color: 'white',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                mb: 0.5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                width: '100%',
+                maxWidth: '200px'
+              }}
+            >
+              {nombre}
+            </Typography>
+
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                textAlign: 'center',
+                mb: 1
+              }}
+            >
+              {documento}
+            </Typography>
+
+            {/* Estadística de equipos */}
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: 2,
+              px: 2,
+              py: 0.5
+            }}>
+              <SportsFootballIcon sx={{ fontSize: 16, color: '#64b5f6' }} />
+              <Typography variant="caption" sx={{ color: 'white' }}>
+                {equipos.length} {equipos.length === 1 ? 'equipo' : 'equipos'}
+              </Typography>
+            </Box>
+          </Box>
         </Box>
 
-        {/* Contenido */}
-        <Box
-          sx={{
-            flex: '1 1 0',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            p: 2,
-            textAlign: 'center',
-            overflow: 'hidden',
-            width: 0,
-          }}
-        >
-          <Typography
-            variant="h6"
-            noWrap
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              width: '100%',
-              maxWidth: '100%',
-              display: 'block',
-            }}
-          >
-            {nombre}
-          </Typography>
-
-          <Typography
-            variant="body2"
-            noWrap
-            mt={1}
-            mb={2}
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              width: '100%',
-              maxWidth: '100%',
-              display: 'block',
-            }}
-          >
-            {documento}
-          </Typography>
-
-          <Box>
+        {/* Acciones principales */}
+        <CardActions sx={{ 
+          justifyContent: 'center', 
+          gap: 1,
+          backgroundColor: 'rgba(255, 255, 255, 0.02)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <Tooltip title="Editar usuario">
             <IconButton
               component={Link}
               to={`/perfil/${_id}`}
-              color="primary"
+              sx={{
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                color: '#2196f3',
+                '&:hover': {
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                  transform: 'scale(1.1)'
+                }
+              }}
             >
               <EditIcon />
             </IconButton>
-            <IconButton color="error" onClick={() => eliminarUsuario(_id)}>
+          </Tooltip>
+          
+          <Tooltip title="Eliminar usuario">
+            <IconButton 
+              onClick={() => eliminarUsuario(_id)}
+              sx={{
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                color: '#f44336',
+                '&:hover': {
+                  backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                  transform: 'scale(1.1)'
+                }
+              }}
+            >
               <DeleteIcon />
             </IconButton>
-          </Box>
-        </Box>
-      </Box>
+          </Tooltip>
+        </CardActions>
 
-      {(rol === 'jugador' || rol === 'capitan') && (
-        <>
-          <Button
-            onClick={handleExpandClick}
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              py: 1,
-              borderTop: '1px solid rgba(0, 0, 0, 0.12)',
-            }}
-          >
-            <Typography variant="button" color="primary">
-              {expanded ? 'Ocultar equipos' : 'Ver equipos'}
-            </Typography>
-            {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </Button>
-
-          <Collapse in={expanded} timeout="auto" unmountOnExit>
-            <Divider />
-            <Box sx={{ p: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Equipos del Jugador
-              </Typography>
-
-              {equipos && equipos.length > 0 ? (
-                <Box sx={{ overflowY: 'auto', maxHeight: 200 }}>
-                  {equipos.map((equipoObj) => (
-                    <Grid
-                      container
-                      key={equipoObj.equipo._id || equipoObj.equipo.id}
-                      alignItems="center"
-                      spacing={1}
-                      justifyContent={'space-between'}
-                      sx={(theme) => ({
-                        mb: 1,
-                        px: 1,
-                        py: 0.5,
-                        '&:hover': { backgroundColor: theme.palette.primary.main },
-                      })}
-                    >
-                      <Grid item xs={2}>
-                        <Avatar
-                          src={`${imagenUrl}${equipoObj.equipo.imagen}`}
-                          alt={`Logo de ${equipoObj.equipo.nombre}`}
-                          variant="circular"
-                          sx={{ width: 30, height: 30 }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2">
-                          {equipoObj.equipo.nombre}
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            {` (#${equipoObj.numero})`}
-                          </Typography>
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Chip
-                          label={getCategoryName(equipoObj.equipo.categoria)}
-                          size="small"
-                          color="secondary"
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      </Grid>
-                    </Grid>
-                  ))}
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                  Este jugador no está inscrito en ningún equipo.
+        {/* Botón para expandir equipos */}
+        {(rol === 'jugador' || rol === 'capitan') && (
+          <>
+            <Button
+              onClick={handleExpandClick}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: 1.5,
+                px: 2,
+                color: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <GroupsIcon sx={{ fontSize: 18 }} />
+                <Typography variant="button">
+                  {expanded ? 'Ocultar equipos' : 'Ver equipos'}
                 </Typography>
-              )}
-            </Box>
-          </Collapse>
-        </>
-      )}
-    </Card>
+              </Box>
+              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </Button>
+
+            {/* Collapse con lista de equipos */}
+            <Collapse in={expanded} timeout="auto" unmountOnExit>
+              <Box sx={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{ 
+                      color: 'white', 
+                      fontWeight: 'bold', 
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}
+                  >
+                    <GroupsIcon sx={{ fontSize: 18, color: '#64b5f6' }} />
+                    Equipos del Usuario
+                  </Typography>
+
+                  {equipos && equipos.length > 0 ? (
+                    <Box sx={{ 
+                      maxHeight: 200, 
+                      overflowY: 'auto',
+                      '&::-webkit-scrollbar': {
+                        width: '6px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'rgba(255,255,255,.3)',
+                        borderRadius: '3px',
+                      }
+                    }}>
+                      {equipos.map((equipoObj, index) => (
+                        <motion.div
+                          key={equipoObj.equipo._id || equipoObj.equipo.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              p: 1.5,
+                              mb: 1,
+                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              borderRadius: 2,
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                transform: 'translateX(5px)'
+                              }
+                            }}
+                          >
+                            <Avatar
+                              src={`${imagenUrl}${equipoObj.equipo.imagen}`}
+                              alt={`Logo de ${equipoObj.equipo.nombre}`}
+                              sx={{ 
+                                width: 32, 
+                                height: 32,
+                                border: '2px solid rgba(255, 255, 255, 0.2)'
+                              }}
+                            >
+                              <GroupsIcon />
+                            </Avatar>
+                            
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 'medium',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {equipoObj.equipo.nombre}
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                color="text.secondary"
+                                sx={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  display: 'block'
+                                }}
+                              >
+                                {getCategoryName(equipoObj.equipo.categoria)}
+                              </Typography>
+                            </Box>
+                            
+                            <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center',
+                              gap: 1
+                            }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: '50%',
+                                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.875rem',
+                                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
+                                }}
+                              >
+                                {equipoObj.numero}
+                              </Box>
+                            </Box>
+                          </Box>
+                        </motion.div>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box sx={{ 
+                      textAlign: 'center',
+                      p: 3,
+                      border: '2px dashed rgba(255, 255, 255, 0.2)',
+                      borderRadius: 2
+                    }}>
+                      <GroupsIcon sx={{ 
+                        fontSize: 32, 
+                        color: 'rgba(255, 255, 255, 0.3)', 
+                        mb: 1 
+                      }} />
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          fontStyle: 'italic'
+                        }}
+                      >
+                        Este usuario no está inscrito en ningún equipo
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Box>
+            </Collapse>
+          </>
+        )}
+      </Card>
+    </motion.div>
   )
 }

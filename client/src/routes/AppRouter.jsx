@@ -7,8 +7,9 @@ import { Home } from '../pages/Home';
 import { Layout } from '../layout/Layout';
 import { EditarPerfil } from '../pages/profile/EditarPerfil';
 import { Usuarios } from '../pages/jugadores/Usuarios';
-import { EditarEquipo, Equipos, NuevoEquipo } from '../pages/equipos';
-import { RegistrarJugadores } from '../pages/equipos/RegistrarJugadores';
+import { EditarEquipo, Equipos, NuevoEquipo, RegistrarJugadores } from '../pages/equipos';
+import { Torneos } from '../pages/torneos/Torneos';
+import { CrearTorneo, GestionInscripciones } from '../pages/torneos';
 
 // Componente ProtectedRoute para proteger rutas
 
@@ -37,8 +38,10 @@ export const AppRouter = () => {
           <Route path="equipos" element={<Equipos />} />
           <Route path="equipos/nuevo" element={<NuevoEquipo />} />
           <Route path="equipos/editar/:id" element={<EditarEquipo />} />
-          {/* <Route path="/equipos/:id/jugadores" element={<AsignarJugadoresAEquipoWrapper />} /> */}
           <Route path="/equipos/:id/jugadores" element={<RegistrarJugadores />} />
+          <Route path="torneos" element={<Torneos />} />
+          <Route path="torneos/crear" element={<CrearTorneo />} />
+          <Route path="/torneos/:id/inscripciones" element={<GestionInscripciones />} />
           <Route path="perfil" element={<EditarPerfil />} />
           <Route path="perfil/:id" element={<EditarPerfil />} />
         </Route>

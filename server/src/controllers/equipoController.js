@@ -22,14 +22,50 @@ exports.nuevoEquipo = async (req, res) => {
     }
   }
 }
+
 exports.obtenerEquipos = async (req, res) => {
   try {
-    const equipos = await Equipo.find();
-    res.json(equipos);
+    const equipos = await Equipo.find().lean(); // usamos lean para convertir a objetos planos
+    const equipoIds = equipos.map(e => e._id);
+
+    // Buscar usuarios que están en cualquiera de esos equipos
+    const usuarios = await Usuario.find({
+      'equipos.equipo': { $in: equipoIds }
+    }).select('nombre documento imagen equipos');
+
+    // Enriquecer cada equipo con sus jugadores
+    const equiposEnriquecidos = equipos.map(equipo => {
+      const jugadores = usuarios
+        .filter(usuario =>
+          usuario.equipos.some(e => e.equipo.toString() === equipo._id.toString())
+        )
+        .map(usuario => {
+          const info = usuario.equipos.find(e => 
+            e.equipo.toString() === equipo._id.toString()
+          );
+
+          return {
+            _id: usuario._id,
+            nombre: usuario.nombre,
+            documento: usuario.documento,
+            imagen: usuario.imagen,
+            numero: info?.numero || null
+          };
+        });
+
+      return {
+        ...equipo,
+        jugadores
+      };
+    });
+
+    res.json(equiposEnriquecidos);
   } catch (error) {
+    console.error('Error al obtener los equipos:', error);
     res.status(500).json({ mensaje: 'Error al obtener los equipos', error });
   }
-}
+};
+
 exports.obtenerEquipo = async (req, res) => {
   try {
     const equipo = await Equipo.findById(req.params.id);
