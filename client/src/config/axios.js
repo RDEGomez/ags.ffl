@@ -1,8 +1,9 @@
 // 📁 src/config/axios.js
 import axios from 'axios';
+import { API_URL } from './api';
 
 const axiosInstance = axios.create({
-  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api` || 'http://localhost:3000/api',
+  baseURL: `${API_URL}/api`
 });
 
 // Interceptor para agregar token
