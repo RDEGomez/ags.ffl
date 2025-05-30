@@ -39,11 +39,195 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosInstance from '../../config/axios';
 import { getCategoryName } from '../../helpers/mappings';
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
 import Swal from 'sweetalert2';
 
-export const InscripcionesTorneo = ({ torneo, onEquiposActualizados }) => {
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
+// 🔥 Componente para equipo inscrito
+const EquipoInscrito = ({ equipo, onDesinscribir, cargando }) => {
+  const equipoImageUrl = useImage(equipo.imagen, '');
   
+  return (
+    <ListItem sx={{ 
+      bgcolor: 'rgba(255,255,255,0.05)', 
+      borderRadius: 2,
+      mb: 1
+    }}>
+      <ListItemAvatar>
+        <Avatar 
+          src={equipoImageUrl}
+          sx={{ bgcolor: 'primary.main' }}
+        >
+          {equipo.nombre?.charAt(0)}
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText 
+        primary={equipo.nombre}
+        secondary={`${equipo.jugadores?.length || 0} jugadores`}
+      />
+      <ListItemSecondaryAction>
+        <Tooltip title="Desinscribir equipo">
+          <IconButton 
+            edge="end" 
+            color="error"
+            onClick={() => onDesinscribir(equipo)}
+            disabled={cargando}
+          >
+            <PersonRemoveIcon />
+          </IconButton>
+        </Tooltip>
+      </ListItemSecondaryAction>
+    </ListItem>
+  );
+};
+
+// 🔥 Componente para equipo disponible
+const EquipoDisponible = ({ equipo, onInscribir, cargando }) => {
+  const equipoImageUrl = useImage(equipo.imagen, '');
+  
+  return (
+    <ListItem sx={{ 
+      bgcolor: 'rgba(255,255,255,0.05)', 
+      borderRadius: 2,
+      mb: 1,
+      '&:hover': {
+        bgcolor: 'rgba(255,255,255,0.1)'
+      }
+    }}>
+      <ListItemAvatar>
+        <Avatar 
+          src={equipoImageUrl}
+          sx={{ bgcolor: 'secondary.main' }}
+        >
+          {equipo.nombre?.charAt(0)}
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText 
+        primary={equipo.nombre}
+        secondary={
+          <>
+            <Typography variant="caption" component="span">
+              {equipo.jugadores?.length || 0} jugadores
+            </Typography>
+            <Box component="span" sx={{ ml: 1 }}>
+              <Chip 
+                label={getCategoryName([equipo.categoria])}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.6rem', height: 20 }}
+              />
+            </Box>
+          </>
+        }
+        secondaryTypographyProps={{
+          component: 'div',
+          sx: { display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }
+        }}
+      />
+      <ListItemSecondaryAction>
+        <Tooltip title="Inscribir equipo">
+          <IconButton 
+            edge="end" 
+            color="primary"
+            onClick={() => onInscribir(equipo)}
+            disabled={cargando}
+          >
+            <PersonAddIcon />
+          </IconButton>
+        </Tooltip>
+      </ListItemSecondaryAction>
+    </ListItem>
+  );
+};
+
+// 🔥 Componente para el modal de confirmación
+const ModalConfirmacion = ({ 
+  open, 
+  onClose, 
+  equipoSeleccionado, 
+  torneo, 
+  onConfirmar, 
+  cargando 
+}) => {
+  const equipoImageUrl = useImage(equipoSeleccionado?.imagen, '');
+  
+  if (!equipoSeleccionado) return null;
+  
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          bgcolor: 'rgba(15, 15, 25, 0.95)',
+          backdropFilter: 'blur(10px)'
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 1,
+        borderBottom: '1px solid rgba(255,255,255,0.1)'
+      }}>
+        <EmojiEventsIcon sx={{ color: '#FFD700' }} />
+        Confirmar Inscripción
+      </DialogTitle>
+      
+      <DialogContent sx={{ pt: 3 }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Avatar 
+              src={equipoImageUrl}
+              sx={{ width: 60, height: 60, bgcolor: 'primary.main' }}
+            >
+              {equipoSeleccionado.nombre?.charAt(0)}
+            </Avatar>
+            <Box>
+              <Typography variant="h6">{equipoSeleccionado.nombre}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {getCategoryName([equipoSeleccionado.categoria])}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {equipoSeleccionado.jugadores?.length || 0} jugadores
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Alert severity="info" sx={{ mb: 2 }}>
+            ¿Estás seguro de que deseas inscribir este equipo en el torneo "{torneo?.nombre}"?
+          </Alert>
+        </Box>
+      </DialogContent>
+      
+      <DialogActions sx={{ p: 3 }}>
+        <Button 
+          onClick={onClose}
+          variant="outlined"
+          startIcon={<CancelIcon />}
+          disabled={cargando}
+        >
+          Cancelar
+        </Button>
+        <Button 
+          onClick={() => onConfirmar(equipoSeleccionado)}
+          variant="contained"
+          startIcon={cargando ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+          disabled={cargando}
+          sx={{
+            background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)'
+          }}
+        >
+          {cargando ? 'Inscribiendo...' : 'Confirmar Inscripción'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export const InscripcionesTorneo = ({ torneo, onEquiposActualizados }) => {
   // Estados
   const [equiposDisponibles, setEquiposDisponibles] = useState([]);
   const [equiposInscritos, setEquiposInscritos] = useState(torneo?.equipos || []);
@@ -299,36 +483,11 @@ export const InscripcionesTorneo = ({ torneo, onEquiposActualizados }) => {
                               exit="exit"
                               layout
                             >
-                              <ListItem sx={{ 
-                                bgcolor: 'rgba(255,255,255,0.05)', 
-                                borderRadius: 2,
-                                mb: 1
-                              }}>
-                                <ListItemAvatar>
-                                  <Avatar 
-                                    src={equipo.imagen ? `${API_URL}/uploads/${equipo.imagen}` : ''}
-                                    sx={{ bgcolor: 'primary.main' }}
-                                  >
-                                    {equipo.nombre?.charAt(0)}
-                                  </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText 
-                                  primary={equipo.nombre}
-                                  secondary={`${equipo.jugadores?.length || 0} jugadores`}
-                                />
-                                <ListItemSecondaryAction>
-                                  <Tooltip title="Desinscribir equipo">
-                                    <IconButton 
-                                      edge="end" 
-                                      color="error"
-                                      onClick={() => desinscribirEquipo(equipo)}
-                                      disabled={cargando}
-                                    >
-                                      <PersonRemoveIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                </ListItemSecondaryAction>
-                              </ListItem>
+                              <EquipoInscrito 
+                                equipo={equipo}
+                                onDesinscribir={desinscribirEquipo}
+                                cargando={cargando}
+                              />
                             </motion.div>
                           ))}
                         </AnimatePresence>
@@ -436,57 +595,11 @@ export const InscripcionesTorneo = ({ torneo, onEquiposActualizados }) => {
                         animate="visible"
                         layout
                       >
-                        <ListItem sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.05)', 
-                          borderRadius: 2,
-                          mb: 1,
-                          '&:hover': {
-                            bgcolor: 'rgba(255,255,255,0.1)'
-                          }
-                        }}>
-                          <ListItemAvatar>
-                            <Avatar 
-                              src={equipo.imagen ? `${API_URL}/uploads/${equipo.imagen}` : ''}
-                              sx={{ bgcolor: 'secondary.main' }}
-                            >
-                              {equipo.nombre?.charAt(0)}
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText 
-                            primary={equipo.nombre}
-                            secondary={
-                              <>
-                                <Typography variant="caption" component="span">
-                                  {equipo.jugadores?.length || 0} jugadores
-                                </Typography>
-                                <Box component="span" sx={{ ml: 1 }}>
-                                  <Chip 
-                                    label={getCategoryName([equipo.categoria])}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ fontSize: '0.6rem', height: 20 }}
-                                  />
-                                </Box>
-                              </>
-                            }
-                            secondaryTypographyProps={{
-                              component: 'div',
-                              sx: { display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }
-                            }}
-                          />
-                          <ListItemSecondaryAction>
-                            <Tooltip title="Inscribir equipo">
-                              <IconButton 
-                                edge="end" 
-                                color="primary"
-                                onClick={() => abrirModalInscripcion(equipo)}
-                                disabled={cargando}
-                              >
-                                <PersonAddIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </ListItemSecondaryAction>
-                        </ListItem>
+                        <EquipoDisponible 
+                          equipo={equipo}
+                          onInscribir={abrirModalInscripcion}
+                          cargando={cargando}
+                        />
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -498,79 +611,14 @@ export const InscripcionesTorneo = ({ torneo, onEquiposActualizados }) => {
       </Box>
 
       {/* Modal de confirmación de inscripción */}
-      <Dialog 
-        open={modalInscripcion} 
+      <ModalConfirmacion 
+        open={modalInscripcion}
         onClose={cerrarModal}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            bgcolor: 'rgba(15, 15, 25, 0.95)',
-            backdropFilter: 'blur(10px)'
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <EmojiEventsIcon sx={{ color: '#FFD700' }} />
-          Confirmar Inscripción
-        </DialogTitle>
-        
-        <DialogContent sx={{ pt: 3 }}>
-          {equipoSeleccionado && (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Avatar 
-                  src={equipoSeleccionado.imagen ? `${API_URL}/uploads/${equipoSeleccionado.imagen}` : ''}
-                  sx={{ width: 60, height: 60, bgcolor: 'primary.main' }}
-                >
-                  {equipoSeleccionado.nombre?.charAt(0)}
-                </Avatar>
-                <Box>
-                  <Typography variant="h6">{equipoSeleccionado.nombre}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {getCategoryName([equipoSeleccionado.categoria])}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {equipoSeleccionado.jugadores?.length || 0} jugadores
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <Alert severity="info" sx={{ mb: 2 }}>
-                ¿Estás seguro de que deseas inscribir este equipo en el torneo "{torneo?.nombre}"?
-              </Alert>
-            </Box>
-          )}
-        </DialogContent>
-        
-        <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={cerrarModal}
-            variant="outlined"
-            startIcon={<CancelIcon />}
-            disabled={cargando}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={() => inscribirEquipo(equipoSeleccionado)}
-            variant="contained"
-            startIcon={cargando ? <CircularProgress size={20} /> : <CheckCircleIcon />}
-            disabled={cargando}
-            sx={{
-              background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)'
-            }}
-          >
-            {cargando ? 'Inscribiendo...' : 'Confirmar Inscripción'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        equipoSeleccionado={equipoSeleccionado}
+        torneo={torneo}
+        onConfirmar={inscribirEquipo}
+        cargando={cargando}
+      />
     </Box>
   );
 };

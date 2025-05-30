@@ -36,6 +36,92 @@ import axiosInstance from '../../config/axios';
 import Swal from 'sweetalert2';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+
+// 🔥 Componente para vista previa de avatar
+const AvatarPreview = ({ src, alt, onClick, size = 150 }) => {
+  return (
+    <Box sx={{ position: 'relative', display: 'inline-block', mb: 3 }}>
+      <Avatar
+        src={src}
+        sx={{
+          width: size,
+          height: size,
+          cursor: 'pointer',
+          border: '3px solid rgba(100, 181, 246, 0.3)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            border: '3px solid #64b5f6',
+            boxShadow: '0 0 20px rgba(100, 181, 246, 0.6)',
+            transform: 'scale(1.05)'
+          }
+        }}
+        onClick={onClick}
+      >
+        <PersonIcon sx={{ fontSize: size / 2.5 }} />
+      </Avatar>
+      
+      {/* Botón flotante para cambiar imagen */}
+      <IconButton
+        onClick={onClick}
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          backgroundColor: '#2196f3',
+          color: 'white',
+          width: 40,
+          height: 40,
+          '&:hover': {
+            backgroundColor: '#1976d2',
+            transform: 'scale(1.1)'
+          }
+        }}
+      >
+        <PhotoCameraIcon />
+      </IconButton>
+    </Box>
+  );
+};
+
+// 🔥 Componente para vista previa de información
+const VistaPrevia = ({ form, avatarSrc }) => {
+  return (
+    <Box sx={{ 
+      p: 2, 
+      borderRadius: 2, 
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
+    }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        👁️ Vista previa
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar
+          src={avatarSrc}
+          sx={{ 
+            width: 40, 
+            height: 40,
+            border: '2px solid rgba(255, 255, 255, 0.2)'
+          }}
+        >
+          <PersonIcon />
+        </Avatar>
+        <Box>
+          <Typography variant="body1" sx={{ 
+            color: 'white', 
+            fontWeight: 'medium'
+          }}>
+            {form.nombre || 'Nombre del usuario'}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {form.documento || 'Documento de identidad'}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
 
 export const EditarPerfil = () => {
   const { usuario, login } = useAuth();
@@ -54,10 +140,11 @@ export const EditarPerfil = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Usar un valor predeterminado para el API_URL en caso de que la variable de entorno no esté definida
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
-  const imagePath = usuario?.imagen ? `${API_URL}/uploads/${usuario.imagen}` : '';
-  const avatarSrc = preview || imagePath;
+  // 🔥 Usar el hook para la imagen del usuario actual
+  const usuarioImageUrl = useImage(usuario?.imagen, '');
+  
+  // 🔥 Determinar qué imagen mostrar: preview (nueva) o imagen actual
+  const avatarSrc = preview || usuarioImageUrl;
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -69,11 +156,6 @@ export const EditarPerfil = () => {
           documento: usuario.documento || '',
           email: usuario.email || ''
         });
-
-        if (usuario.imagen) {
-          const url = `${API_URL}/uploads/${usuario.imagen}`;
-          setPreview(url);
-        }
 
         return;
       }
@@ -88,10 +170,8 @@ export const EditarPerfil = () => {
           email: data.email || ''
         });
 
-        if (data.imagen) {
-          const url = `${API_URL}/uploads/${data.imagen}`;
-          setPreview(url);
-        }
+        // 🔥 Ya no necesitamos construir la URL manualmente
+        // El hook se encargará de esto automáticamente
       } catch (error) {
         console.error('Error al cargar el usuario:', error);
         setError('No se pudo cargar la información del usuario.');
@@ -101,7 +181,7 @@ export const EditarPerfil = () => {
     };
 
     cargarDatos();
-  }, [id, usuario, API_URL]);
+  }, [id, usuario]);
 
   const handleImagenChange = (e) => {
     const file = e.target.files[0];
@@ -418,47 +498,13 @@ export const EditarPerfil = () => {
                             ref={fileInputRef}
                           />
 
-                          {/* Avatar */}
-                          <Box sx={{ position: 'relative', display: 'inline-block', mb: 3 }}>
-                            <Avatar
-                              src={avatarSrc}
-                              sx={{
-                                width: 150,
-                                height: 150,
-                                cursor: 'pointer',
-                                border: '3px solid rgba(100, 181, 246, 0.3)',
-                                transition: 'all 0.3s ease',
-                                '&:hover': {
-                                  border: '3px solid #64b5f6',
-                                  boxShadow: '0 0 20px rgba(100, 181, 246, 0.6)',
-                                  transform: 'scale(1.05)'
-                                }
-                              }}
-                              onClick={handleImageClick}
-                            >
-                              <PersonIcon sx={{ fontSize: 60 }} />
-                            </Avatar>
-                            
-                            {/* Botón flotante para cambiar imagen */}
-                            <IconButton
-                              onClick={handleImageClick}
-                              sx={{
-                                position: 'absolute',
-                                bottom: 0,
-                                right: 0,
-                                backgroundColor: '#2196f3',
-                                color: 'white',
-                                width: 40,
-                                height: 40,
-                                '&:hover': {
-                                  backgroundColor: '#1976d2',
-                                  transform: 'scale(1.1)'
-                                }
-                              }}
-                            >
-                              <PhotoCameraIcon />
-                            </IconButton>
-                          </Box>
+                          {/* Avatar con vista previa */}
+                          <AvatarPreview 
+                            src={avatarSrc}
+                            alt={`Foto de ${form.nombre}`}
+                            onClick={handleImageClick}
+                            size={150}
+                          />
 
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                             Haz clic en la imagen para cambiarla
@@ -554,39 +600,7 @@ export const EditarPerfil = () => {
                         </Box>
 
                         {/* Vista previa de información */}
-                        <Box sx={{ 
-                          p: 2, 
-                          borderRadius: 2, 
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            👁️ Vista previa
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar
-                              src={avatarSrc}
-                              sx={{ 
-                                width: 40, 
-                                height: 40,
-                                border: '2px solid rgba(255, 255, 255, 0.2)'
-                              }}
-                            >
-                              <PersonIcon />
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body1" sx={{ 
-                                color: 'white', 
-                                fontWeight: 'medium'
-                              }}>
-                                {form.nombre || 'Nombre del usuario'}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {form.documento || 'Documento de identidad'}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Box>
+                        <VistaPrevia form={form} avatarSrc={avatarSrc} />
                       </Box>
                     </Grid>
                   </Grid>

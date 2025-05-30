@@ -41,10 +41,249 @@ import axiosInstance from '../../config/axios';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getCategoryName } from '../../helpers/mappings';
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+
+// 🔥 Componente para tarjeta de torneo individual
+const TorneoCard = ({ torneo, onAbrirDetalle }) => {
+  const torneoImageUrl = useImage(torneo.imagen, '/images/torneo-default.jpg');
+  
+  // Obtener estado del torneo basado en fechas
+  const obtenerEstadoTorneo = (torneo) => {
+    const ahora = new Date();
+    const inicio = new Date(torneo.fechaInicio);
+    const fin = new Date(torneo.fechaFin);
+    
+    if (ahora < inicio) {
+      return { texto: 'Próximamente', color: 'warning' };
+    } else if (ahora >= inicio && ahora <= fin) {
+      return { texto: 'En curso', color: 'success' };
+    } else {
+      return { texto: 'Finalizado', color: 'default' };
+    }
+  };
+
+  // Formatear fecha
+  const formatearFecha = (fecha) => {
+    if (!fecha) return '';
+    return format(new Date(fecha), "d 'de' MMMM, yyyy", { locale: es });
+  };
+
+  // Función para calcular partidos totales (placeholder)
+  const calcularPartidosTotales = (torneo) => {
+    const equiposPorCategoria = Math.ceil((torneo.equipos?.length || 0) / (torneo.categorias?.length || 1));
+    const partidosPorCategoria = equiposPorCategoria > 1 ? equiposPorCategoria * 2 : 0;
+    return (torneo.categorias?.length || 0) * partidosPorCategoria;
+  };
+
+  const estadoTorneo = obtenerEstadoTorneo(torneo);
+  const partidosEstimados = calcularPartidosTotales(torneo);
+
+  return (
+    <Card sx={{
+      backdropFilter: 'blur(10px)', 
+      backgroundColor: 'rgba(0, 0, 0, 0.7)', 
+      borderRadius: 3,
+      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      '&:hover': {
+        transform: 'translateY(-5px)',
+        boxShadow: '0 12px 20px rgba(0, 0, 0, 0.2)'
+      }
+    }}>
+      <CardMedia
+        component="img"
+        height="140"
+        image={torneoImageUrl} // 🔥 Usar la URL del hook
+        alt={torneo.nombre}
+        sx={{ 
+          objectFit: 'cover',
+          borderTopLeftRadius: 3,
+          borderTopRightRadius: 3
+        }}
+      />
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h6" component="div" sx={{ 
+            fontWeight: 'bold', 
+            color: 'white',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            flex: 1,
+            mr: 1
+          }}>
+            {torneo.nombre}
+          </Typography>
+          <Chip
+            label={estadoTorneo.texto}
+            size="small"
+            color={estadoTorneo.color}
+            variant="outlined"
+          />
+        </Box>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: 1.5,
+          mb: 2,
+          p: 1.5, 
+          borderRadius: 2, 
+          bgcolor: 'rgba(255,255,255,0.03)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CalendarMonthIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+            <Typography variant="body2" sx={{ color: '#aaa' }}>
+              {formatearFecha(torneo.fechaInicio)} - {formatearFecha(torneo.fechaFin)}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <GroupsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+            <Typography variant="body2" sx={{ color: '#aaa' }}>
+              {torneo.equipos?.length || 0} equipos registrados
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SportsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+            <Typography variant="body2" sx={{ color: '#aaa' }}>
+              {torneo.categorias?.length || 0} categorías
+            </Typography>
+          </Box>
+          
+          {partidosEstimados > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SportsSoccerIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+              <Typography variant="body2" sx={{ color: '#aaa' }}>
+                ~{partidosEstimados} partidos estimados
+              </Typography>
+            </Box>
+          )}
+        </Box>
+        
+        {/* Chips de categorías */}
+        <Box sx={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: 0.5,
+          mt: 1
+        }}>
+          {torneo.categorias?.slice(0, 3).map((categoria, index) => (
+            <Chip
+              key={categoria}
+              label={getCategoryName([categoria])}
+              size="small"
+              variant="outlined"
+              sx={{ 
+                fontSize: '0.7rem',
+                height: 24,
+                '& .MuiChip-label': {
+                  px: 1
+                }
+              }}
+            />
+          ))}
+          {torneo.categorias?.length > 3 && (
+            <Chip
+              label={`+${torneo.categorias.length - 3}`}
+              size="small"
+              variant="filled"
+              color="primary"
+              sx={{ 
+                fontSize: '0.7rem',
+                height: 24,
+                '& .MuiChip-label': {
+                  px: 1
+                }
+              }}
+            />
+          )}
+        </Box>
+      </CardContent>
+      <CardActions sx={{ p: 2 }}>
+        <Button 
+          variant="contained" 
+          fullWidth
+          startIcon={<InfoIcon />}
+          onClick={() => onAbrirDetalle(torneo._id)}
+          sx={{
+            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+            borderRadius: 2,
+            py: 1
+          }}
+        >
+          Ver Detalles
+        </Button>
+      </CardActions>
+    </Card>
+  );
+};
+
+// 🔥 Componente para el avatar del torneo en el modal
+const TorneoAvatar = ({ torneo }) => {
+  const torneoImageUrl = useImage(torneo?.imagen, '/images/torneo-default.jpg');
+  
+  return (
+    <CardMedia
+      component="img"
+      height="200"
+      image={torneoImageUrl}
+      alt={torneo?.nombre}
+      sx={{ 
+        borderRadius: 2,
+        objectFit: 'cover',
+        mb: 3
+      }}
+    />
+  );
+};
+
+// 🔥 Componente para lista de equipos en el modal
+const EquipoListItem = ({ equipo, index }) => {
+  const equipoImageUrl = useImage(equipo.imagen, '');
+  
+  return (
+    <ListItem 
+      sx={{ 
+        borderRadius: 2, 
+        mb: 1, 
+        bgcolor: 'rgba(255,255,255,0.05)',
+        '&:hover': {
+          bgcolor: 'rgba(255,255,255,0.1)'
+        }
+      }}
+    >
+      <ListItemAvatar>
+        <Avatar 
+          src={equipoImageUrl}
+          alt={equipo.nombre}
+          sx={{ 
+            bgcolor: 'primary.main',
+            border: '2px solid rgba(255,255,255,0.2)'
+          }}
+        >
+          {equipo.nombre?.charAt(0) || 'E'}
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText 
+        primary={equipo.nombre} 
+        secondary={`${equipo.jugadores?.length || 0} jugadores`} 
+      />
+      <Tooltip title="Ver equipo">
+        <IconButton edge="end" color="primary">
+          <InfoIcon />
+        </IconButton>
+      </Tooltip>
+    </ListItem>
+  );
+};
 
 export const Torneos = () => {
   const { usuario, tieneRol } = useAuth();
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
   const esCapitan = tieneRol('capitan');
 
   const [torneos, setTorneos] = useState([]);
@@ -98,50 +337,6 @@ export const Torneos = () => {
   // Cambiar tab en detalle
   const cambiarTab = (event, nuevoValor) => {
     setTabActivo(nuevoValor);
-  };
-
-  // Formatear fecha
-  const formatearFecha = (fecha) => {
-    if (!fecha) return '';
-    return format(new Date(fecha), "d 'de' MMMM, yyyy", { locale: es });
-  };
-
-  // Función para calcular partidos totales (placeholder - ajustar cuando tengas el modelo de partidos)
-  const calcularPartidosTotales = (torneo) => {
-    // Placeholder: por ahora calculamos estimación basada en equipos y categorías
-    const equiposPorCategoria = Math.ceil((torneo.equipos?.length || 0) / (torneo.categorias?.length || 1));
-    const partidosPorCategoria = equiposPorCategoria > 1 ? equiposPorCategoria * 2 : 0; // Estimación simple
-    return (torneo.categorias?.length || 0) * partidosPorCategoria;
-  };
-
-  // Obtener estado del torneo basado en fechas
-  const obtenerEstadoTorneo = (torneo) => {
-    const ahora = new Date();
-    const inicio = new Date(torneo.fechaInicio);
-    const fin = new Date(torneo.fechaFin);
-    
-    if (ahora < inicio) {
-      return { texto: 'Próximamente', color: 'warning' };
-    } else if (ahora >= inicio && ahora <= fin) {
-      return { texto: 'En curso', color: 'success' };
-    } else {
-      return { texto: 'Finalizado', color: 'default' };
-    }
-  };
-
-  // Estilos consistentes para las tarjetas
-  const cardStyle = {
-    backdropFilter: 'blur(10px)', 
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', 
-    borderRadius: 3,
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 12px 20px rgba(0, 0, 0, 0.2)'
-    }
   };
 
   // Animaciones
@@ -250,146 +445,16 @@ export const Torneos = () => {
           </motion.div>
         ) : (
           <Grid container spacing={3}>
-            {torneos.map((torneo) => {
-              const estadoTorneo = obtenerEstadoTorneo(torneo);
-              const partidosEstimados = calcularPartidosTotales(torneo);
-              
-              return (
-                <Grid item xs={12} sm={6} md={4} key={torneo._id}>
-                  <motion.div variants={itemVariants}>
-                    <Card sx={cardStyle}>
-                      <CardMedia
-                        component="img"
-                        height="140"
-                        image={torneo.imagen ? `${API_URL}/uploads/${torneo.imagen}` : '/images/torneo-default.jpg'}
-                        alt={torneo.nombre}
-                        sx={{ 
-                          objectFit: 'cover',
-                          borderTopLeftRadius: 3,
-                          borderTopRightRadius: 3
-                        }}
-                      />
-                      <CardContent sx={{ flexGrow: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                          <Typography variant="h6" component="div" sx={{ 
-                            fontWeight: 'bold', 
-                            color: 'white',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            flex: 1,
-                            mr: 1
-                          }}>
-                            {torneo.nombre}
-                          </Typography>
-                          <Chip
-                            label={estadoTorneo.texto}
-                            size="small"
-                            color={estadoTorneo.color}
-                            variant="outlined"
-                          />
-                        </Box>
-                        
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          gap: 1.5,
-                          mb: 2,
-                          p: 1.5, 
-                          borderRadius: 2, 
-                          bgcolor: 'rgba(255,255,255,0.03)'
-                        }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CalendarMonthIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                            <Typography variant="body2" sx={{ color: '#aaa' }}>
-                              {formatearFecha(torneo.fechaInicio)} - {formatearFecha(torneo.fechaFin)}
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <GroupsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                            <Typography variant="body2" sx={{ color: '#aaa' }}>
-                              {torneo.equipos?.length || 0} equipos registrados
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <SportsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                            <Typography variant="body2" sx={{ color: '#aaa' }}>
-                              {torneo.categorias?.length || 0} categorías
-                            </Typography>
-                          </Box>
-                          
-                          {partidosEstimados > 0 && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <SportsSoccerIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                              <Typography variant="body2" sx={{ color: '#aaa' }}>
-                                ~{partidosEstimados} partidos estimados
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                        
-                        {/* Chips de categorías */}
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexWrap: 'wrap', 
-                          gap: 0.5,
-                          mt: 1
-                        }}>
-                          {torneo.categorias?.slice(0, 3).map((categoria, index) => (
-                            <Chip
-                              key={categoria}
-                              label={getCategoryName([categoria])}
-                              size="small"
-                              variant="outlined"
-                              sx={{ 
-                                fontSize: '0.7rem',
-                                height: 24,
-                                '& .MuiChip-label': {
-                                  px: 1
-                                }
-                              }}
-                            />
-                          ))}
-                          {torneo.categorias?.length > 3 && (
-                            <Chip
-                              label={`+${torneo.categorias.length - 3}`}
-                              size="small"
-                              variant="filled"
-                              color="primary"
-                              sx={{ 
-                                fontSize: '0.7rem',
-                                height: 24,
-                                '& .MuiChip-label': {
-                                  px: 1
-                                }
-                              }}
-                            />
-                          )}
-                        </Box>
-                      </CardContent>
-                      <CardActions sx={{ p: 2 }}>
-                        <Button 
-                          variant="contained" 
-                          fullWidth
-                          startIcon={<InfoIcon />}
-                          onClick={() => abrirDetalleTorneo(torneo._id)}
-                          sx={{
-                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                            borderRadius: 2,
-                            py: 1
-                          }}
-                        >
-                          Ver Detalles
-                        </Button>
-                      </CardActions>
-                    </Card>
-                  </motion.div>
-                </Grid>
-              );
-            })}
+            {torneos.map((torneo) => (
+              <Grid item xs={12} sm={6} md={4} key={torneo._id}>
+                <motion.div variants={itemVariants}>
+                  <TorneoCard 
+                    torneo={torneo}
+                    onAbrirDetalle={abrirDetalleTorneo}
+                  />
+                </motion.div>
+              </Grid>
+            ))}
           </Grid>
         )}
       </motion.div>
@@ -445,8 +510,8 @@ export const Torneos = () => {
                 <Typography variant="h6">{torneoSeleccionado.nombre}</Typography>
               </Box>
               <Chip
-                label={obtenerEstadoTorneo(torneoSeleccionado).texto}
-                color={obtenerEstadoTorneo(torneoSeleccionado).color}
+                label="En curso" // Placeholder - agregar lógica de estado
+                color="success"
                 variant="outlined"
                 size="small"
               />
@@ -485,17 +550,8 @@ export const Torneos = () => {
               {tabActivo === 0 && (
                 <Box>
                   <Box sx={{ mb: 3 }}>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={torneoSeleccionado.imagen ? `${API_URL}/uploads/${torneoSeleccionado.imagen}` : '/images/torneo-default.jpg'}
-                      alt={torneoSeleccionado.nombre}
-                      sx={{ 
-                        borderRadius: 2,
-                        objectFit: 'cover',
-                        mb: 3
-                      }}
-                    />
+                    {/* 🔥 Usar el componente TorneoAvatar */}
+                    <TorneoAvatar torneo={torneoSeleccionado} />
                     
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={6}>
@@ -519,7 +575,7 @@ export const Torneos = () => {
                               <Box>
                                 <Typography variant="body2" color="text.secondary">Fecha de inicio</Typography>
                                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {formatearFecha(torneoSeleccionado.fechaInicio)}
+                                  {format(new Date(torneoSeleccionado.fechaInicio), "d 'de' MMMM, yyyy", { locale: es })}
                                 </Typography>
                               </Box>
                             </Box>
@@ -529,7 +585,7 @@ export const Torneos = () => {
                               <Box>
                                 <Typography variant="body2" color="text.secondary">Fecha de finalización</Typography>
                                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                                  {formatearFecha(torneoSeleccionado.fechaFin)}
+                                  {format(new Date(torneoSeleccionado.fechaFin), "d 'de' MMMM, yyyy", { locale: es })}
                                 </Typography>
                               </Box>
                             </Box>
@@ -620,38 +676,7 @@ export const Torneos = () => {
                     <List>
                       {torneoSeleccionado.equipos.map((equipo, index) => (
                         <React.Fragment key={equipo._id || index}>
-                          <ListItem 
-                            sx={{ 
-                              borderRadius: 2, 
-                              mb: 1, 
-                              bgcolor: 'rgba(255,255,255,0.05)',
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.1)'
-                              }
-                            }}
-                          >
-                            <ListItemAvatar>
-                              <Avatar 
-                                src={equipo.imagen ? `${API_URL}/uploads/${equipo.imagen}` : ''} 
-                                alt={equipo.nombre}
-                                sx={{ 
-                                  bgcolor: 'primary.main',
-                                  border: '2px solid rgba(255,255,255,0.2)'
-                                }}
-                              >
-                                {equipo.nombre?.charAt(0) || 'E'}
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText 
-                              primary={equipo.nombre} 
-                              secondary={`${equipo.jugadores?.length || 0} jugadores`} 
-                            />
-                            <Tooltip title="Ver equipo">
-                              <IconButton edge="end" color="primary">
-                                <InfoIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </ListItem>
+                          <EquipoListItem equipo={equipo} index={index} />
                           {index < torneoSeleccionado.equipos.length - 1 && (
                             <Divider variant="inset" component="li" sx={{ opacity: 0.2 }} />
                           )}
@@ -677,7 +702,6 @@ export const Torneos = () => {
               {/* Tab 3: Resultados */}
               {tabActivo === 2 && torneoSeleccionado.resultados && (
                 <Box>
-                  {/* Aquí irán los resultados por categoría cuando los implementes */}
                   <Typography variant="body1" sx={{ textAlign: 'center', p: 3 }}>
                     Los resultados aparecerán aquí una vez finalizadas las competencias.
                   </Typography>

@@ -18,6 +18,228 @@ import {
   EmojiEvents as EmojiEventsIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+
+// 🔥 Componente para mostrar un jugador individual
+const JugadorCard = ({ 
+  jugador, 
+  index, 
+  showActions, 
+  onJugadorClick 
+}) => {
+  const jugadorImageUrl = useImage(jugador.imagen, '');
+  
+  return (
+    <Grid item xs={12} sm={6} md={4}>
+      <motion.div 
+        variants={{
+          hidden: { y: 20, opacity: 0 },
+          visible: { 
+            y: 0, 
+            opacity: 1,
+            transition: { duration: 0.4, ease: "easeOut" }
+          }
+        }}
+      >
+        <Card sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: 2,
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.3s ease',
+          cursor: onJugadorClick ? 'pointer' : 'default',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            transform: 'translateY(-5px)',
+            border: '1px solid rgba(100, 181, 246, 0.3)',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
+          }
+        }}
+        onClick={() => onJugadorClick && onJugadorClick(jugador)}
+        >
+          <CardContent sx={{ p: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2,
+              mb: 2
+            }}>
+              <Avatar 
+                src={jugadorImageUrl}
+                sx={{ 
+                  width: 50, 
+                  height: 50,
+                  border: '2px solid rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                <PersonIcon />
+              </Avatar>
+              
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: 'white', 
+                    fontWeight: 'bold',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {jugador.nombre || 'Jugador'}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block'
+                  }}
+                >
+                  {jugador.documento || 'Sin documento'}
+                </Typography>
+              </Box>
+              
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
+                }}
+              >
+                {jugador.numero || '?'}
+              </Box>
+            </Box>
+            
+            {/* Información adicional y acciones */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              pt: 1,
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <Typography variant="caption" color="text.secondary">
+                Jugador #{jugador.numero || '?'}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Chip 
+                  label="Activo"
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                  sx={{ 
+                    fontSize: '0.6rem',
+                    height: 20
+                  }}
+                />
+                
+                {showActions && (
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Tooltip title="Ver perfil">
+                      <IconButton 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                          color: '#2196f3',
+                          '&:hover': {
+                            backgroundColor: 'rgba(33, 150, 243, 0.2)'
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Aquí puedes agregar la lógica para ver perfil
+                        }}
+                      >
+                        <VisibilityIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    
+                    <Tooltip title="Editar">
+                      <IconButton 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                          color: '#ff9800',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 152, 0, 0.2)'
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Aquí puedes agregar la lógica para editar
+                        }}
+                      >
+                        <EditIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </Grid>
+  );
+};
+
+// 🔥 Componente para estado de carga
+const LoadingSpinner = () => (
+  <Box sx={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    minHeight: '200px'
+  }}>
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+    >
+      <PersonIcon sx={{ fontSize: 40, color: '#64b5f6' }} />
+    </motion.div>
+  </Box>
+);
+
+// 🔥 Componente para estado vacío
+const EstadoVacio = ({ equipo }) => (
+  <motion.div 
+    variants={{
+      hidden: { y: 20, opacity: 0 },
+      visible: { 
+        y: 0, 
+        opacity: 1,
+        transition: { duration: 0.6, ease: "easeOut" }
+      }
+    }}
+  >
+    <Box sx={{ 
+      p: 4, 
+      textAlign: 'center',
+      border: '2px dashed rgba(255,255,255,0.2)',
+      borderRadius: 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.02)'
+    }}>
+      <PersonIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)', mb: 2 }} />
+      <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
+        No hay jugadores registrados
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {equipo ? `${equipo.nombre} aún no tiene jugadores asignados` : 'No se encontraron jugadores'}
+      </Typography>
+    </Box>
+  </motion.div>
+);
 
 export const ListaJugadoresEquipo = ({ 
   jugadores = [], 
@@ -28,8 +250,6 @@ export const ListaJugadoresEquipo = ({
   onJugadorClick = null,
   loading = false 
 }) => {
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
-
   // Animaciones
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -44,26 +264,12 @@ export const ListaJugadoresEquipo = ({
     visible: { 
       y: 0, 
       opacity: 1,
-      transition: { duration: 0.4, ease: "easeOut" }
+      transition: { duration: 0.6, ease: "easeOut" }
     }
   };
 
   if (loading) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: '200px'
-      }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        >
-          <PersonIcon sx={{ fontSize: 40, color: '#64b5f6' }} />
-        </motion.div>
-      </Box>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -101,178 +307,17 @@ export const ListaJugadoresEquipo = ({
 
       {/* Lista de jugadores o estado vacío */}
       {jugadores.length === 0 ? (
-        <motion.div variants={itemVariants}>
-          <Box sx={{ 
-            p: 4, 
-            textAlign: 'center',
-            border: '2px dashed rgba(255,255,255,0.2)',
-            borderRadius: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.02)'
-          }}>
-            <PersonIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
-              No hay jugadores registrados
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {equipo ? `${equipo.nombre} aún no tiene jugadores asignados` : 'No se encontraron jugadores'}
-            </Typography>
-          </Box>
-        </motion.div>
+        <EstadoVacio equipo={equipo} />
       ) : (
         <Grid container spacing={2}>
           {jugadores.map((jugador, index) => (
-            <Grid item xs={12} sm={6} md={4} key={jugador._id || index}>
-              <motion.div variants={itemVariants}>
-                <Card sx={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  transition: 'all 0.3s ease',
-                  cursor: onJugadorClick ? 'pointer' : 'default',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    transform: 'translateY(-5px)',
-                    border: '1px solid rgba(100, 181, 246, 0.3)',
-                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
-                  }
-                }}
-                onClick={() => onJugadorClick && onJugadorClick(jugador)}
-                >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 2,
-                      mb: 2
-                    }}>
-                      <Avatar 
-                        src={jugador.imagen ? `${API_URL}/uploads/${jugador.imagen}` : ''}
-                        sx={{ 
-                          width: 50, 
-                          height: 50,
-                          border: '2px solid rgba(255, 255, 255, 0.2)'
-                        }}
-                      >
-                        <PersonIcon />
-                      </Avatar>
-                      
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
-                            color: 'white', 
-                            fontWeight: 'bold',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {jugador.nombre || 'Jugador'}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary"
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            display: 'block'
-                          }}
-                        >
-                          {jugador.documento || 'Sin documento'}
-                        </Typography>
-                      </Box>
-                      
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 36,
-                          height: 36,
-                          borderRadius: '50%',
-                          background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          fontSize: '1rem',
-                          boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
-                        }}
-                      >
-                        {jugador.numero || '?'}
-                      </Box>
-                    </Box>
-                    
-                    {/* Información adicional y acciones */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      pt: 1,
-                      borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-                    }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Jugador #{jugador.numero || '?'}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip 
-                          label="Activo"
-                          size="small"
-                          color="success"
-                          variant="outlined"
-                          sx={{ 
-                            fontSize: '0.6rem',
-                            height: 20
-                          }}
-                        />
-                        
-                        {showActions && (
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <Tooltip title="Ver perfil">
-                              <IconButton 
-                                size="small"
-                                sx={{ 
-                                  backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                                  color: '#2196f3',
-                                  '&:hover': {
-                                    backgroundColor: 'rgba(33, 150, 243, 0.2)'
-                                  }
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Aquí puedes agregar la lógica para ver perfil
-                                }}
-                              >
-                                <VisibilityIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Tooltip>
-                            
-                            <Tooltip title="Editar">
-                              <IconButton 
-                                size="small"
-                                sx={{ 
-                                  backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                                  color: '#ff9800',
-                                  '&:hover': {
-                                    backgroundColor: 'rgba(255, 152, 0, 0.2)'
-                                  }
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Aquí puedes agregar la lógica para editar
-                                }}
-                              >
-                                <EditIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        )}
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
+            <JugadorCard
+              key={jugador._id || index}
+              jugador={jugador}
+              index={index}
+              showActions={showActions}
+              onJugadorClick={onJugadorClick}
+            />
           ))}
         </Grid>
       )}

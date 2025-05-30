@@ -35,6 +35,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import axiosInstance from '../config/axios';
 import { getCategoryName } from '../helpers/mappings';
+import { useImage } from '../hooks/useImage';
 
 export const Home = () => {
   const { usuario, token } = useAuth();
@@ -46,7 +47,7 @@ export const Home = () => {
   const [numeroJugador, setNumeroJugador] = useState('');
   const [cargando, setCargando] = useState(false);
 
-  const imagePath = usuario?.imagen ? `${API_URL}/uploads/${usuario.imagen}` : '';
+  const imagePath = useImage(usuario?.imagen)
 
   useEffect(() => {
     const obtenerEquipos = async () => {

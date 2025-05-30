@@ -20,6 +20,7 @@ import {
   Groups as GroupsIcon
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
 
 export const EditarEquipo = () => {
   const { id } = useParams()
@@ -30,8 +31,10 @@ export const EditarEquipo = () => {
   const [fileName, setFileName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [equipoImagen, setEquipoImagen] = useState('') // 🔥 Estado para la imagen original del equipo
 
-  const API_URL = `${import.meta.env.VITE_BACKEND_URL}/uploads/` || '';
+  // 🔥 Usar el hook para la imagen del equipo
+  const equipoImageUrl = useImage(equipoImagen, '/images/equipo-default.jpg')
 
   const schema = Yup.object().shape({
     nombre: Yup.string().required('El nombre es obligatorio'),
@@ -51,7 +54,7 @@ export const EditarEquipo = () => {
     control,
     handleSubmit,
     setValue,
-    watch, // 🔥 Agregar watch para vista previa en tiempo real
+    watch,
     formState: { errors }
   } = useForm({
     resolver: yupResolver(schema),
@@ -74,11 +77,17 @@ export const EditarEquipo = () => {
       setIsLoading(true)
       const response = await axiosInstance.get(`/equipos/${id}`)
       const equipoData = response.data
+      
       reset({
         nombre: equipoData.nombre,
         categoria: equipoData.categoria,
       })
-      setPreviewUrl(`${API_URL}${equipoData.imagen}`)
+      
+      // 🔥 Actualizar el estado de la imagen
+      setEquipoImagen(equipoData.imagen || '')
+      
+      // 🔥 El hook se encargará de construir la URL automáticamente
+      // No necesitamos llamar useImage aquí
     } catch (error) {
       console.error('Error al cargar equipo:', error)
       setError('Error al cargar la información del equipo')
@@ -132,11 +141,14 @@ export const EditarEquipo = () => {
     const file = e.target.files[0]
     if (file) {
       const imageUrl = URL.createObjectURL(file)
-      setPreviewUrl(imageUrl)
+      setPreviewUrl(imageUrl) // 🔥 Esto sobrescribe la imagen original
       setValue('imagen', e.target.files)
       setFileName(file.name)
     }
   }
+
+  // 🔥 Determinar qué imagen mostrar
+  const imagenAMostrar = previewUrl || equipoImageUrl
 
   // Animaciones
   const containerVariants = {
@@ -350,16 +362,20 @@ export const EditarEquipo = () => {
                             }
                           }}
                         >
-                          {previewUrl ? (
+                          {imagenAMostrar ? (
                             <Box
                               component="img"
-                              src={previewUrl}
+                              src={imagenAMostrar}
                               alt="Preview"
                               sx={{
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'contain',
                                 borderRadius: 2
+                              }}
+                              onError={(e) => {
+                                // 🔥 Fallback en caso de error
+                                e.target.src = '/images/equipo-default.jpg'
                               }}
                             />
                           ) : (
@@ -388,7 +404,7 @@ export const EditarEquipo = () => {
                             }
                           }}
                         >
-                          {previewUrl ? 'Cambiar Imagen' : 'Seleccionar Imagen'}
+                          {imagenAMostrar ? 'Cambiar Imagen' : 'Seleccionar Imagen'}
                         </Button>
 
                         {errors.imagen && (
@@ -488,7 +504,7 @@ export const EditarEquipo = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar
-                            src={previewUrl}
+                            src={imagenAMostrar}
                             sx={{ 
                               width: 40, 
                               height: 40,
@@ -501,12 +517,12 @@ export const EditarEquipo = () => {
                             <Typography variant="body1" sx={{ 
                               color: 'white', 
                               fontWeight: 'medium',
-                              minHeight: '24px' // 🔥 Evitar saltos
+                              minHeight: '24px'
                             }}>
                               {nombreActual || 'Nombre del equipo'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{
-                              minHeight: '16px' // 🔥 Evitar saltos
+                              minHeight: '16px'
                             }}>
                               {categoriaActual ? 
                                 {

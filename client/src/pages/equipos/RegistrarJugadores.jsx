@@ -55,6 +55,273 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axiosInstance from '../../config/axios';
 import Swal from 'sweetalert2';
 import { getCategoryName } from '../../helpers/mappings';
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+
+// 🔥 Componente para el avatar del equipo
+const EquipoAvatar = ({ equipo, size = 64 }) => {
+  const equipoImageUrl = useImage(equipo?.imagen, '');
+  
+  return (
+    <Avatar
+      src={equipoImageUrl}
+      sx={{
+        width: size,
+        height: size,
+        border: '3px solid rgba(255, 255, 255, 0.2)'
+      }}
+    >
+      <GroupsIcon />
+    </Avatar>
+  );
+};
+
+// 🔥 Componente para usuario disponible
+const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
+  const usuarioImageUrl = useImage(usuario.imagen, '');
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ delay: index * 0.05 }}
+    >
+      <ListItem
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: 2,
+          mb: 1,
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            transform: 'translateX(5px)',
+            transition: 'all 0.3s ease'
+          },
+        }}
+        secondaryAction={
+          <Tooltip title="Agregar al equipo">
+            <IconButton
+              edge="end"
+              color="primary"
+              onClick={() => onAgregar(usuario)}
+              sx={{
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                  transform: 'scale(1.1)'
+                }
+              }}
+            >
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
+        }
+      >
+        <ListItemAvatar>
+          <Avatar
+            src={usuarioImageUrl}
+            sx={{
+              border: '2px solid rgba(255, 255, 255, 0.2)'
+            }}
+          />
+        </ListItemAvatar>
+        <ListItemText
+          primary={
+            <Typography fontWeight="medium" sx={{ color: 'white' }}>
+              {usuario.nombre}
+            </Typography>
+          }
+          secondary={
+            <Typography variant="body2" color="text.secondary">
+              {usuario.documento}
+            </Typography>
+          }
+        />
+      </ListItem>
+    </motion.div>
+  );
+};
+
+// 🔥 Componente para jugador seleccionado
+const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index }) => {
+  const usuarioImageUrl = useImage(jugador.usuario.imagen, '');
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ delay: index * 0.05 }}
+    >
+      <ListItem
+        sx={{
+          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          borderRadius: 2,
+          mb: 1,
+          border: '1px solid rgba(76, 175, 80, 0.3)',
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          p: 2,
+          '&:hover': {
+            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+            transform: 'scale(1.02)',
+            transition: 'all 0.3s ease'
+          },
+        }}
+      >
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          flex: 1,
+          width: { xs: '100%', sm: 'auto' },
+          mb: { xs: 2, sm: 0 }
+        }}>
+          <ListItemAvatar>
+            <Avatar
+              src={usuarioImageUrl}
+              sx={{
+                border: '2px solid rgba(76, 175, 80, 0.5)'
+              }}
+            />
+          </ListItemAvatar>
+          <ListItemText
+            primary={
+              <Typography fontWeight="medium" sx={{ color: 'white' }}>
+                {jugador.usuario.nombre}
+              </Typography>
+            }
+            secondary={
+              <Typography variant="body2" color="text.secondary">
+                {jugador.usuario.documento}
+              </Typography>
+            }
+          />
+        </Box>
+
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          width: { xs: '100%', sm: 'auto' },
+          justifyContent: { xs: 'space-between', sm: 'flex-end' },
+          gap: 2
+        }}>
+          <TextField
+            label="Número"
+            type="number"
+            value={jugador.numero}
+            onChange={(e) => onActualizarNumero(jugador.usuario._id, e.target.value)}
+            size="small"
+            sx={{
+              width: 120,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                '& fieldset': {
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(100, 181, 246, 0.5)',
+                },
+              }
+            }}
+            inputProps={{ min: 0, max: 99 }}
+          />
+          <IconButton
+            color="error"
+            onClick={() => onQuitar(jugador.usuario._id)}
+            sx={{
+              backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              '&:hover': {
+                backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                transform: 'scale(1.1)'
+              }
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      </ListItem>
+    </motion.div>
+  );
+};
+
+// 🔥 Componente para jugador del roster
+const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugadorAEliminar }) => {
+  const jugadorImageUrl = useImage(jugador.imagen, '');
+  
+  return (
+    <motion.tr
+      key={jugador._id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      style={{
+        backgroundColor: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)'
+      }}
+    >
+      <TableCell sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar
+            src={jugadorImageUrl}
+            sx={{
+              width: 40,
+              height: 40,
+              mr: 2,
+              border: '2px solid rgba(255, 255, 255, 0.2)'
+            }}
+          />
+          <Typography sx={{ color: 'white' }}>{jugador.nombre}</Typography>
+        </Box>
+      </TableCell>
+      <TableCell sx={{
+        color: 'rgba(255, 255, 255, 0.7)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        {jugador.documento}
+      </TableCell>
+      <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Box sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+          color: 'white',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
+        }}>
+          {jugador.numero}
+        </Box>
+      </TableCell>
+      <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Tooltip title="Eliminar del equipo">
+          <span>
+            <IconButton
+              color="error"
+              disabled={deletingPlayer}
+              onClick={() => onEliminar(jugador._id)}
+              sx={{
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                  transform: 'scale(1.1)'
+                }
+              }}
+            >
+              {deletingPlayer && jugadorAEliminar === jugador._id ? (
+                <CircularProgress size={20} />
+              ) : (
+                <DeleteIcon />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
+      </TableCell>
+    </motion.tr>
+  );
+};
 
 export const RegistrarJugadores = () => {
   const { id } = useParams();
@@ -75,8 +342,6 @@ export const RegistrarJugadores = () => {
   const [openRosterDialog, setOpenRosterDialog] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [jugadorAEliminar, setJugadorAEliminar] = useState(null);
-
-  const imagenUrlBase = import.meta.env.VITE_BACKEND_URL + '/uploads/';
 
   // Cargar información del equipo y usuarios disponibles
   useEffect(() => {
@@ -476,16 +741,8 @@ export const RegistrarJugadores = () => {
                   gap: 2
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      src={`${imagenUrlBase}${equipo.imagen}`}
-                      sx={{
-                        width: 64,
-                        height: 64,
-                        border: '3px solid rgba(255, 255, 255, 0.2)'
-                      }}
-                    >
-                      <GroupsIcon />
-                    </Avatar>
+                    {/* 🔥 Usar el componente EquipoAvatar */}
+                    <EquipoAvatar equipo={equipo} size={64} />
                     <Box>
                       <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
                         {equipo.nombre}
@@ -602,66 +859,12 @@ export const RegistrarJugadores = () => {
                     >
                       <AnimatePresence>
                         {usuariosFiltrados.map((usuario, index) => (
-                          <motion.div
+                          <UsuarioDisponibleItem
                             key={usuario._id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ delay: index * 0.05 }}
-                          >
-                            <ListItem
-                              sx={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                borderRadius: 2,
-                                mb: 1,
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                  transform: 'translateX(5px)',
-                                  transition: 'all 0.3s ease'
-                                },
-                              }}
-                              secondaryAction={
-                                <Tooltip title="Agregar al equipo">
-                                  <IconButton
-                                    edge="end"
-                                    color="primary"
-                                    onClick={() => agregarJugador(usuario)}
-                                    sx={{
-                                      backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                                      '&:hover': {
-                                        backgroundColor: 'rgba(33, 150, 243, 0.2)',
-                                        transform: 'scale(1.1)'
-                                      }
-                                    }}
-                                  >
-                                    <AddIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              }
-                            >
-                              <ListItemAvatar>
-                                <Avatar
-                                  src={`${imagenUrlBase}${usuario.imagen}`}
-                                  sx={{
-                                    border: '2px solid rgba(255, 255, 255, 0.2)'
-                                  }}
-                                />
-                              </ListItemAvatar>
-                              <ListItemText
-                                primary={
-                                  <Typography fontWeight="medium" sx={{ color: 'white' }}>
-                                    {usuario.nombre}
-                                  </Typography>
-                                }
-                                secondary={
-                                  <Typography variant="body2" color="text.secondary">
-                                    {usuario.documento}
-                                  </Typography>
-                                }
-                              />
-                            </ListItem>
-                          </motion.div>
+                            usuario={usuario}
+                            onAgregar={agregarJugador}
+                            index={index}
+                          />
                         ))}
                       </AnimatePresence>
                     </List>
@@ -724,102 +927,13 @@ export const RegistrarJugadores = () => {
                     >
                       <AnimatePresence>
                         {jugadoresSeleccionados.map((jugador, index) => (
-                          <motion.div
+                          <JugadorSeleccionadoItem
                             key={jugador.usuario._id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ delay: index * 0.05 }}
-                          >
-                            <ListItem
-                              sx={{
-                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                                borderRadius: 2,
-                                mb: 1,
-                                border: '1px solid rgba(76, 175, 80, 0.3)',
-                                display: 'flex',
-                                flexDirection: { xs: 'column', sm: 'row' },
-                                alignItems: { xs: 'flex-start', sm: 'center' },
-                                p: 2,
-                                '&:hover': {
-                                  backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                                  transform: 'scale(1.02)',
-                                  transition: 'all 0.3s ease'
-                                },
-                              }}
-                            >
-                              <Box sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                flex: 1,
-                                width: { xs: '100%', sm: 'auto' },
-                                mb: { xs: 2, sm: 0 }
-                              }}>
-                                <ListItemAvatar>
-                                  <Avatar
-                                    src={`${imagenUrlBase}${jugador.usuario.imagen}`}
-                                    sx={{
-                                      border: '2px solid rgba(76, 175, 80, 0.5)'
-                                    }}
-                                  />
-                                </ListItemAvatar>
-                                <ListItemText
-                                  primary={
-                                    <Typography fontWeight="medium" sx={{ color: 'white' }}>
-                                      {jugador.usuario.nombre}
-                                    </Typography>
-                                  }
-                                  secondary={
-                                    <Typography variant="body2" color="text.secondary">
-                                      {jugador.usuario.documento}
-                                    </Typography>
-                                  }
-                                />
-                              </Box>
-
-                              <Box sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                width: { xs: '100%', sm: 'auto' },
-                                justifyContent: { xs: 'space-between', sm: 'flex-end' },
-                                gap: 2
-                              }}>
-                                <TextField
-                                  label="Número"
-                                  type="number"
-                                  value={jugador.numero}
-                                  onChange={(e) => actualizarNumeroCamiseta(jugador.usuario._id, e.target.value)}
-                                  size="small"
-                                  sx={{
-                                    width: 120,
-                                    '& .MuiOutlinedInput-root': {
-                                      borderRadius: 2,
-                                      '& fieldset': {
-                                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                                      },
-                                      '&:hover fieldset': {
-                                        borderColor: 'rgba(100, 181, 246, 0.5)',
-                                      },
-                                    }
-                                  }}
-                                  inputProps={{ min: 0, max: 99 }}
-                                />
-                                <IconButton
-                                  color="error"
-                                  onClick={() => quitarJugador(jugador.usuario._id)}
-                                  sx={{
-                                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                                      transform: 'scale(1.1)'
-                                    }
-                                  }}
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Box>
-                            </ListItem>
-                          </motion.div>
+                            jugador={jugador}
+                            onQuitar={quitarJugador}
+                            onActualizarNumero={actualizarNumeroCamiseta}
+                            index={index}
+                          />
                         ))}
                       </AnimatePresence>
                     </List>
@@ -975,76 +1089,14 @@ export const RegistrarJugadores = () => {
                   </TableHead>
                   <TableBody>
                     {jugadoresActuales.map((jugador, index) => (
-                      <motion.tr
+                      <JugadorRosterItem
                         key={jugador._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        style={{
-                          backgroundColor: index % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)'
-                        }}
-                      >
-                        <TableCell sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Avatar
-                              src={`${imagenUrlBase}${jugador.imagen}`}
-                              sx={{
-                                width: 40,
-                                height: 40,
-                                mr: 2,
-                                border: '2px solid rgba(255, 255, 255, 0.2)'
-                              }}
-                            />
-                            <Typography sx={{ color: 'white' }}>{jugador.nombre}</Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell sx={{
-                          color: 'rgba(255, 255, 255, 0.7)',
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}>
-                          {jugador.documento}
-                        </TableCell>
-                        <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                          <Box sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 36,
-                            height: 36,
-                            borderRadius: '50%',
-                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
-                          }}>
-                            {jugador.numero}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                          <Tooltip title="Eliminar del equipo">
-                            <span>
-                              <IconButton
-                                color="error"
-                                disabled={deletingPlayer}
-                                onClick={() => iniciarEliminarJugador(jugador._id)}
-                                sx={{
-                                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                                  '&:hover': {
-                                    backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                                    transform: 'scale(1.1)'
-                                  }
-                                }}
-                              >
-                                {deletingPlayer && jugadorAEliminar === jugador._id ? (
-                                  <CircularProgress size={20} />
-                                ) : (
-                                  <DeleteIcon />
-                                )}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </TableCell>
-                      </motion.tr>
+                        jugador={jugador}
+                        onEliminar={iniciarEliminarJugador}
+                        index={index}
+                        deletingPlayer={deletingPlayer}
+                        jugadorAEliminar={jugadorAEliminar}
+                      />
                     ))}
                   </TableBody>
                 </Table>

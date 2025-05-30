@@ -13,6 +13,7 @@ import bgImage from '../../public/images/bgimage2.png';
 import lacesLogoUrl from '../assets/laces.svg';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "../context/AuthContext";
+import { useImage } from "../hooks/useImage"; // 🔥 AGREGADO: Import del hook
 
 const drawerWidth = 280;
 
@@ -22,7 +23,9 @@ export const Layout = () => {
   const location = useLocation();
   const outlet = useOutlet();
 
-  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/uploads/` || ''
+  // 🔥 REEMPLAZADO: Manual URL construction con useImage hook
+  // const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/uploads/` || ''
+  const usuarioImageUrl = useImage(usuario?.imagen, '');
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -149,7 +152,7 @@ export const Layout = () => {
             backgroundColor: 'primary.main',
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'
           }}
-          src={usuario?.imagen ? `${baseUrl}${usuario.imagen}` : ''}
+          src={usuarioImageUrl} // 🔥 CAMBIADO: Usar useImage hook
         >
           {(usuario?.nombre?.charAt(0) || usuario?.email?.charAt(0) || 'U').toUpperCase()}
         </Avatar>
@@ -372,7 +375,7 @@ export const Layout = () => {
                 backgroundColor: 'primary.main',
                 border: '2px solid rgba(255, 255, 255, 0.2)',
               }}
-              src={usuario?.imagen ? `${baseUrl}${usuario.imagen}` : ''}
+              src={usuarioImageUrl} // 🔥 CAMBIADO: Usar useImage hook
             >
               {(usuario?.nombre?.charAt(0) || usuario?.email?.charAt(0) || 'U').toUpperCase()}
             </Avatar>
@@ -444,7 +447,7 @@ export const Layout = () => {
               backgroundColor: 'primary.main',
               border: '2px solid rgba(255, 255, 255, 0.2)',
             }}
-            src={usuario?.imagen ? `${baseUrl}${usuario.imagen}` : ''}
+            src={usuarioImageUrl} // 🔥 CAMBIADO: Usar useImage hook
           >
             {(usuario?.nombre?.charAt(0) || usuario?.email?.charAt(0) || 'U').toUpperCase()}
           </Avatar>

@@ -47,11 +47,187 @@ import { es } from 'date-fns/locale';
 import { getCategoryName } from '../../helpers/mappings';
 import { FiltrosEquipos } from '../../components/FiltrosEquipos';
 import { ListaJugadoresEquipo } from './ListaJugadoresEquipo';
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
 import Swal from 'sweetalert2';
+
+// 🔥 Componente para tarjeta de equipo individual
+const EquipoCard = ({ equipo, onAbrirDetalle, stats }) => {
+  // 🔥 Usar el hook para la imagen del equipo
+  const equipoImageUrl = useImage(equipo.imagen, '/images/equipo-default.jpg');
+
+  return (
+    <motion.div 
+      variants={{
+        hidden: { y: 20, opacity: 0 },
+        visible: { 
+          y: 0, 
+          opacity: 1,
+          transition: { duration: 0.6, ease: "easeOut" }
+        }
+      }}
+      layout
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      style={{ height: '100%' }}
+    >
+      <Card sx={{
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        borderRadius: 3,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        width: '100%',
+        height: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        '&:hover': {
+          transform: 'translateY(-5px)',
+          boxShadow: '0 12px 20px rgba(0, 0, 0, 0.2)',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)'
+        }
+      }}>
+        <CardMedia
+          component="img"
+          height="140"
+          image={equipoImageUrl} // 🔥 Usar la URL del hook
+          alt={equipo.nombre}
+          sx={{ 
+            objectFit: 'contain',
+            borderTopLeftRadius: 3,
+            borderTopRightRadius: 3,
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            p: 2
+          }}
+        />
+        <CardContent sx={{ 
+          flexGrow: 1, 
+          display: 'flex', 
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6" component="div" sx={{ 
+              fontWeight: 'bold', 
+              color: 'white',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+              mr: 1,
+              minHeight: '1.5em'
+            }}>
+              {equipo.nombre}
+            </Typography>
+            <Chip
+              label={getCategoryName(equipo.categoria)}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{
+                fontSize: '0.7rem',
+                height: '24px',
+                minWidth: '80px'
+              }}
+            />
+          </Box>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: 1.5,
+            mb: 2,
+            p: 1.5, 
+            borderRadius: 2, 
+            bgcolor: 'rgba(255,255,255,0.03)',
+            minHeight: '120px',
+            maxHeight: '120px',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '24px' }}>
+              <PersonIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+              <Typography variant="body2" sx={{ 
+                color: '#aaa',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {stats.jugadores} jugadores registrados
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '24px' }}>
+              <EmojiEventsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+              <Typography variant="body2" sx={{ 
+                color: '#aaa',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {stats.torneos} torneos participados
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '24px' }}>
+              <SportsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+              <Typography variant="body2" sx={{ 
+                color: '#aaa',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                Categoría: {getCategoryName(equipo.categoria)}
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+        <CardActions sx={{ 
+          p: 2, 
+          gap: 1,
+          mt: 'auto',
+          minHeight: '60px'
+        }}>
+          <Button 
+            variant="contained" 
+            fullWidth
+            startIcon={<InfoIcon />}
+            onClick={() => onAbrirDetalle(equipo)}
+            sx={{
+              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+              boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+              borderRadius: 2,
+              py: 1
+            }}
+          >
+            Ver Detalles
+          </Button>
+        </CardActions>
+      </Card>
+    </motion.div>
+  );
+};
+
+// 🔥 Componente para el avatar del equipo en el modal
+const EquipoAvatar = ({ equipo, size = 120 }) => {
+  const equipoImageUrl = useImage(equipo?.imagen, '');
+  
+  return (
+    <Avatar
+      src={equipoImageUrl}
+      sx={{ 
+        width: size, 
+        height: size, 
+        mx: 'auto', 
+        mb: 3,
+        border: '3px solid rgba(255, 255, 255, 0.2)'
+      }}
+    >
+      <GroupsIcon sx={{ fontSize: size / 2 }} />
+    </Avatar>
+  );
+};
 
 export const Equipos = () => {
   const { tieneRol } = useAuth();
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
   const esCapitan = tieneRol('capitan');
 
   const [equipos, setEquipos] = useState([]);
@@ -85,7 +261,6 @@ export const Equipos = () => {
   const abrirDetalleEquipo = async (equipo) => {
     try {
       setCargando(true);
-      // Aquí podrías hacer una consulta más detallada si fuera necesario
       setEquipoSeleccionado(equipo);
       setDetalleAbierto(true);
     } catch (error) {
@@ -109,11 +284,9 @@ export const Equipos = () => {
 
   const eliminarEquipo = async (equipoId) => {
     try {
-      // 1. Cerrar el modal inmediatamente
       setDetalleAbierto(false);
       setEquipoSeleccionado(null);
       
-      // 2. Pequeño delay para que se complete la animación de cierre
       setTimeout(async () => {
         const result = await Swal.fire({
           title: '¿Estás seguro?',
@@ -127,7 +300,6 @@ export const Equipos = () => {
         });
 
         if (result.isConfirmed) {
-          // Usuario confirmó: proceder con eliminación
           await axiosInstance.delete(`/equipos/${equipoId}`);
           
           Swal.fire({
@@ -138,12 +310,10 @@ export const Equipos = () => {
             showConfirmButton: false
           });
           
-          // Actualizar la lista de equipos
           setEquipos(prev => prev.filter(equipo => equipo._id !== equipoId));
           setFiltrados(prev => prev.filter(equipo => equipo._id !== equipoId));
           
         } else {
-          // Usuario canceló: restaurar el modal
           setTimeout(() => {
             const equipoEncontrado = equipos.find(e => e._id === equipoId);
             if (equipoEncontrado) {
@@ -163,7 +333,6 @@ export const Equipos = () => {
         text: 'No se pudo eliminar el equipo. Intenta nuevamente.'
       });
       
-      // En caso de error, también restaurar el modal
       setTimeout(() => {
         const equipoEncontrado = equipos.find(e => e._id === equipoId);
         if (equipoEncontrado) {
@@ -176,29 +345,11 @@ export const Equipos = () => {
 
   // Obtener estadísticas del equipo
   const obtenerEstadisticasEquipo = (equipo) => {
-    // Aquí podrías agregar lógica para obtener estadísticas más detalladas
     return {
       jugadores: equipo.jugadores?.length || 0,
-      torneos: 0, // Placeholder - agregar cuando tengas esta data
-      victorias: 0 // Placeholder - agregar cuando tengas esta data
+      torneos: 0,
+      victorias: 0
     };
-  };
-
-  // Estilos consistentes para las tarjetas
-  const cardStyle = {
-    backgroundColor: 'rgba(0, 0, 0, 0.85)', // 🔥 Aumentar opacidad en lugar de blur
-    borderRadius: 3,
-    border: '1px solid rgba(255, 255, 255, 0.1)', // 🔥 Agregar borde sutil
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    width: '100%',
-    height: '400px',
-    display: 'flex',
-    flexDirection: 'column',
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 12px 20px rgba(0, 0, 0, 0.2)',
-      backgroundColor: 'rgba(0, 0, 0, 0.9)' // 🔥 Cambio sutil en hover
-    }
   };
 
   // Animaciones
@@ -329,11 +480,11 @@ export const Equipos = () => {
                     key={equipo._id} 
                     sx={{ 
                       flexBasis: { 
-                        xs: '100%',                    // Mobile: 1 por fila
-                        sm: 'calc(50% - 12px)',       // Tablet: 2 por fila  
-                        md: 'calc(33.333% - 16px)',   // Tablet grande: 3 por fila
-                        lg: 'calc(25% - 18px)',       // Desktop: 4 por fila
-                        xl: 'calc(20% - 19.2px)'      // Desktop grande: 5 por fila
+                        xs: '100%',
+                        sm: 'calc(50% - 12px)',
+                        md: 'calc(33.333% - 16px)',
+                        lg: 'calc(25% - 18px)',
+                        xl: 'calc(20% - 19.2px)'
                       },
                       maxWidth: { 
                         xs: '100%', 
@@ -344,132 +495,11 @@ export const Equipos = () => {
                       }
                     }}
                   >
-                    <motion.div 
-                      variants={itemVariants}
-                      layout
-                      initial="hidden"
-                      animate="visible"
-                      exit="hidden"
-                      style={{ height: '100%' }}
-                    >
-                      <Card sx={cardStyle}>
-                        <CardMedia
-                          component="img"
-                          height="140"
-                          image={equipo.imagen ? `${API_URL}/uploads/${equipo.imagen}` : '/images/equipo-default.jpg'}
-                          alt={equipo.nombre}
-                          sx={{ 
-                            objectFit: 'contain',
-                            borderTopLeftRadius: 3,
-                            borderTopRightRadius: 3,
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            p: 2
-                          }}
-                        />
-                        <CardContent sx={{ 
-                          flexGrow: 1, 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          overflow: 'hidden'
-                        }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                            <Typography variant="h6" component="div" sx={{ 
-                              fontWeight: 'bold', 
-                              color: 'white',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              flex: 1,
-                              mr: 1,
-                              minHeight: '1.5em'
-                            }}>
-                              {equipo.nombre}
-                            </Typography>
-                            <Chip
-                              label={getCategoryName(equipo.categoria)}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                              sx={{
-                                fontSize: '0.7rem',
-                                height: '24px',
-                                minWidth: '80px'
-                              }}
-                            />
-                          </Box>
-                          
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column',
-                            gap: 1.5,
-                            mb: 2,
-                            p: 1.5, 
-                            borderRadius: 2, 
-                            bgcolor: 'rgba(255,255,255,0.03)',
-                            minHeight: '120px',
-                            maxHeight: '120px',
-                            overflow: 'hidden'
-                          }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '24px' }}>
-                              <PersonIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                              <Typography variant="body2" sx={{ 
-                                color: '#aaa',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {stats.jugadores} jugadores registrados
-                              </Typography>
-                            </Box>
-                            
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '24px' }}>
-                              <EmojiEventsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                              <Typography variant="body2" sx={{ 
-                                color: '#aaa',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {stats.torneos} torneos participados
-                              </Typography>
-                            </Box>
-                            
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '24px' }}>
-                              <SportsIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                              <Typography variant="body2" sx={{ 
-                                color: '#aaa',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                Categoría: {getCategoryName(equipo.categoria)}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </CardContent>
-                        <CardActions sx={{ 
-                          p: 2, 
-                          gap: 1,
-                          mt: 'auto',
-                          minHeight: '60px'
-                        }}>
-                          <Button 
-                            variant="contained" 
-                            fullWidth
-                            startIcon={<InfoIcon />}
-                            onClick={() => abrirDetalleEquipo(equipo)}
-                            sx={{
-                              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                              boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                              borderRadius: 2,
-                              py: 1
-                            }}
-                          >
-                            Ver Detalles
-                          </Button>
-                        </CardActions>
-                      </Card>
-                    </motion.div>
+                    <EquipoCard 
+                      equipo={equipo} 
+                      onAbrirDetalle={abrirDetalleEquipo}
+                      stats={stats}
+                    />
                   </Box>
                 );
               })}
@@ -478,7 +508,7 @@ export const Equipos = () => {
         )}
       </motion.div>
 
-      {/* FAB para agregar equipo - Solo para capitanes */}
+      {/* FAB para agregar equipo */}
       {esCapitan && (
         <Fab 
           component={Link}
@@ -563,18 +593,8 @@ export const Equipos = () => {
               {/* Tab 1: Información general */}
               {tabActivo === 0 && (
                 <Box sx={{ textAlign: 'center' }}>
-                  <Avatar
-                    src={equipoSeleccionado.imagen ? `${API_URL}/uploads/${equipoSeleccionado.imagen}` : ''}
-                    sx={{ 
-                      width: 120, 
-                      height: 120, 
-                      mx: 'auto', 
-                      mb: 3,
-                      border: '3px solid rgba(255, 255, 255, 0.2)'
-                    }}
-                  >
-                    <GroupsIcon sx={{ fontSize: 60 }} />
-                  </Avatar>
+                  {/* 🔥 Usar el componente EquipoAvatar */}
+                  <EquipoAvatar equipo={equipoSeleccionado} size={120} />
                   
                   <Typography variant="h5" sx={{ mb: 1, fontWeight: 'bold' }}>
                     {equipoSeleccionado.nombre}
@@ -648,7 +668,6 @@ export const Equipos = () => {
                   showStats={true}
                   loading={cargando}
                   onJugadorClick={(jugador) => {
-                    // Aquí puedes agregar lógica para ver perfil del jugador
                     console.log('Jugador seleccionado:', jugador);
                   }}
                 />
@@ -672,7 +691,6 @@ export const Equipos = () => {
                 width: '100%',
                 gap: 2
               }}>
-                {/* Botones de acción solo para capitanes */}
                 {esCapitan && (
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button

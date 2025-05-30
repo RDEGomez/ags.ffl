@@ -39,6 +39,63 @@ import {
 } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
+import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
+
+// 🔥 Componente para mostrar equipos existentes
+const EquipoListItem = ({ equipo, index }) => {
+  const equipoImageUrl = useImage(equipo.imagen, '');
+  
+  return (
+    <motion.div
+      key={equipo._id}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.1 }}
+    >
+      <ListItem sx={{ 
+        bgcolor: 'rgba(255,255,255,0.05)', 
+        borderRadius: 2,
+        mb: 1,
+        '&:hover': {
+          bgcolor: 'rgba(255,255,255,0.1)'
+        }
+      }}>
+        <ListItemAvatar>
+          <Avatar 
+            src={equipoImageUrl}
+            sx={{ 
+              bgcolor: 'primary.main',
+              border: '2px solid rgba(255, 255, 255, 0.2)'
+            }}
+          >
+            <GroupsIcon />
+          </Avatar>
+        </ListItemAvatar>
+        <ListItemText 
+          primary={
+            <Typography variant="body1" sx={{ color: 'white', fontWeight: 'medium' }}>
+              {equipo.nombre}
+            </Typography>
+          }
+          secondary={
+            <Typography variant="caption" color="text.secondary">
+              {getCategoryName(equipo.categoria)}
+            </Typography>
+          }
+        />
+        {equipo._id === 0 && ( // Placeholder para el primer equipo recién creado
+          <Chip 
+            label="Recién creado" 
+            color="success" 
+            size="small"
+            icon={<CheckCircleIcon />}
+            sx={{ ml: 1 }}
+          />
+        )}
+      </ListItem>
+    </motion.div>
+  );
+};
 
 export const NuevoEquipo = () => {
   const [fileName, setFileName] = useState('');
@@ -46,6 +103,7 @@ export const NuevoEquipo = () => {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [equipoRecienCreado, setEquipoRecienCreado] = useState(null); // 🔥 Para mostrar el equipo recién creado
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -132,8 +190,10 @@ export const NuevoEquipo = () => {
         }
       });
 
-      // Agregar el nuevo equipo a la lista
-      setEquipos([response.data.equipo, ...equipos]);
+      // 🔥 Agregar el nuevo equipo a la lista y marcarlo como recién creado
+      const nuevoEquipo = response.data.equipo;
+      setEquipoRecienCreado(nuevoEquipo);
+      setEquipos([nuevoEquipo, ...equipos]);
 
       Swal.fire({
         icon: 'success',
@@ -651,54 +711,15 @@ export const NuevoEquipo = () => {
                     }}>
                       <AnimatePresence>
                         {equiposFiltrados.map((equipo, index) => (
-                          <motion.div
+                          <EquipoListItem 
                             key={equipo._id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            <ListItem sx={{ 
-                              bgcolor: 'rgba(255,255,255,0.05)', 
-                              borderRadius: 2,
-                              mb: 1,
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.1)'
-                              }
-                            }}>
-                              <ListItemAvatar>
-                                <Avatar 
-                                  src={equipo.imagen ? `${import.meta.env.VITE_BACKEND_URL}/uploads/${equipo.imagen}` : ''}
-                                  sx={{ 
-                                    bgcolor: 'primary.main',
-                                    border: '2px solid rgba(255, 255, 255, 0.2)'
-                                  }}
-                                >
-                                  <GroupsIcon />
-                                </Avatar>
-                              </ListItemAvatar>
-                              <ListItemText 
-                                primary={
-                                  <Typography variant="body1" sx={{ color: 'white', fontWeight: 'medium' }}>
-                                    {equipo.nombre}
-                                  </Typography>
-                                }
-                                secondary={
-                                  <Typography variant="caption" color="text.secondary">
-                                    {getCategoryName(equipo.categoria)}
-                                  </Typography>
-                                }
-                              />
-                              {equipo._id === equipos[0]?._id && (
-                                <Chip 
-                                  label="Recién creado" 
-                                  color="success" 
-                                  size="small"
-                                  icon={<CheckCircleIcon />}
-                                  sx={{ ml: 1 }}
-                                />
-                              )}
-                            </ListItem>
-                          </motion.div>
+                            equipo={{
+                              ...equipo,
+                              // 🔥 Marcar como recién creado si coincide
+                              _id: equipoRecienCreado && equipoRecienCreado._id === equipo._id ? 0 : equipo._id
+                            }}
+                            index={index}
+                          />
                         ))}
                       </AnimatePresence>
                     </List>

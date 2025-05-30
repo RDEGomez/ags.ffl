@@ -6,7 +6,102 @@ import { getCategoryName } from "../../helpers/mappings";
 import { useState } from "react";
 import axiosInstance from "../../config/axios";
 import Swal from "sweetalert2";
+import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
 
+// 🔥 Componente para mostrar un equipo individual del jugador
+const EquipoJugadorItem = ({ equipoItem, jugadorId, onActualizar, onEliminar }) => {
+  const equipoImageUrl = useImage(equipoItem.equipo?.imagen, '');
+  
+  return (
+    <ListItem 
+      divider
+      sx={{ 
+        mb: 1, 
+        border: '1px solid rgba(0, 0, 0, 0.12)', 
+        borderRadius: 1,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          transform: 'translateX(5px)'
+        }
+      }}
+    >
+      <ListItemAvatar>
+        <Avatar>
+          {equipoImageUrl ? (
+            <Box
+              component="img"
+              src={equipoImageUrl}
+              alt={equipoItem.equipo?.nombre}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '50%'
+              }}
+              onError={(e) => {
+                // 🔥 Fallback en caso de error
+                e.target.style.display = 'none';
+                e.target.parentNode.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+              }}
+            />
+          ) : (
+            <SportsIcon />
+          )}
+        </Avatar>
+      </ListItemAvatar>
+      
+      <ListItemText
+        primary={equipoItem.equipo?.nombre || 'Equipo'}
+        secondary={
+          <>
+            <Typography component="span" variant="body2">
+              {equipoItem.equipo?.categoria && 
+                `Categoría: ${getCategoryName(equipoItem.equipo.categoria)}`}
+            </Typography>
+            <br />
+            <Typography component="span" variant="body2">
+              Número: {equipoItem.numero || 'No asignado'}
+            </Typography>
+          </>
+        }
+      />
+      
+      <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+        <IconButton 
+          edge="end" 
+          aria-label="edit"
+          onClick={() => onActualizar(equipoItem)}
+          sx={{
+            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+            color: '#2196f3',
+            '&:hover': {
+              backgroundColor: 'rgba(33, 150, 243, 0.2)',
+              transform: 'scale(1.1)'
+            }
+          }}
+        >
+          <EditIcon />
+        </IconButton>
+        <IconButton 
+          edge="end" 
+          aria-label="delete"
+          onClick={() => onEliminar(equipoItem)}
+          sx={{
+            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+            color: '#f44336',
+            '&:hover': {
+              backgroundColor: 'rgba(244, 67, 54, 0.2)',
+              transform: 'scale(1.1)'
+            }
+          }}
+        >
+          <DeleteIcon />
+        </IconButton>
+      </Box>
+    </ListItem>
+  );
+};
 
 export const ListaEquiposJugador = ({ jugadorId = "", equipos = [], setEquipos = () => {} }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -89,77 +184,59 @@ export const ListaEquiposJugador = ({ jugadorId = "", equipos = [], setEquipos =
   return (
     <>
       {equipos.length === 0 ? (
-        <Typography variant="body2" color="textSecondary" sx={{ p: 2 }}>
-          Este jugador no está registrado en ningún equipo
-        </Typography>
+        <Box sx={{ 
+          p: 3, 
+          textAlign: 'center',
+          border: '2px dashed rgba(0, 0, 0, 0.12)',
+          borderRadius: 2,
+          backgroundColor: 'rgba(0, 0, 0, 0.02)'
+        }}>
+          <SportsIcon sx={{ 
+            fontSize: 48, 
+            color: 'rgba(0, 0, 0, 0.3)', 
+            mb: 1 
+          }} />
+          <Typography variant="body2" color="textSecondary">
+            Este jugador no está registrado en ningún equipo
+          </Typography>
+        </Box>
       ) : (
         <>
           <List>
             {equipos.map((equipoItem) => (
-              <ListItem 
+              <EquipoJugadorItem
                 key={equipoItem.equipo._id}
-                divider
-                sx={{ 
-                  mb: 1, 
-                  border: '1px solid rgba(0, 0, 0, 0.12)', 
-                  borderRadius: 1 
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar>
-                    {equipoItem.equipo?.imagen ? (
-                      <CardMedia
-                        component="img"
-                        src={`${import.meta.env.VITE_BACKEND_URL}/uploads/${equipoItem.equipo.imagen}`}
-                        alt={equipoItem.equipo.nombre}
-                      />
-                    ) : (
-                      <SportsIcon />
-                    )}
-                  </Avatar>
-                </ListItemAvatar>
-                
-                <ListItemText
-                  primary={equipoItem.equipo?.nombre || 'Equipo'}
-                  secondary={
-                    <>
-                      <Typography component="span" variant="body2">
-                        {equipoItem.equipo?.categoria && 
-                          `Categoría: ${getCategoryName(equipoItem.equipo.categoria)}`}
-                      </Typography>
-                      <br />
-                      <Typography component="span" variant="body2">
-                        Número: {equipoItem.numero || 'No asignado'}
-                      </Typography>
-                    </>
-                  }
-                />
-                
-                <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="edit"
-                    onClick={() => handleEditNumero(equipoItem)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="delete"
-                    onClick={() => handleConfirmDelete(equipoItem)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
-              </ListItem>
+                equipoItem={equipoItem}
+                jugadorId={jugadorId}
+                onActualizar={handleEditNumero}
+                onEliminar={handleConfirmDelete}
+              />
             ))}
           </List>
+          
           {/* Diálogo para editar número */}
-          <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-            <DialogTitle>Editar número</DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Actualizar el número del jugador para el equipo {selectedEquipo?.equipo?.nombre || ''}
+          <Dialog 
+            open={editDialogOpen} 
+            onClose={() => setEditDialogOpen(false)}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                minWidth: 300
+              }
+            }}
+          >
+            <DialogTitle sx={{ 
+              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <EditIcon sx={{ color: '#2196f3' }} />
+              Editar número
+            </DialogTitle>
+            <DialogContent sx={{ pt: 3 }}>
+              <DialogContentText sx={{ mb: 2 }}>
+                Actualizar el número del jugador para el equipo <strong>{selectedEquipo?.equipo?.nombre || ''}</strong>
               </DialogContentText>
               <TextField
                 autoFocus
@@ -167,28 +244,92 @@ export const ListaEquiposJugador = ({ jugadorId = "", equipos = [], setEquipos =
                 label="Número"
                 type="number"
                 fullWidth
+                variant="outlined"
                 value={nuevoNumero}
                 onChange={(e) => setNuevoNumero(e.target.value)}
                 inputProps={{ min: 0, max: 999 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2
+                  }
+                }}
               />
             </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleGuardarNumero} color="primary">Guardar</Button>
+            <DialogActions sx={{ p: 3, pt: 1 }}>
+              <Button 
+                onClick={() => setEditDialogOpen(false)}
+                variant="outlined"
+                sx={{ borderRadius: 2 }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleGuardarNumero} 
+                variant="contained"
+                color="primary"
+                sx={{ 
+                  borderRadius: 2,
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
+                }}
+              >
+                Guardar
+              </Button>
             </DialogActions>
           </Dialog>
           
           {/* Diálogo para confirmar eliminación */}
-          <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogContent>
+          <Dialog 
+            open={deleteDialogOpen} 
+            onClose={() => setDeleteDialogOpen(false)}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                minWidth: 350
+              }
+            }}
+          >
+            <DialogTitle sx={{ 
+              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              color: '#f44336'
+            }}>
+              <DeleteIcon />
+              Confirmar eliminación
+            </DialogTitle>
+            <DialogContent sx={{ pt: 3 }}>
               <DialogContentText>
-                ¿Estás seguro de que deseas eliminar a este jugador del equipo {selectedEquipo?.equipo?.nombre || ''}?
+                ¿Estás seguro de que deseas eliminar a este jugador del equipo <strong>{selectedEquipo?.equipo?.nombre || ''}</strong>?
               </DialogContentText>
+              <Box sx={{ 
+                mt: 2, 
+                p: 2, 
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                borderRadius: 2,
+                border: '1px solid rgba(244, 67, 54, 0.2)'
+              }}>
+                <Typography variant="body2" color="error">
+                  ⚠️ Esta acción no se puede deshacer
+                </Typography>
+              </Box>
             </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleRemoveFromTeam} color="error">Eliminar</Button>
+            <DialogActions sx={{ p: 3, pt: 1 }}>
+              <Button 
+                onClick={() => setDeleteDialogOpen(false)}
+                variant="outlined"
+                sx={{ borderRadius: 2 }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleRemoveFromTeam} 
+                variant="contained"
+                color="error"
+                sx={{ borderRadius: 2 }}
+              >
+                Eliminar
+              </Button>
             </DialogActions>
           </Dialog>
         </>
