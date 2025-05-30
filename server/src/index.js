@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     'http://localhost:5173', 
-    'https://ags-ffl-jyev.vercel.app'  // ← Sin barra final
+    'https://ags-ffl-jyev.vercel.app'
   ],
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'],
