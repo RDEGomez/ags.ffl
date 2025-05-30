@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://ags-ffl-jyev.vercel.app/'],
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'],
   credentials: true,
