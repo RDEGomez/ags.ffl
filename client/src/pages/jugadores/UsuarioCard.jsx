@@ -288,7 +288,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
 
                   {equipos && equipos.length > 0 ? (
                     <Box sx={{ 
-                      maxHeight: 200, 
+                      maxHeight: 280, 
                       overflowY: 'auto',
                       '&::-webkit-scrollbar': {
                         width: '6px',

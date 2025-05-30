@@ -30,7 +30,7 @@ const UsuarioSchema = new mongoose.Schema({
   },
   rol: {
     type: String,
-    enum: ['admin', 'jugador'],
+    enum: ['admin', 'jugador', 'capitan'],
     default: 'jugador'
   },
   equipos: [

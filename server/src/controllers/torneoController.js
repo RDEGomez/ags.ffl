@@ -119,8 +119,6 @@ exports.obtenerTorneos = async (req, res) => {
       torneosEnriquecidos.push(torneoObj);
     }
 
-    console.log(torneosEnriquecidos);
-
     res.json({ torneos: torneosEnriquecidos });
 
   } catch (error) {
@@ -347,12 +345,6 @@ exports.agregarEquipo = async (req, res) => {
     // Popular los equipos básicos
     const torneoPopulado = await Torneo.findById(id)
       .populate('equipos', 'nombre imagen categoria');
-    
-    console.log('🔍 Equipos después del populate:', torneoPopulado.equipos.map(e => ({
-      id: e._id,
-      nombre: e.nombre,
-      categoria: e.categoria
-    })));
 
     const torneoEnriquecido = torneoPopulado.toObject();
 

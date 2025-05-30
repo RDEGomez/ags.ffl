@@ -317,8 +317,6 @@ exports.borrarJugadores = async (req, res) => {
       return res.status(404).json({ mensaje: 'Jugador no encontrado' });
     }
 
-    console.log("Jugador encontrado:", jugador);
-
     // Encuentra la relación del jugador con el equipo
     const indiceEquipo = jugador.equipos.findIndex(p => p.equipo.toString() === equipoId);
     if (indiceEquipo === -1) {

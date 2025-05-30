@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import axiosInstance from '../../config/axios';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
+import { 
+  Box, 
+  Typography, 
+  Grid, 
+  Card, 
+  CardContent, 
   CardMedia,
   CardActions,
   Button,
@@ -30,21 +28,26 @@ import {
   Fab,
   Alert
 } from '@mui/material';
-import {
-  Groups as GroupsIcon,
-  PersonAdd as PersonAddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Info as InfoIcon,
-  Add as AddIcon,
-  Sports as SportsIcon,
-  EmojiEvents as EmojiEventsIcon,
-  Person as PersonIcon
-} from '@mui/icons-material';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import GroupsIcon from '@mui/icons-material/Groups';
+import InfoIcon from '@mui/icons-material/Info';
+import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
+import SportsIcon from '@mui/icons-material/Sports';
+import AddIcon from '@mui/icons-material/Add';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PersonIcon from '@mui/icons-material/Person';
 import { motion, AnimatePresence } from 'framer-motion';
-import Swal from 'sweetalert2';
+import { Link } from 'react-router-dom';
+import axiosInstance from '../../config/axios';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { getCategoryName } from '../../helpers/mappings';
 import { FiltrosEquipos } from '../../components/FiltrosEquipos';
+import { ListaJugadoresEquipo } from './ListaJugadoresEquipo';
+import Swal from 'sweetalert2';
 
 export const Equipos = () => {
   const { tieneRol } = useAuth();
@@ -106,43 +109,68 @@ export const Equipos = () => {
 
   const eliminarEquipo = async (equipoId) => {
     try {
-      const result = await Swal.fire({
-        title: '¿Estás seguro?',
-        text: 'No podrás revertir esto!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminarlo!',
-        cancelButtonText: 'Cancelar'
-      });
-
-      if (result.isConfirmed) {
-        await axiosInstance.delete(`/equipos/${equipoId}`);
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Eliminado!',
-          text: 'El equipo ha sido eliminado.',
-          timer: 2000,
-          showConfirmButton: false
+      // 1. Cerrar el modal inmediatamente
+      setDetalleAbierto(false);
+      setEquipoSeleccionado(null);
+      
+      // 2. Pequeño delay para que se complete la animación de cierre
+      setTimeout(async () => {
+        const result = await Swal.fire({
+          title: '¿Estás seguro?',
+          text: 'No podrás revertir esto! Se eliminará el equipo y todas sus relaciones.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Sí, eliminarlo!',
+          cancelButtonText: 'Cancelar'
         });
-        
-        setEquipos(prev => prev.filter(equipo => equipo._id !== equipoId));
-        setFiltrados(prev => prev.filter(equipo => equipo._id !== equipoId));
-        
-        // Cerrar modal si el equipo eliminado estaba siendo mostrado
-        if (equipoSeleccionado?._id === equipoId) {
-          cerrarDetalle();
+
+        if (result.isConfirmed) {
+          // Usuario confirmó: proceder con eliminación
+          await axiosInstance.delete(`/equipos/${equipoId}`);
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Eliminado!',
+            text: 'El equipo ha sido eliminado correctamente.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+          
+          // Actualizar la lista de equipos
+          setEquipos(prev => prev.filter(equipo => equipo._id !== equipoId));
+          setFiltrados(prev => prev.filter(equipo => equipo._id !== equipoId));
+          
+        } else {
+          // Usuario canceló: restaurar el modal
+          setTimeout(() => {
+            const equipoEncontrado = equipos.find(e => e._id === equipoId);
+            if (equipoEncontrado) {
+              setEquipoSeleccionado(equipoEncontrado);
+              setDetalleAbierto(true);
+            }
+          }, 100);
         }
-      }
+      }, 300);
+      
     } catch (error) {
       console.error('Error al eliminar equipo:', error);
+      
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'No se pudo eliminar el equipo. Intenta nuevamente.',
+        text: 'No se pudo eliminar el equipo. Intenta nuevamente.'
       });
+      
+      // En caso de error, también restaurar el modal
+      setTimeout(() => {
+        const equipoEncontrado = equipos.find(e => e._id === equipoId);
+        if (equipoEncontrado) {
+          setEquipoSeleccionado(equipoEncontrado);
+          setDetalleAbierto(true);
+        }
+      }, 100);
     }
   };
 
@@ -613,11 +641,17 @@ export const Equipos = () => {
               
               {/* Tab 2: Jugadores */}
               {tabActivo === 1 && (
-                <Box>
-                  <Typography variant="body1" sx={{ textAlign: 'center', p: 3 }}>
-                    Lista de jugadores aparecerá aquí cuando implementes la funcionalidad.
-                  </Typography>
-                </Box>
+                <ListaJugadoresEquipo 
+                  jugadores={equipoSeleccionado?.jugadores || []}
+                  equipo={equipoSeleccionado}
+                  showActions={false}
+                  showStats={true}
+                  loading={cargando}
+                  onJugadorClick={(jugador) => {
+                    // Aquí puedes agregar lógica para ver perfil del jugador
+                    console.log('Jugador seleccionado:', jugador);
+                  }}
+                />
               )}
               
               {/* Tab 3: Estadísticas */}

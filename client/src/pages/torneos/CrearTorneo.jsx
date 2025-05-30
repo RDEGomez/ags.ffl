@@ -135,14 +135,6 @@ export const CrearTorneo = () => {
         formData.append('fechaFin', data.fechaFin.toISOString());
       }
       
-      // Agregar console.log para debugging
-      console.log('Datos a enviar:', {
-        nombre: data.nombre,
-        fechaInicio: data.fechaInicio.toISOString(),
-        fechaFin: data.fechaFin.toISOString(),
-        categorias: data.categorias
-      });
-      
       // Manejar las categorías correctamente
       data.categorias.forEach(categoria => {
         formData.append('categorias[]', categoria);

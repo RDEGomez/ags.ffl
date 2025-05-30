@@ -1,6 +1,6 @@
 export * from './Equipos'
 export * from './EditarEquipo'
 export * from './NuevoEquipo'
-export * from './Equipo'
 export * from './ListaEquiposJugador'
 export * from './RegistrarJugadores'
+export * from './ListaJugadoresEquipo'

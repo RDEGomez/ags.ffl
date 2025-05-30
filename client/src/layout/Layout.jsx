@@ -24,8 +24,6 @@ export const Layout = () => {
 
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/uploads/` || ''
 
-  console.log(`${baseUrl}${usuario?.imagen}`)
-
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };

@@ -41,7 +41,6 @@ export const GestionInscripciones = () => {
       setCargando(true);
       const { data } = await axiosInstance.get(`/torneos/${id}`);
       setTorneo(data.torneo);
-      console.log("Data torneo:", data.torneo);
     } catch (error) {
       console.error('Error al obtener torneo:', error);
       setError('Error al cargar la información del torneo');
