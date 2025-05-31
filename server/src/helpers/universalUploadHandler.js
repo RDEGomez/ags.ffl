@@ -1,13 +1,12 @@
-// helpers/universalUploadHandler.js - Handler universal que funciona con ambos sistemas
+// helpers/universalUploadHandler.js - Handler universal mejorado
 
 /**
  * Procesa el archivo subido y retorna la información de manera consistente
- * sin importar si viene de local o Cloudinary
  */
 const processUploadedFile = (req) => {
   if (!req.file) return null;
   
-  // Detectar el tipo de upload basado en las propiedades del archivo
+  // Detectar el tipo de upload
   const isCloudinary = !!req.file.path && req.file.path.includes('cloudinary.com');
   
   if (isCloudinary) {
@@ -22,8 +21,8 @@ const processUploadedFile = (req) => {
       publicId: req.file.public_id
     };
   } else {
-    // Local upload
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    // Local upload - construir URL base dinámicamente
+    const baseUrl = req ? `${req.protocol}://${req.get('host')}` : process.env.BACKEND_URL || 'http://localhost:5000';
     return {
       filename: req.file.filename,
       path: req.file.filename,       // Solo filename para local
@@ -37,37 +36,15 @@ const processUploadedFile = (req) => {
 };
 
 /**
- * Middleware universal que añade información procesada al request
- */
-const universalUploadMiddleware = (req, res, next) => {
-  if (req.file) {
-    req.fileInfo = processUploadedFile(req);
-    console.log(`📁 Archivo procesado [${req.fileInfo.type}]:`, {
-      filename: req.fileInfo.filename,
-      url: req.fileInfo.url,
-      size: `${Math.round(req.fileInfo.size / 1024)}KB`
-    });
-  }
-  next();
-};
-
-/**
- * Función helper para controllers - obtiene la información del archivo de manera universal
- */
-const getFileData = (req) => {
-  return req.fileInfo || processUploadedFile(req);
-};
-
-/**
  * Función helper para obtener la URL/path que se debe guardar en la BD
  * Retorna el path completo para Cloudinary, solo filename para local
  */
 const getStoragePath = (req) => {
-  const fileInfo = getFileData(req);
+  const fileInfo = processUploadedFile(req);
   if (!fileInfo) return null;
   
   // Para Cloudinary, guardar la URL completa
-  // Para local, guardar solo el filename
+  // Para local, guardar solo el filename (para mantener flexibilidad)
   return fileInfo.type === 'cloudinary' ? fileInfo.url : fileInfo.filename;
 };
 
@@ -86,7 +63,7 @@ const deleteFile = async (filePath) => {
       const urlParts = filePath.split('/');
       const fileWithExtension = urlParts[urlParts.length - 1];
       const publicId = fileWithExtension.split('.')[0];
-      const folder = 'laces-uploads'; // Tu carpeta en Cloudinary
+      const folder = 'laces-uploads';
       
       await cloudinary.uploader.destroy(`${folder}/${publicId}`);
       console.log('🗑️ Archivo eliminado de Cloudinary:', publicId);
@@ -106,10 +83,24 @@ const deleteFile = async (filePath) => {
   }
 };
 
+/**
+ * Middleware universal que añade información procesada al request
+ */
+const universalUploadMiddleware = (req, res, next) => {
+  if (req.file) {
+    req.fileInfo = processUploadedFile(req);
+    console.log(`📁 Archivo procesado [${req.fileInfo.type}]:`, {
+      filename: req.fileInfo.filename,
+      url: req.fileInfo.url,
+      size: `${Math.round(req.fileInfo.size / 1024)}KB`
+    });
+  }
+  next();
+};
+
 module.exports = {
   processUploadedFile,
   universalUploadMiddleware,
-  getFileData,
   getStoragePath,
   deleteFile
 };

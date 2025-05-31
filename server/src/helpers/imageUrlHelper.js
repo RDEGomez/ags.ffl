@@ -6,7 +6,7 @@
  * @param {string} baseUrl - URL base del backend (solo para imágenes locales)
  * @returns {string} - URL completa de la imagen
  */
-export const getImageUrl = (imagen, baseUrl = '') => {
+const getImageUrl = (imagen, baseUrl = '') => {
   // Si no hay imagen, retornar string vacío
   if (!imagen) return '';
   
@@ -16,18 +16,8 @@ export const getImageUrl = (imagen, baseUrl = '') => {
   }
   
   // Si es un filename local, construir la URL
-  const API_URL = baseUrl || import.meta.env.VITE_BACKEND_URL || '';
+  const API_URL = baseUrl || process.env.BACKEND_URL || '';
   return `${API_URL}/uploads/${imagen}`;
-};
-
-/**
- * Hook personalizado para React que maneja automáticamente las URLs
- * @param {string} imagen - Filename o URL de imagen
- * @returns {string} - URL completa lista para usar
- */
-export const useImageUrl = (imagen) => {
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
-  return getImageUrl(imagen, API_URL);
 };
 
 /**
@@ -36,16 +26,22 @@ export const useImageUrl = (imagen) => {
  * @param {object} req - Request object de Express (opcional)
  * @returns {string} - URL completa
  */
-export const getImageUrlServer = (imagen, req = null) => {
+const getImageUrlServer = (imagen, req = null) => {
   if (!imagen) return '';
   
-  // Si ya es URL completa
+  // Si ya es URL completa (Cloudinary, etc.)
   if (imagen.startsWith('http://') || imagen.startsWith('https://')) {
     return imagen;
   }
   
-  // Construir URL local
-  const baseUrl = req ? `${req.protocol}://${req.get('host')}` : process.env.VITE_BACKEND_URL;
+  // Construir URL local - usar req si está disponible, sino variable de entorno
+  let baseUrl;
+  if (req) {
+    baseUrl = `${req.protocol}://${req.get('host')}`;
+  } else {
+    baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  }
+  
   return `${baseUrl}/uploads/${imagen}`;
 };
 
@@ -54,7 +50,7 @@ export const getImageUrlServer = (imagen, req = null) => {
  * @param {string} imagen - Filename o URL de imagen
  * @returns {object} - Información sobre el tipo de imagen
  */
-export const getImageInfo = (imagen) => {
+const getImageInfo = (imagen) => {
   if (!imagen) {
     return { isValid: false, type: 'none', url: '' };
   }
@@ -72,4 +68,10 @@ export const getImageInfo = (imagen) => {
     isCloudinary,
     url: isExternal ? imagen : getImageUrl(imagen)
   };
+};
+
+module.exports = {
+  getImageUrl,
+  getImageUrlServer,
+  getImageInfo
 };
