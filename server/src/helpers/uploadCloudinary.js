@@ -18,3 +18,5 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({ storage }).single('imagen');
+
+module.exports = upload;
