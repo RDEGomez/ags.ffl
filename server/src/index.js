@@ -12,6 +12,15 @@ console.log('  NODE_ENV:', process.env.NODE_ENV);
 console.log('  USE_CLOUDINARY:', process.env.USE_CLOUDINARY);
 console.log('  CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET');
 
+console.log('\n🔍 Intentando cargar uploadConfig...');
+try {
+  const uploadConfig = require('./helpers/uploadConfig');
+  console.log('✅ uploadConfig cargado exitosamente');
+} catch (error) {
+  console.error('❌ ERROR cargando uploadConfig:', error.message);
+  console.error('📋 Stack:', error.stack);
+}
+
 // Middlewares
 app.use(cors({
   origin: [
