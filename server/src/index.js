@@ -7,6 +7,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+console.log('\n🔧 DEBUGGING UPLOAD:');
+console.log('  NODE_ENV:', process.env.NODE_ENV);
+console.log('  USE_CLOUDINARY:', process.env.USE_CLOUDINARY);
+console.log('  CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET');
+
 // Middlewares
 app.use(cors({
   origin: [
