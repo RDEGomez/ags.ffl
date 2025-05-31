@@ -7,7 +7,7 @@ const fs = require('fs');
 const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');
 const { getCategoryName } = require('../../../client/src/helpers/mappings');
-
+const { getImageUrlServer } = require('../helpers/imageUrlHelper'); // 🔥 Agregar helper
 
 // 🔐 Generar token
 const generarToken = (usuario) => {
@@ -44,6 +44,7 @@ exports.registro = async (req, res) => {
         id: nuevoUsuario._id,
         documento: nuevoUsuario.documento,
         email: nuevoUsuario.email,
+        imagen: getImageUrlServer(nuevoUsuario.imagen, req), // 🔥 URL completa
         rol: nuevoUsuario.rol
       },
       token
@@ -76,7 +77,7 @@ exports.login = async (req, res) => {
         nombre: usuario.nombre,
         email: usuario.email,
         documento: usuario.documento,
-        imagen: usuario.imagen,
+        imagen: getImageUrlServer(usuario.imagen, req), // 🔥 URL completa
         rol: usuario.rol
       },
       token
@@ -93,7 +94,12 @@ exports.perfil = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
-    res.json(usuario);
+
+    // 🔥 Convertir a objeto y agregar URL completa
+    const usuarioObj = usuario.toObject();
+    usuarioObj.imagen = getImageUrlServer(usuarioObj.imagen, req);
+
+    res.json(usuarioObj);
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener el perfil', error });
   }
@@ -113,15 +119,22 @@ exports.actualizarPerfil = async (req, res) => {
     if (req.file) {
       const usuarioExistente = await Usuario.findById(usuarioId);
 
-      // Eliminar imagen antigua si existe
-      if (usuarioExistente && usuarioExistente.imagen) {
+      // Eliminar imagen antigua si existe (solo si es local)
+      if (usuarioExistente && usuarioExistente.imagen && !usuarioExistente.imagen.startsWith('http')) {
         const oldImagePath = path.join(__dirname, `../uploads/${usuarioExistente.imagen}`);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
         }
       }
 
-      datosActualizados.imagen = req.file.filename;
+      // 🔥 Guardar según el tipo de upload
+      if (req.file.path && req.file.path.includes('cloudinary.com')) {
+        // Cloudinary: guardar URL completa
+        datosActualizados.imagen = req.file.path;
+      } else {
+        // Local: guardar solo filename
+        datosActualizados.imagen = req.file.filename;
+      }
     }
 
     const usuario = await Usuario.findByIdAndUpdate(
@@ -134,21 +147,46 @@ exports.actualizarPerfil = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    res.json({ mensaje: 'Perfil actualizado correctamente', usuario });
+    // 🔥 Convertir y agregar URL completa
+    const usuarioObj = usuario.toObject();
+    usuarioObj.imagen = getImageUrlServer(usuarioObj.imagen, req);
+
+    res.json({ mensaje: 'Perfil actualizado correctamente', usuario: usuarioObj });
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensaje: 'Error al actualizar perfil', error });
   }
 };
+
 exports.obtenerUsuarios = async (req, res) => {
   try {
     const usuarios = await Usuario.find().select('-password').populate('equipos.equipo', 'nombre categoria imagen');
-    res.json(usuarios);
+    
+    // 🔥 Mapear usuarios con URLs completas
+    const usuariosConUrls = usuarios.map(usuario => {
+      const usuarioObj = usuario.toObject();
+      usuarioObj.imagen = getImageUrlServer(usuarioObj.imagen, req);
+      
+      // También actualizar imágenes de equipos si existen
+      if (usuarioObj.equipos) {
+        usuarioObj.equipos = usuarioObj.equipos.map(equipo => {
+          if (equipo.equipo && equipo.equipo.imagen) {
+            equipo.equipo.imagen = getImageUrlServer(equipo.equipo.imagen, req);
+          }
+          return equipo;
+        });
+      }
+      
+      return usuarioObj;
+    });
+
+    res.json(usuariosConUrls);
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensaje: 'Error al obtener usuarios', error });
   }
 }
+
 exports.obtenerUsuarioId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -156,12 +194,18 @@ exports.obtenerUsuarioId = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
-    res.json(usuario);
+
+    // 🔥 Convertir y agregar URL completa
+    const usuarioObj = usuario.toObject();
+    usuarioObj.imagen = getImageUrlServer(usuarioObj.imagen, req);
+
+    res.json(usuarioObj);
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensaje: 'Error al obtener usuario', error });
   }
 }
+
 exports.eliminarUsuario = async (req, res) => {
   try {
     const { id } = req.params;
@@ -175,6 +219,7 @@ exports.eliminarUsuario = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al eliminar usuario', error });
   }
 }
+
 exports.agregarJugadorAEquipo = async (req, res) => {
   try {
     const { usuarioId, numero, equipoId } = req.body;

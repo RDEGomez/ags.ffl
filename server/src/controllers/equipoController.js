@@ -3,20 +3,33 @@ const Usuario = require('../models/Usuario');
 const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');
 const { getCategoryName } = require('../../../client/src/helpers/mappings');
+const { getImageUrlServer } = require('../helpers/imageUrlHelper'); // 🔥 Agregar helper
 
 exports.nuevoEquipo = async (req, res) => {
   const equipo = new Equipo(req.body);
 
   try {
     if (req.file && req.file.filename) {
-      equipo.imagen = req.file.filename;
+      // 🔥 Guardar según el tipo de upload
+      if (req.file.path && req.file.path.includes('cloudinary.com')) {
+        // Cloudinary: guardar URL completa
+        equipo.imagen = req.file.path;
+      } else {
+        // Local: guardar solo filename
+        equipo.imagen = req.file.filename;
+      }
     }    
 
     const resultado = await equipo.save();
-    res.json({ mensaje: 'Equipo creado correctamente', equipo: resultado });
+    
+    // 🔥 Convertir y agregar URL completa en respuesta
+    const equipoObj = resultado.toObject();
+    equipoObj.imagen = getImageUrlServer(equipoObj.imagen, req);
+    
+    res.json({ mensaje: 'Equipo creado correctamente', equipo: equipoObj });
     return;
   } catch (error) {
-    console.error('Error al crear equipo:', error); // ayuda a depurar
+    console.error('Error al crear equipo:', error);
     if (!res.headersSent) {
       res.status(400).json({ mensaje: 'Error al crear el equipo', error });
     }
@@ -25,7 +38,7 @@ exports.nuevoEquipo = async (req, res) => {
 
 exports.obtenerEquipos = async (req, res) => {
   try {
-    const equipos = await Equipo.find().lean(); // usamos lean para convertir a objetos planos
+    const equipos = await Equipo.find().lean();
     const equipoIds = equipos.map(e => e._id);
 
     // Buscar usuarios que están en cualquiera de esos equipos
@@ -48,13 +61,14 @@ exports.obtenerEquipos = async (req, res) => {
             _id: usuario._id,
             nombre: usuario.nombre,
             documento: usuario.documento,
-            imagen: usuario.imagen,
+            imagen: getImageUrlServer(usuario.imagen, req), // 🔥 URL completa para jugador
             numero: info?.numero || null
           };
         });
 
       return {
         ...equipo,
+        imagen: getImageUrlServer(equipo.imagen, req), // 🔥 URL completa para equipo
         jugadores
       };
     });
@@ -72,11 +86,17 @@ exports.obtenerEquipo = async (req, res) => {
     if (!equipo) {
       return res.status(404).json({ mensaje: 'Equipo no encontrado' });
     }
-    res.json(equipo);
+
+    // 🔥 Convertir y agregar URL completa
+    const equipoObj = equipo.toObject();
+    equipoObj.imagen = getImageUrlServer(equipoObj.imagen, req);
+
+    res.json(equipoObj);
   } catch (error) {
       res.status(500).json({ mensaje: 'Error al obtener el equipo', error });
   }
 }
+
 // Controlador para actualizar un equipo
 exports.actualizarEquipo = async (req, res) => {
   try {
@@ -110,18 +130,30 @@ exports.actualizarEquipo = async (req, res) => {
 
     // Actualizar la imagen si se proporciona una nueva
     if (req.file && req.file.filename) {
-      equipo.imagen = req.file.filename;
+      // 🔥 Guardar según el tipo de upload
+      if (req.file.path && req.file.path.includes('cloudinary.com')) {
+        // Cloudinary: guardar URL completa
+        equipo.imagen = req.file.path;
+      } else {
+        // Local: guardar solo filename
+        equipo.imagen = req.file.filename;
+      }
     }
 
     // Guardar los cambios
     await equipo.save();
 
-    res.json({ mensaje: 'Equipo actualizado correctamente', equipo });
+    // 🔥 Convertir y agregar URL completa en respuesta
+    const equipoObj = equipo.toObject();
+    equipoObj.imagen = getImageUrlServer(equipoObj.imagen, req);
+
+    res.json({ mensaje: 'Equipo actualizado correctamente', equipo: equipoObj });
   } catch (error) {
     console.error('Error al actualizar equipo:', error);
     res.status(400).json({ mensaje: 'Error al actualizar el equipo', error: error.message });
   }
 }
+
 exports.eliminarEquipo = async (req, res) => {
   try {
     const equipo = await Equipo.findOneAndDelete({ _id: req.params.id });
@@ -142,6 +174,7 @@ exports.subirImagen = (req, res, next) => {
     return next();
   });
 }
+
 exports.registrarJugadores = async (req, res) => {
   try {
     const { jugadores } = req.body;
@@ -151,7 +184,6 @@ exports.registrarJugadores = async (req, res) => {
     }
 
     // Validamos primero todos los jugadores antes de hacer cambios
-    // Esto ayuda a implementar un enfoque "todo o nada"
     const errores = [];
     const validaciones = [];
 
@@ -268,7 +300,6 @@ exports.registrarJugadores = async (req, res) => {
         });
       } catch (error) {
         console.error(`Error al validar jugador #${index + 1}:`, error);
-        // Proporcionar un mensaje de error más detallado
         errores.push(`Jugador #${index + 1}: ${error.message || 'Error en la validación'}`);
       }
     }
@@ -293,6 +324,7 @@ exports.registrarJugadores = async (req, res) => {
       resultados.push({
         nombre: jugador.nombre,
         documento: jugador.documento,
+        imagen: getImageUrlServer(jugador.imagen, req), // 🔥 URL completa para jugador
         numero: numero
       });
     }
@@ -307,6 +339,7 @@ exports.registrarJugadores = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al registrar jugadores en el equipo', error: error.message });
   }
 };
+
 exports.borrarJugadores = async (req, res) => {
   try {
     const { equipoId, jugadorId } = req.body;
