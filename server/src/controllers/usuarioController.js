@@ -264,6 +264,17 @@ exports.actualizarPerfil = async (req, res) => {
         mimetype: req.file.mimetype
       });
 
+      console.log('🔍 Detectando tipo de upload...');
+      if (req.file.path && req.file.path.includes('cloudinary.com')) {
+        console.log('☁️ CLOUDINARY detectado - Imagen subida a Cloudinary');
+        console.log('🌐 URL de Cloudinary:', req.file.path);
+        datosActualizados.imagen = req.file.path;
+      } else {
+        console.log('💾 LOCAL detectado - Imagen subida localmente');
+        console.log('📁 Path local:', req.file.path);
+        datosActualizados.imagen = req.file.filename;
+      }
+
       const usuarioExistente = await Usuario.findById(usuarioId);
 
       // Eliminar imagen antigua si existe (solo si es local)
