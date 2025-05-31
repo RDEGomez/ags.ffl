@@ -3,7 +3,7 @@ const router = express.Router();
 const { check } = require('express-validator');
 const torneoController = require('../controllers/torneoController');
 const { auth, checkRole } = require('../middleware/authMiddleware');
-const upload = require('../helpers/uploadImages');
+const upload = require('../helpers/uploadConfig');
 
 router.post('/', 
   [

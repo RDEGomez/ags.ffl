@@ -1,4 +1,4 @@
-const upload = require('../helpers/uploadImages');
+const upload = require('../helpers/uploadConfig');
 const Usuario = require('../models/Usuario');
 const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');

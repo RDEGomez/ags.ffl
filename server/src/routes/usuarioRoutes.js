@@ -3,7 +3,7 @@ const router = express.Router();
 const usuarioController = require('../controllers/usuarioController');
 const equipoController = require('../controllers/equipoController');
 const { auth, checkRole } = require('../middleware/authMiddleware');
-const upload = require('../helpers/uploadImages');
+const upload = require('../helpers/uploadConfig');
 
 // 🔒 Específicas sin parámetros
 
