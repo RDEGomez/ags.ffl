@@ -337,10 +337,32 @@ exports.obtenerUsuarios = async (req, res) => {
   console.log(`\n👥 [${timestamp}] INICIO - Obtener usuarios`);
 
   try {
-    console.log('🔍 Consultando usuarios en base de datos...');
-    const usuarios = await Usuario.find().select('-password').populate('equipos.equipo', 'nombre categoria imagen');
+    const { rol } = req.query; // 🔥 Parámetro opcional para filtrar por rol
     
-    console.log(`✅ Encontrados ${usuarios.length} usuarios`);
+    console.log('🔍 Consultando usuarios en base de datos...');
+    console.log(`📋 Filtro de rol: ${rol || 'todos'}`);
+    
+    // Construir filtro
+    let filtro = {};
+    if (rol) {
+      // Validar que el rol sea válido
+      const rolesValidos = ['admin', 'jugador', 'capitan', 'arbitro'];
+      if (!rolesValidos.includes(rol)) {
+        return res.status(400).json({ 
+          mensaje: 'Rol no válido',
+          rolesValidos 
+        });
+      }
+      filtro.rol = rol;
+    } else {
+      // Por defecto, excluir árbitros de la lista general de usuarios
+      // (los árbitros se gestionan en su propia sección)
+      filtro.rol = { $ne: 'arbitro' };
+    }
+    
+    const usuarios = await Usuario.find(filtro).select('-password').populate('equipos.equipo', 'nombre categoria imagen');
+    
+    console.log(`✅ Encontrados ${usuarios.length} usuarios (filtro: ${rol || 'no árbitros'})`);
     
     const usuariosConUrls = usuarios.map(usuario => {
       const usuarioObj = usuario.toObject();

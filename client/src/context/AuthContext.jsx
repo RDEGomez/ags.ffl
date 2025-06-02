@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
     navigate('/auth/login');
   };
 
-  // Función para verificar si el usuario tiene un rol específico
+ // Función para verificar si el usuario tiene un rol específico
   const tieneRol = (roles) => {
     if (!usuario || !usuario.rol) return false;
     
@@ -72,6 +72,21 @@ export const AuthProvider = ({ children }) => {
     return usuario.rol === roles;
   };
 
+  // 🔥 Función específica para verificar si es árbitro
+  const esArbitro = () => {
+    return usuario && usuario.rol === 'arbitro';
+  };
+
+  // 🔥 Función para verificar si puede gestionar equipos (no árbitros)
+  const puedeGestionarEquipos = () => {
+    return usuario && ['admin', 'jugador', 'capitan'].includes(usuario.rol);
+  };
+
+  // 🔥 Función para verificar si puede gestionar árbitros
+  const puedeGestionarArbitros = () => {
+    return usuario && ['admin'].includes(usuario.rol);
+  };
+
   // Valor expuesto por el contexto
   const authContextValue = {
     usuario,
@@ -79,7 +94,10 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    tieneRol // Exportamos la nueva función
+    tieneRol,
+    esArbitro, // 🔥 Nueva función
+    puedeGestionarEquipos, // 🔥 Nueva función
+    puedeGestionarArbitros // 🔥 Nueva función
   };
 
   return (

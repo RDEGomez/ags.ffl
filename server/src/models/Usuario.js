@@ -30,9 +30,10 @@ const UsuarioSchema = new mongoose.Schema({
   },
   rol: {
     type: String,
-    enum: ['admin', 'jugador', 'capitan'],
+    enum: ['admin', 'jugador', 'capitan', 'arbitro'], // 🔥 Agregado 'arbitro'
     default: 'jugador'
   },
+  // 🔥 Este campo solo aplica para usuarios con rol 'jugador' o 'capitan'
   equipos: [
     {
       equipo: {
@@ -59,5 +60,15 @@ UsuarioSchema.pre('save', async function (next) {
     next(err);
   }
 });
+
+// 🔥 Método para verificar si el usuario es árbitro
+UsuarioSchema.methods.esArbitro = function() {
+  return this.rol === 'arbitro';
+};
+
+// 🔥 Método para verificar si el usuario puede tener equipos
+UsuarioSchema.methods.puedeEstarEnEquipos = function() {
+  return ['jugador', 'capitan'].includes(this.rol);
+};
 
 module.exports = mongoose.model('Usuario', UsuarioSchema);

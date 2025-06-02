@@ -51,6 +51,7 @@ export const Usuarios = () => {
     try {
       setLoading(true);
       setError('');
+      // 🔥 Por defecto la API ya excluye árbitros, pero podemos ser específicos
       const { data } = await axiosInstance.get('/usuarios');
       setUsuarios(data);
       setFiltrados(data);

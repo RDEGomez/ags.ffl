@@ -10,9 +10,11 @@ import { Usuarios } from '../pages/jugadores/Usuarios';
 import { EditarEquipo, Equipos, NuevoEquipo, RegistrarJugadores } from '../pages/equipos';
 import { Torneos } from '../pages/torneos/Torneos';
 import { CrearTorneo, GestionInscripciones } from '../pages/torneos';
+import { Arbitros } from '../pages/arbitros/Arbitros';
+import { NuevoArbitro } from '../pages/arbitros/NuevoArbitro'; // 🔥 Nueva importación
+import { EditarArbitro } from '../pages/arbitros/EditarArbitro'; // 🔥 Nueva importación
 
 // Componente ProtectedRoute para proteger rutas
-
 export const ProtectedRoute = () => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -20,7 +22,6 @@ export const ProtectedRoute = () => {
 
   return isAuthenticated ? <Outlet /> : <Navigate to="/auth/login" replace />;
 };
-
 
 // Componente AppRouter
 export const AppRouter = () => {
@@ -42,6 +43,9 @@ export const AppRouter = () => {
           <Route path="torneos" element={<Torneos />} />
           <Route path="torneos/crear" element={<CrearTorneo />} />
           <Route path="/torneos/:id/inscripciones" element={<GestionInscripciones />} />
+          <Route path="arbitros" element={<Arbitros />} />
+          <Route path="arbitros/nuevo" element={<NuevoArbitro />} /> {/* 🔥 Nueva ruta */}
+          <Route path="arbitros/editar/:id" element={<EditarArbitro />} /> {/* 🔥 Nueva ruta */}
           <Route path="perfil" element={<EditarPerfil />} />
           <Route path="perfil/:id" element={<EditarPerfil />} />
         </Route>
