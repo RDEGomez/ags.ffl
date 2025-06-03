@@ -55,7 +55,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axiosInstance from '../../config/axios';
 import Swal from 'sweetalert2';
 import { getCategoryName } from '../../helpers/mappings';
-import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+import { useImage } from '../../hooks/useImage';
+import { useAuth } from '../../context/AuthContext'; // 🔥 AGREGADO
 
 // 🔥 Componente para el avatar del equipo
 const EquipoAvatar = ({ equipo, size = 64 }) => {
@@ -328,6 +329,9 @@ export const RegistrarJugadores = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // 🔥 CAMBIADO: Usar puedeGestionarEquipos en lugar de tieneRol
+  const { puedeGestionarEquipos } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [savingData, setSavingData] = useState(false);
@@ -342,6 +346,22 @@ export const RegistrarJugadores = () => {
   const [openRosterDialog, setOpenRosterDialog] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [jugadorAEliminar, setJugadorAEliminar] = useState(null);
+
+  // 🔥 AGREGADO: Verificar permisos al cargar el componente
+  useEffect(() => {
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acceso Denegado',
+        text: 'No tienes permisos para gestionar jugadores de equipos.',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1976d2'
+      }).then(() => {
+        navigate('/equipos');
+      });
+      return;
+    }
+  }, [puedeGestionarEquipos, navigate]);
 
   // Cargar información del equipo y usuarios disponibles
   useEffect(() => {
@@ -378,8 +398,11 @@ export const RegistrarJugadores = () => {
       }
     };
 
-    fetchData();
-  }, [id]);
+    // 🔥 CAMBIADO: Solo ejecutar si tiene permisos
+    if (puedeGestionarEquipos()) {
+      fetchData();
+    }
+  }, [id, puedeGestionarEquipos]);
 
   // Filtrar usuarios cuando cambia el texto de búsqueda
   useEffect(() => {
@@ -450,6 +473,16 @@ export const RegistrarJugadores = () => {
 
   // Iniciar proceso de eliminación de jugador
   const iniciarEliminarJugador = async (jugadorId) => {
+    // 🔥 AGREGADO: Verificar permisos antes de eliminar
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tienes permisos para eliminar jugadores del equipo'
+      });
+      return;
+    }
+
     setJugadorAEliminar(jugadorId);
     setOpenRosterDialog(false);
 
@@ -516,6 +549,16 @@ export const RegistrarJugadores = () => {
 
   // Guardar jugadores en el equipo
   const guardarJugadores = async () => {
+    // 🔥 AGREGADO: Verificar permisos antes de guardar
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tienes permisos para registrar jugadores en equipos'
+      });
+      return;
+    }
+
     const faltanNumeros = jugadoresSeleccionados.some(j => !j.numero);
     if (faltanNumeros) {
       Swal.fire({
@@ -594,6 +637,41 @@ export const RegistrarJugadores = () => {
       setSavingData(false);
     }
   };
+
+  // 🔥 AGREGADO: Si no tiene permisos, mostrar mensaje de acceso denegado
+  if (!puedeGestionarEquipos()) {
+    return (
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '50vh',
+        flexDirection: 'column',
+        gap: 2,
+        backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
+        borderRadius: 2,
+        p: 4
+      }}>
+        <Alert severity="warning" sx={{ maxWidth: 400 }}>
+          <Typography variant="h6" gutterBottom>
+            Acceso Denegado
+          </Typography>
+          <Typography variant="body2">
+            No tienes permisos para gestionar jugadores de equipos.
+          </Typography>
+          <Button 
+            component={Link} 
+            to="/equipos" 
+            variant="contained" 
+            sx={{ mt: 2 }}
+            startIcon={<ArrowBackIcon />}
+          >
+            Volver a Equipos
+          </Button>
+        </Alert>
+      </Box>
+    );
+  }
 
   // Animaciones
   const containerVariants = {
@@ -741,7 +819,6 @@ export const RegistrarJugadores = () => {
                   gap: 2
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {/* 🔥 Usar el componente EquipoAvatar */}
                     <EquipoAvatar equipo={equipo} size={64} />
                     <Box>
                       <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>

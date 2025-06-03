@@ -2,59 +2,59 @@ const express = require('express');
 const router = express.Router();
 const usuarioController = require('../controllers/usuarioController');
 const equipoController = require('../controllers/equipoController');
-const { auth, checkRole } = require('../middleware/authMiddleware');
+const { auth, checkRole, checkUserEditPermission } = require('../middleware/authMiddleware'); // 🔥 AGREGADO: checkUserEditPermission
 const upload = require('../helpers/uploadConfig');
 
 // 🔒 Específicas sin parámetros
 
-// Agregar usuario a equipo (requiere token)
-router.patch('/usuarios/equipo', auth, checkRole('capitan'), usuarioController.agregarJugadorAEquipo);
+// 🔥 ACTUALIZADO: Agregar usuario a equipo (Admin + Capitán)
+router.patch('/usuarios/equipo', auth, checkRole('admin', 'capitan'), usuarioController.agregarJugadorAEquipo);
 
-// Registro
+// Registro (público)
 router.post('/auth/register', usuarioController.registro);
 
-// Login
+// Login (público)
 router.post('/auth/login', usuarioController.login);
 
 // Perfil (requiere token)
 router.get('/auth/perfil', auth, usuarioController.perfil);
 
-// Obtener todos los usuarios (requiere token)
+// Obtener todos los usuarios (requiere token - todos pueden ver)
 router.get('/usuarios', auth, usuarioController.obtenerUsuarios);
 
-// Crear nuevo equipo (requiere token)
-router.post('/equipos', auth, checkRole('capitan'), upload, equipoController.nuevoEquipo);
+// 🔥 ACTUALIZADO: Crear nuevo equipo (Admin + Capitán)
+router.post('/equipos', auth, checkRole('admin', 'capitan'), upload, equipoController.nuevoEquipo);
 
-// Obtener todos los equipos (requiere token)
+// Obtener todos los equipos (requiere token - todos pueden ver)
 router.get('/equipos', auth, equipoController.obtenerEquipos);
 
-// Registrar jugadores en un equipo (requiere token)
-router.post('/equipos/registrarJugadores', auth, checkRole('capitan'), equipoController.registrarJugadores);
+// 🔥 ACTUALIZADO: Registrar jugadores en un equipo (Admin + Capitán)
+router.post('/equipos/registrarJugadores', auth, checkRole('admin', 'capitan'), equipoController.registrarJugadores);
 
-// Borrar jugadores de un equipo (requiere token)
-router.delete('/equipos/borrarJugadores', auth, equipoController.borrarJugadores);
+// 🔥 ACTUALIZADO: Borrar jugadores de un equipo (Admin + Capitán)
+router.delete('/equipos/borrarJugadores', auth, checkRole('admin', 'capitan'), equipoController.borrarJugadores);
 
 // 🔒 Específicas con identificadores compuestos o rutas con nombre fijo
 // (No hay en tu caso, aquí irían rutas como /equipos/categoria/:categoria o /usuarios/rol/:rol)
 
 // 🔓 Genéricas con parámetros
 
-// Obtener usuario por ID (requiere token)
+// Obtener usuario por ID (requiere token - todos pueden ver)
 router.get('/usuarios/:id', auth, usuarioController.obtenerUsuarioId);
 
-// Eliminar usuario (requiere token)
-router.delete('/usuarios/:id', auth, usuarioController.eliminarUsuario);
+// Eliminar usuario (requiere token - necesita permisos administrativos)
+router.delete('/usuarios/:id', auth, checkRole('admin', 'capitan'), usuarioController.eliminarUsuario);
 
-// Actualizar perfil (requiere token)
-router.patch('/usuarios/:id', auth, upload, usuarioController.actualizarPerfil);
+// 🔥 ACTUALIZADO: Actualizar perfil (Con validación por ID usando nuevo middleware)
+router.patch('/usuarios/:id', auth, checkUserEditPermission, upload, usuarioController.actualizarPerfil);
 
-// Obtener equipo por ID (requiere token)
+// Obtener equipo por ID (requiere token - todos pueden ver)
 router.get('/equipos/:id', auth, equipoController.obtenerEquipo);
 
-// Actualizar equipo (requiere token)
-router.patch('/equipos/:id', auth, checkRole('capitan'), upload, equipoController.actualizarEquipo);
+// 🔥 ACTUALIZADO: Actualizar equipo (Admin + Capitán)
+router.patch('/equipos/:id', auth, checkRole('admin', 'capitan'), upload, equipoController.actualizarEquipo);
 
-// Eliminar equipo (requiere token)
-router.delete('/equipos/:id', auth, checkRole('capitan'), equipoController.eliminarEquipo);
+// 🔥 ACTUALIZADO: Eliminar equipo (Admin + Capitán)
+router.delete('/equipos/:id', auth, checkRole('admin', 'capitan'), equipoController.eliminarEquipo);
 
 module.exports = router;

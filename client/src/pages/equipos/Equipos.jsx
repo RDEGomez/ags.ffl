@@ -26,7 +26,9 @@ import {
   Tab,
   Tabs,
   Fab,
-  Alert
+  Alert,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -39,6 +41,8 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
+import CloseIcon from '@mui/icons-material/Close';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../config/axios';
@@ -47,12 +51,11 @@ import { es } from 'date-fns/locale';
 import { getCategoryName } from '../../helpers/mappings';
 import { FiltrosEquipos } from '../../components/FiltrosEquipos';
 import { ListaJugadoresEquipo } from './ListaJugadoresEquipo';
-import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+import { useImage } from '../../hooks/useImage';
 import Swal from 'sweetalert2';
 
 // 🔥 Componente para tarjeta de equipo individual
 const EquipoCard = ({ equipo, onAbrirDetalle, stats }) => {
-  // 🔥 Usar el hook para la imagen del equipo
   const equipoImageUrl = useImage(equipo.imagen, '/images/equipo-default.jpg');
 
   return (
@@ -89,7 +92,7 @@ const EquipoCard = ({ equipo, onAbrirDetalle, stats }) => {
         <CardMedia
           component="img"
           height="140"
-          image={equipoImageUrl} // 🔥 Usar la URL del hook
+          image={equipoImageUrl}
           alt={equipo.nombre}
           sx={{ 
             objectFit: 'contain',
@@ -227,8 +230,9 @@ const EquipoAvatar = ({ equipo, size = 120 }) => {
 };
 
 export const Equipos = () => {
-  const { tieneRol } = useAuth();
-  const esCapitan = tieneRol('capitan');
+  const { puedeGestionarEquipos } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // 🔥 NUEVO: Detectar móvil
 
   const [equipos, setEquipos] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
@@ -237,6 +241,7 @@ export const Equipos = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [tabActivo, setTabActivo] = useState(0);
+  const [showActionOverlay, setShowActionOverlay] = useState(false); // 🔥 NUEVO: Estado para overlay de botones
 
   useEffect(() => {
     obtenerEquipos();
@@ -263,6 +268,7 @@ export const Equipos = () => {
       setCargando(true);
       setEquipoSeleccionado(equipo);
       setDetalleAbierto(true);
+      setShowActionOverlay(false); // 🔥 NUEVO: Reset overlay state
     } catch (error) {
       console.error('Error al obtener detalle del equipo:', error);
     } finally {
@@ -275,11 +281,17 @@ export const Equipos = () => {
     setDetalleAbierto(false);
     setEquipoSeleccionado(null);
     setTabActivo(0);
+    setShowActionOverlay(false); // 🔥 NUEVO: Reset overlay state
   };
 
   // Cambiar tab en detalle
   const cambiarTab = (event, nuevoValor) => {
     setTabActivo(nuevoValor);
+  };
+
+  // 🔥 NUEVO: Toggle overlay de acciones
+  const toggleActionOverlay = () => {
+    setShowActionOverlay(prev => !prev);
   };
 
   const eliminarEquipo = async (equipoId) => {
@@ -448,7 +460,7 @@ export const Equipos = () => {
               <Typography variant="body2" sx={{ color: 'gray', mb: 3 }}>
                 {equipos.length === 0 ? 'Crea tu primer equipo para comenzar' : 'Intenta cambiar los filtros de búsqueda'}
               </Typography>
-              {equipos.length === 0 && esCapitan && (
+              {equipos.length === 0 && puedeGestionarEquipos() && (
                 <Button 
                   component={Link}
                   to="/equipos/nuevo"
@@ -508,8 +520,7 @@ export const Equipos = () => {
         )}
       </motion.div>
 
-      {/* FAB para agregar equipo */}
-      {esCapitan && (
+      {puedeGestionarEquipos() && (
         <Fab 
           component={Link}
           to="/equipos/nuevo"
@@ -540,7 +551,8 @@ export const Equipos = () => {
             backgroundColor: 'rgba(15, 15, 25, 0.95)',
             backdropFilter: 'blur(10px)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            position: 'relative' // 🔥 NUEVO: Para el overlay
           }
         }}
       >
@@ -558,15 +570,33 @@ export const Equipos = () => {
                 <GroupsIcon sx={{ color: '#64b5f6' }} />
                 <Typography variant="h6">{equipoSeleccionado.nombre}</Typography>
               </Box>
-              <Chip
-                label={getCategoryName(equipoSeleccionado.categoria)}
-                color="primary"
-                variant="outlined"
-                size="small"
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Chip
+                  label={getCategoryName(equipoSeleccionado.categoria)}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                />
+                {/* 🔥 NUEVO: Botón para mostrar overlay en móvil */}
+                {isMobile && puedeGestionarEquipos() && (
+                  <IconButton
+                    onClick={toggleActionOverlay}
+                    sx={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                      }
+                    }}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+                )}
+              </Box>
             </DialogTitle>
             
             <Box sx={{ px: 3, py: 2 }}>
+              {/* 🔥 TABS RESPONSIVOS - Solo íconos en móvil */}
               <Tabs 
                 value={tabActivo} 
                 onChange={cambiarTab}
@@ -576,6 +606,7 @@ export const Equipos = () => {
                 sx={{
                   '& .MuiTab-root': {
                     color: 'rgba(255, 255, 255, 0.7)',
+                    minHeight: 48,
                     '&.Mui-selected': {
                       color: 'primary.main',
                       fontWeight: 'bold'
@@ -583,9 +614,21 @@ export const Equipos = () => {
                   }
                 }}
               >
-                <Tab label="Información" icon={<InfoIcon />} iconPosition="start" />
-                <Tab label="Jugadores" icon={<PersonIcon />} iconPosition="start" />
-                <Tab label="Estadísticas" icon={<EmojiEventsIcon />} iconPosition="start" />
+                <Tab 
+                  label={isMobile ? undefined : "Información"} // 🔥 Sin texto en móvil
+                  icon={<InfoIcon />} 
+                  iconPosition={isMobile ? "top" : "start"} // 🔥 Icono arriba en móvil
+                />
+                <Tab 
+                  label={isMobile ? undefined : "Jugadores"} // 🔥 Sin texto en móvil
+                  icon={<PersonIcon />} 
+                  iconPosition={isMobile ? "top" : "start"} // 🔥 Icono arriba en móvil
+                />
+                <Tab 
+                  label={isMobile ? undefined : "Estadísticas"} // 🔥 Sin texto en móvil
+                  icon={<EmojiEventsIcon />} 
+                  iconPosition={isMobile ? "top" : "start"} // 🔥 Icono arriba en móvil
+                />
               </Tabs>
             </Box>
             
@@ -593,7 +636,6 @@ export const Equipos = () => {
               {/* Tab 1: Información general */}
               {tabActivo === 0 && (
                 <Box sx={{ textAlign: 'center' }}>
-                  {/* 🔥 Usar el componente EquipoAvatar */}
                   <EquipoAvatar equipo={equipoSeleccionado} size={120} />
                   
                   <Typography variant="h5" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -683,7 +725,13 @@ export const Equipos = () => {
               )}
             </DialogContent>
             
-            <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+            {/* 🔥 BOTONES DESKTOP - Solo en pantallas grandes */}
+            <DialogActions sx={{ 
+              display: { xs: 'none', md: 'flex' }, // 🔥 Ocultar en móvil
+              px: 3, 
+              pb: 3, 
+              pt: 1 
+            }}>
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
@@ -691,7 +739,7 @@ export const Equipos = () => {
                 width: '100%',
                 gap: 2
               }}>
-                {esCapitan && (
+                {puedeGestionarEquipos() && (
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                       component={Link}
@@ -756,6 +804,141 @@ export const Equipos = () => {
                 </Box>
               </Box>
             </DialogActions>
+
+            {/* 🔥 OVERLAY DE ACCIONES MÓVIL - Solo visible en pantallas pequeñas */}
+            <AnimatePresence>
+              {showActionOverlay && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Box
+                    sx={{
+                      display: { xs: 'flex', md: 'none' }, // 🔥 SOLO en móvil
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                      backdropFilter: 'blur(10px)',
+                      borderRadius: 3,
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 3,
+                      zIndex: 20,
+                      p: 3
+                    }}
+                  >
+                    {/* Botón de cerrar */}
+                    <IconButton
+                      onClick={toggleActionOverlay}
+                      sx={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 16,
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        width: 40,
+                        height: 40,
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                        }
+                      }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+
+                    {/* Título del overlay */}
+                    <Typography variant="h6" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
+                      Acciones del Equipo
+                    </Typography>
+
+                    {/* Botones de acción en overlay */}
+                    {puedeGestionarEquipos() && (
+                      <>
+                        <Button
+                          component={Link}
+                          to={`/equipos/${equipoSeleccionado._id}/jugadores`}
+                          state={{ equipo: equipoSeleccionado }}
+                          variant="contained"
+                          startIcon={<PersonAddIcon />}
+                          fullWidth
+                          size="large"
+                          sx={{
+                            borderRadius: 2,
+                            py: 2,
+                            background: 'linear-gradient(45deg, #ff6b35 30%, #f7931e 90%)',
+                            boxShadow: '0 3px 5px 2px rgba(255, 107, 53, .3)',
+                            fontSize: '1.1rem'
+                          }}
+                        >
+                          Gestionar Jugadores
+                        </Button>
+                        
+                        <Button
+                          component={Link}
+                          to={`/equipos/editar/${equipoSeleccionado._id}`}
+                          variant="contained"
+                          startIcon={<EditIcon />}
+                          fullWidth
+                          size="large"
+                          sx={{
+                            borderRadius: 2,
+                            py: 2,
+                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                            fontSize: '1.1rem'
+                          }}
+                        >
+                          Editar Equipo
+                        </Button>
+                        
+                        <Button
+                          onClick={() => {
+                            setShowActionOverlay(false);
+                            eliminarEquipo(equipoSeleccionado._id);
+                          }}
+                          variant="contained"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          fullWidth
+                          size="large"
+                          sx={{
+                            borderRadius: 2,
+                            py: 2,
+                            fontSize: '1.1rem'
+                          }}
+                        >
+                          Eliminar Equipo
+                        </Button>
+                      </>
+                    )}
+                    
+                    <Button 
+                      onClick={cerrarDetalle}
+                      variant="outlined"
+                      fullWidth
+                      size="large"
+                      sx={{
+                        borderRadius: 2,
+                        py: 2,
+                        mt: 2,
+                        borderWidth: 2,
+                        '&:hover': {
+                          borderWidth: 2
+                        }
+                      }}
+                    >
+                      Cerrar Modal
+                    </Button>
+                  </Box>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         ) : (
           <Box sx={{ p: 4, textAlign: 'center' }}>

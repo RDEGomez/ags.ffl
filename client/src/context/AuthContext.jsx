@@ -1,7 +1,7 @@
 // 📁 src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../config/axios'; // Asegúrate de tener la ruta correcta
+import axiosInstance from '../config/axios';
 
 const AuthContext = createContext();
 
@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }) => {
       
       if (storedToken) {
         try {
-
           var parsedUser = JSON.parse(storedUser);
           // Configurar el token en los headers para todas las peticiones
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
@@ -61,7 +60,7 @@ export const AuthProvider = ({ children }) => {
     navigate('/auth/login');
   };
 
- // Función para verificar si el usuario tiene un rol específico
+  // Función para verificar si el usuario tiene un rol específico
   const tieneRol = (roles) => {
     if (!usuario || !usuario.rol) return false;
     
@@ -77,13 +76,86 @@ export const AuthProvider = ({ children }) => {
     return usuario && usuario.rol === 'arbitro';
   };
 
-  // 🔥 Función para verificar si puede gestionar equipos (no árbitros)
+  // 🔥 CORREGIDA - Función para verificar si puede gestionar equipos (solo admin y capitán)
   const puedeGestionarEquipos = () => {
-    return usuario && ['admin', 'jugador', 'capitan'].includes(usuario.rol);
+    return usuario && ['admin', 'capitan'].includes(usuario.rol);
   };
 
-  // 🔥 Función para verificar si puede gestionar árbitros
+  // 🔥 Función para verificar si puede gestionar árbitros (solo admin)
   const puedeGestionarArbitros = () => {
+    return usuario && ['admin'].includes(usuario.rol);
+  };
+
+  // 🔥 NUEVA - Función para verificar si puede gestionar torneos (solo admin)
+  const puedeGestionarTorneos = () => {
+    return usuario && usuario.rol === 'admin';
+  };
+
+  // 🔥 NUEVA - Función para verificar si puede gestionar usuarios (admin y capitán)
+  const puedeGestionarUsuarios = () => {
+    return usuario && ['admin', 'capitan'].includes(usuario.rol);
+  };
+
+  // 🔥 NUEVA - Validación por ID para edición de perfiles de usuarios
+  const puedeEditarUsuario = (usuarioId, usuarioObjetivo = null) => {
+    if (!usuario) return false;
+    
+    // Admin puede editar cualquier usuario
+    if (usuario.rol === 'admin') return true;
+    
+    // Capitán NO puede editar admin
+    if (usuario.rol === 'capitan') {
+      if (usuarioObjetivo && usuarioObjetivo.rol === 'admin') return false;
+      return true; // Puede editar otros usuarios
+    }
+    
+    // Jugador y árbitro solo pueden editar su propio perfil
+    return usuario._id === usuarioId;
+  };
+
+  // 🔥 NUEVA - Validación por ID para edición de perfiles de árbitros
+  const puedeEditarArbitro = (arbitroUserId) => {
+    if (!usuario) return false;
+    
+    // Admin puede editar cualquier árbitro
+    if (usuario.rol === 'admin') return true;
+    
+    // Árbitro solo puede editar su propio perfil
+    return usuario.rol === 'arbitro' && usuario._id === arbitroUserId;
+  };
+
+  // 🔥 NUEVA - Función para verificar si puede cambiar disponibilidad de árbitros
+  const puedeCambiarDisponibilidadArbitro = (arbitroUserId) => {
+    if (!usuario) return false;
+    
+    // Admin puede cambiar disponibilidad de cualquier árbitro
+    if (usuario.rol === 'admin') return true;
+    
+    // Capitán puede cambiar disponibilidad de árbitros
+    if (usuario.rol === 'capitan') return true;
+    
+    // Árbitro solo puede cambiar su propia disponibilidad
+    return usuario.rol === 'arbitro' && usuario._id === arbitroUserId;
+  };
+
+  // 🔥 NUEVA - Función para verificar si puede eliminar usuarios
+  const puedeEliminarUsuario = (usuarioObjetivo = null) => {
+    if (!usuario) return false;
+    
+    // Admin puede eliminar cualquier usuario (excepto él mismo podríamos agregar)
+    if (usuario.rol === 'admin') return true;
+    
+    // Capitán NO puede eliminar admin
+    if (usuario.rol === 'capitan') {
+      if (usuarioObjetivo && usuarioObjetivo.rol === 'admin') return false;
+      return true;
+    }
+    
+    return false; // Jugadores y árbitros no pueden eliminar usuarios
+  };
+
+  // 🔥 NUEVA - Función para verificar si puede eliminar árbitros
+  const puedeEliminarArbitro = () => {
     return usuario && ['admin'].includes(usuario.rol);
   };
 
@@ -95,9 +167,19 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     tieneRol,
-    esArbitro, // 🔥 Nueva función
-    puedeGestionarEquipos, // 🔥 Nueva función
-    puedeGestionarArbitros // 🔥 Nueva función
+    esArbitro,
+    // Funciones de gestión general
+    puedeGestionarEquipos,
+    puedeGestionarArbitros,
+    puedeGestionarTorneos,
+    puedeGestionarUsuarios,
+    // Funciones de edición por ID
+    puedeEditarUsuario,
+    puedeEditarArbitro,
+    // Funciones específicas
+    puedeCambiarDisponibilidadArbitro,
+    puedeEliminarUsuario,
+    puedeEliminarArbitro
   };
 
   return (

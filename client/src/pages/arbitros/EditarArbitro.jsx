@@ -86,8 +86,9 @@ const getImageUrl = (imagen) => {
 export const EditarArbitro = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { usuario, tieneRol } = useAuth();
-  const esAdmin = tieneRol('admin');
+  
+  // 🔥 ACTUALIZADO: Usar las nuevas funciones de validación por ID
+  const { usuario, puedeGestionarArbitros, puedeEditarArbitro } = useAuth();
   
   // Estados locales
   const [arbitro, setArbitro] = useState(null);
@@ -163,24 +164,40 @@ export const EditarArbitro = () => {
     }
   }, [id, reset, navigate]);
 
-  // Verificar permisos de edición
-  const puedeEditar = () => {
-    if (!arbitro || !usuario) return false;
-    
-    // Admin puede editar cualquier árbitro
-    if (esAdmin) return true;
-    
-    // El propio árbitro puede editar su perfil
-    if (usuario._id === arbitro.usuario._id) return true;
-    
-    return false;
-  };
+  // 🔥 NUEVO: Verificar permisos de edición cuando se carga el árbitro
+  useEffect(() => {
+    if (arbitro && usuario) {
+      const puedeEditarEsteArbitro = puedeEditarArbitro(arbitro.usuario._id);
+      
+      if (!puedeEditarEsteArbitro) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Acceso Denegado',
+          text: 'No tienes permisos para editar este árbitro.',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#1976d2'
+        }).then(() => {
+          navigate('/arbitros');
+        });
+      }
+    }
+  }, [arbitro, usuario, puedeEditarArbitro, navigate]);
 
   // Manejar envío del formulario
   const onSubmit = async (data) => {
     try {
       setCargandoForm(true);
       setError('');
+
+      // 🔥 NUEVO: Verificación adicional antes de enviar
+      if (arbitro && !puedeEditarArbitro(arbitro.usuario._id)) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Acceso Denegado',
+          text: 'No tienes permisos para editar este árbitro.'
+        });
+        return;
+      }
 
       const payload = {
         nivel: data.nivel,
@@ -192,7 +209,7 @@ export const EditarArbitro = () => {
       };
 
       // Solo admin puede cambiar estado y notas internas
-      if (esAdmin) {
+      if (puedeGestionarArbitros()) {
         payload.estado = data.estado;
         payload.notasInternas = data.notasInternas;
       }
@@ -266,12 +283,32 @@ export const EditarArbitro = () => {
     );
   }
 
-  // Si no tiene permisos
-  if (!puedeEditar()) {
+  // 🔥 NUEVO: Si no tiene permisos (redundancia de seguridad)
+  if (!puedeEditarArbitro(arbitro.usuario._id)) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error">
-          No tienes permisos para editar este árbitro
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '50vh',
+        backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
+        borderRadius: 2
+      }}>
+        <Alert severity="warning" sx={{ maxWidth: 400 }}>
+          <Typography variant="h6" gutterBottom>
+            Acceso Denegado
+          </Typography>
+          <Typography variant="body2">
+            No tienes permisos para editar este árbitro.
+          </Typography>
+          <Button 
+            component={Link} 
+            to="/arbitros" 
+            variant="contained" 
+            sx={{ mt: 2 }}
+          >
+            Volver a Árbitros
+          </Button>
         </Alert>
       </Box>
     );
@@ -534,7 +571,7 @@ export const EditarArbitro = () => {
                       </Grid>
 
                       {/* Estado (solo admin) */}
-                      {esAdmin && (
+                      {puedeGestionarArbitros() && (
                         <Grid item xs={12} sm={6}>
                           <Controller
                             name="estado"
@@ -741,7 +778,7 @@ export const EditarArbitro = () => {
                       </Grid>
 
                       {/* Notas internas (solo admin) */}
-                      {esAdmin && (
+                      {puedeGestionarArbitros() && (
                         <Grid item xs={12}>
                           <Controller
                             name="notasInternas"

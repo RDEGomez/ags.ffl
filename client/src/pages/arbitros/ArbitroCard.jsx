@@ -162,7 +162,9 @@ const PosicionesArbitro = ({ posiciones }) => {
 
 export const ArbitroCard = ({ arbitro, onEliminar, onCambiarDisponibilidad }) => {
   const [expanded, setExpanded] = useState(false);
-  const { puedeGestionarArbitros } = useAuth();
+  
+  // 🔥 CORREGIDO: Usar las funciones específicas de validación por ID
+  const { puedeGestionarArbitros, puedeEditarArbitro, puedeCambiarDisponibilidadArbitro } = useAuth();
   const navigate = useNavigate();
   
   const { 
@@ -190,6 +192,11 @@ export const ArbitroCard = ({ arbitro, onEliminar, onCambiarDisponibilidad }) =>
   const handleExpandClick = () => {
     setExpanded(!expanded);
   };
+
+  // 🔥 NUEVO: Validar permisos específicos para este árbitro
+  const puedeEditarEsteArbitro = puedeEditarArbitro(usuario?._id);
+  const puedeEliminarEsteArbitro = puedeGestionarArbitros(); // Solo admin puede eliminar
+  const puedeCambiarDisponibilidad = puedeCambiarDisponibilidadArbitro(usuario?._id);
 
   // Determinar color del nivel
   const getNivelColor = (nivel) => {
@@ -263,8 +270,8 @@ export const ArbitroCard = ({ arbitro, onEliminar, onCambiarDisponibilidad }) =>
             }}
           />
 
-          {/* Switch de disponibilidad para admin */}
-          {puedeGestionarArbitros() && (
+          {/* Switch de disponibilidad para usuarios autorizados */}
+          {puedeCambiarDisponibilidad && (
             <FormControlLabel
               control={
                 <Switch
@@ -294,7 +301,7 @@ export const ArbitroCard = ({ arbitro, onEliminar, onCambiarDisponibilidad }) =>
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center',
-            pt: puedeGestionarArbitros() ? 2 : 1
+            pt: puedeCambiarDisponibilidad ? 2 : 1
           }}>
             {/* Avatar */}
             <Badge
@@ -461,40 +468,42 @@ export const ArbitroCard = ({ arbitro, onEliminar, onCambiarDisponibilidad }) =>
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          {puedeGestionarArbitros() && (
-            <>
-              <Tooltip title="Editar árbitro">
-                <IconButton
-                  onClick={() => navigate(`/arbitros/editar/${_id}`)}
-                  sx={{
-                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                    color: '#2196f3',
-                    '&:hover': {
-                      backgroundColor: 'rgba(33, 150, 243, 0.2)',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                >
-                  <EditIcon />
-                </IconButton>
-              </Tooltip>
-              
-              <Tooltip title="Eliminar árbitro">
-                <IconButton 
-                  onClick={() => onEliminar && onEliminar(_id)}
-                  sx={{
-                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                    color: '#f44336',
-                    '&:hover': {
-                      backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Tooltip>
-            </>
+          {/* 🔥 CORREGIDO: Usar validación específica por ID */}
+          {puedeEditarEsteArbitro && (
+            <Tooltip title="Editar árbitro">
+              <IconButton
+                onClick={() => navigate(`/arbitros/editar/${_id}`)}
+                sx={{
+                  backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                  color: '#2196f3',
+                  '&:hover': {
+                    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+          
+          {/* Solo admin puede eliminar árbitros */}
+          {puedeEliminarEsteArbitro && (
+            <Tooltip title="Eliminar árbitro">
+              <IconButton 
+                onClick={() => onEliminar && onEliminar(_id)}
+                sx={{
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  color: '#f44336',
+                  '&:hover': {
+                    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </CardActions>
 

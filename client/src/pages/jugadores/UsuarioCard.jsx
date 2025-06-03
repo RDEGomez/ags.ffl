@@ -29,7 +29,8 @@ import {
 import SportsFootballIcon from '@mui/icons-material/SportsFootball';
 import { motion } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
-import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
+import { useImage } from '../../hooks/useImage'
+import { useAuth } from '../../context/AuthContext' // 🔥 AGREGADO: Para permisos
 
 // 🔥 Componente para el avatar principal del usuario
 const UsuarioAvatar = ({ imagen, nombre, equiposCount }) => {
@@ -214,11 +215,19 @@ const ListaEquiposUsuario = ({ equipos }) => {
 
 export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
   const [expanded, setExpanded] = useState(false)
+  
+  // 🔥 AGREGADO: Importar funciones de validación por ID
+  const { puedeEditarUsuario, puedeGestionarUsuarios } = useAuth();
+  
   const { _id, nombre, documento, imagen, equipos = [], rol } = usuario
 
   const handleExpandClick = () => {
     setExpanded(!expanded)
   }
+
+  // 🔥 NUEVO: Validar permisos específicos para este usuario
+  const puedeEditarEsteUsuario = puedeEditarUsuario(_id, usuario);
+  const puedeEliminarEsteUsuario = puedeGestionarUsuarios();
 
   // Determinar color del rol
   const getRolColor = (rol) => {
@@ -226,6 +235,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
       case 'admin': return '#f44336'
       case 'capitan': return '#ff9800'
       case 'jugador': return '#4caf50'
+      case 'arbitro': return '#9c27b0' // 🔥 AGREGADO: Color para árbitro
       default: return '#9e9e9e'
     }
   }
@@ -236,6 +246,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
       case 'admin': return <AdminIcon />
       case 'capitan': return <GroupsIcon />
       case 'jugador': return <PersonIcon />
+      case 'arbitro': return <PersonIcon /> // 🔥 AGREGADO: Icono para árbitro
       default: return <PersonIcon />
     }
   }
@@ -245,6 +256,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
       case 'admin': return 'Administrador'
       case 'capitan': return 'Capitán'
       case 'jugador': return 'Jugador'
+      case 'arbitro': return 'Árbitro' // 🔥 AGREGADO: Label para árbitro
       default: return 'Usuario'
     }
   }
@@ -365,38 +377,44 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          <Tooltip title="Editar usuario">
-            <IconButton
-              component={Link}
-              to={`/perfil/${_id}`}
-              sx={{
-                backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                color: '#2196f3',
-                '&:hover': {
-                  backgroundColor: 'rgba(33, 150, 243, 0.2)',
-                  transform: 'scale(1.1)'
-                }
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
+          {/* 🔥 CORREGIDO: Solo mostrar botón de editar si tiene permisos */}
+          {puedeEditarEsteUsuario && (
+            <Tooltip title="Editar usuario">
+              <IconButton
+                component={Link}
+                to={`/perfil/${_id}`}
+                sx={{
+                  backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                  color: '#2196f3',
+                  '&:hover': {
+                    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           
-          <Tooltip title="Eliminar usuario">
-            <IconButton 
-              onClick={() => eliminarUsuario(_id)}
-              sx={{
-                backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                color: '#f44336',
-                '&:hover': {
-                  backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                  transform: 'scale(1.1)'
-                }
-              }}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+          {/* 🔥 CORREGIDO: Solo mostrar botón de eliminar si tiene permisos */}
+          {puedeEliminarEsteUsuario && (
+            <Tooltip title="Eliminar usuario">
+              <IconButton 
+                onClick={() => eliminarUsuario(_id)}
+                sx={{
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  color: '#f44336',
+                  '&:hover': {
+                    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </CardActions>
 
         {/* Botón para expandir equipos */}

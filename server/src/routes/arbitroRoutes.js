@@ -3,26 +3,26 @@ const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
 const arbitroController = require('../controllers/arbitroController');
-const { auth, checkRole } = require('../middleware/authMiddleware');
+const { auth, checkRole, checkArbitroEditPermission } = require('../middleware/authMiddleware'); // 🔥 AGREGADO: checkArbitroEditPermission
 
-// 📋 Obtener todos los árbitros (con filtros opcionales)
+// 📋 Obtener todos los árbitros (con filtros opcionales - todos pueden ver)
 // Query params: ?disponible=true&posicion=principal&ubicacion=Aguascalientes&estado=activo
 router.get('/', 
   auth, 
   arbitroController.obtenerArbitros
 );
 
-// 👤 Obtener árbitro por ID
+// 👤 Obtener árbitro por ID (todos pueden ver)
 router.get('/:id', 
   auth, 
   arbitroController.obtenerArbitroPorId
 );
 
-// ➕ Crear nuevo árbitro
+// ➕ Crear nuevo árbitro (Solo Admin)
 router.post('/', 
   [
     auth,
-    checkRole('admin', 'capitan'),
+    checkRole('admin'), // 🔥 CAMBIADO: Solo admin (quitamos 'capitan' según nuestras reglas)
     [
       check('usuarioId', 'ID de usuario es obligatorio').isMongoId(),
       check('nivel').optional().isIn(['Local', 'Regional', 'Nacional', 'Internacional']),
@@ -38,11 +38,11 @@ router.post('/',
   arbitroController.crearArbitro
 );
 
-// ✏️ Actualizar árbitro
+// ✏️ Actualizar árbitro (Admin + validación por ID para árbitros)
 router.patch('/:id', 
   [
     auth,
-    checkRole('admin', 'capitan', 'arbitro'), // Los árbitros pueden editar su propio perfil
+    checkArbitroEditPermission, // 🔥 CAMBIADO: Usar nuevo middleware en lugar de checkRole
     [
       check('nivel').optional().isIn(['Local', 'Regional', 'Nacional', 'Internacional']),
       check('experiencia').optional().isNumeric({ min: 0 }),
@@ -59,11 +59,11 @@ router.patch('/:id',
   arbitroController.actualizarArbitro
 );
 
-// 🔄 Cambiar disponibilidad de árbitro
+// 🔄 Cambiar disponibilidad de árbitro (Admin + validación por ID para árbitros)
 router.patch('/:id/disponibilidad', 
   [
     auth,
-    checkRole('admin', 'capitan', 'arbitro'), // Los árbitros pueden cambiar su propia disponibilidad
+    checkArbitroEditPermission, // 🔥 CAMBIADO: Usar nuevo middleware para consistencia
     [
       check('disponible', 'El campo disponible debe ser un valor booleano').isBoolean()
     ]
@@ -71,22 +71,22 @@ router.patch('/:id/disponibilidad',
   arbitroController.cambiarDisponibilidad
 );
 
-// 🗑️ Eliminar árbitro
+// 🗑️ Eliminar árbitro (Solo Admin)
 router.delete('/:id', 
   [
     auth,
-    checkRole('admin', 'capitan') // Solo admin y capitán pueden eliminar
+    checkRole('admin') // 🔥 CAMBIADO: Solo admin (quitamos 'capitan' según nuestras reglas)
   ],
   arbitroController.eliminarArbitro
 );
 
-// 📊 Obtener estadísticas generales de árbitros
+// 📊 Obtener estadísticas generales de árbitros (todos pueden ver)
 router.get('/estadisticas/generales', 
   auth,
   arbitroController.obtenerEstadisticas
 );
 
-// 🔍 Buscar árbitros disponibles
+// 🔍 Buscar árbitros disponibles (todos pueden ver)
 // Query params: ?posicion=principal&ubicacion=Aguascalientes
 router.get('/buscar/disponibles', 
   auth,

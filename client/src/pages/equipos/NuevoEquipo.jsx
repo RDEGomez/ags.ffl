@@ -40,6 +40,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
 import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
+import { useAuth } from '../../context/AuthContext' // 🔥 AGREGADO: Import useAuth
 
 // 🔥 Componente para mostrar equipos existentes
 const EquipoListItem = ({ equipo, index }) => {
@@ -64,7 +65,6 @@ const EquipoListItem = ({ equipo, index }) => {
           <Avatar 
             src={equipoImageUrl}
             sx={{ 
-              bgcolor: 'primary.main',
               border: '2px solid rgba(255, 255, 255, 0.2)'
             }}
           >
@@ -98,6 +98,26 @@ const EquipoListItem = ({ equipo, index }) => {
 };
 
 export const NuevoEquipo = () => {
+  // 🔥 AGREGADO: Verificar permisos de gestión de equipos
+  const { puedeGestionarEquipos } = useAuth();
+  const navigate = useNavigate();
+
+  // 🔥 AGREGADO: Verificación de acceso al componente
+  useEffect(() => {
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acceso Denegado',
+        text: 'No tienes permisos para crear equipos.',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1976d2'
+      }).then(() => {
+        navigate('/equipos'); // Redirigir a la lista de equipos
+      });
+      return;
+    }
+  }, [puedeGestionarEquipos, navigate]);
+
   const [fileName, setFileName] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [equipos, setEquipos] = useState([]);
@@ -105,7 +125,6 @@ export const NuevoEquipo = () => {
   const [error, setError] = useState('');
   const [equipoRecienCreado, setEquipoRecienCreado] = useState(null); // 🔥 Para mostrar el equipo recién creado
   const fileInputRef = useRef(null);
-  const navigate = useNavigate();
 
   // Esquema de validación
   const schema = Yup.object().shape({
@@ -157,8 +176,11 @@ export const NuevoEquipo = () => {
       }
     };
 
-    fetchEquipos();
-  }, []);
+    // 🔥 AGREGADO: Solo cargar equipos si tiene permisos
+    if (puedeGestionarEquipos()) {
+      fetchEquipos();
+    }
+  }, [puedeGestionarEquipos]);
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -175,6 +197,16 @@ export const NuevoEquipo = () => {
   };
 
   const onSubmit = async (data) => {
+    // 🔥 AGREGADO: Verificación adicional antes de enviar
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Acceso Denegado',
+        text: 'No tienes permisos para crear equipos.'
+      });
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append('nombre', data.nombre);
@@ -214,6 +246,37 @@ export const NuevoEquipo = () => {
         text: error.response?.data?.mensaje || 'Algo salió mal',
       })
     }
+  }
+
+  // 🔥 AGREGADO: Si no tiene permisos, no renderizar el componente (redundancia de seguridad)
+  if (!puedeGestionarEquipos()) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '50vh',
+        backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
+        borderRadius: 2
+      }}>
+        <Alert severity="warning" sx={{ maxWidth: 400 }}>
+          <Typography variant="h6" gutterBottom>
+            Acceso Denegado
+          </Typography>
+          <Typography variant="body2">
+            No tienes permisos para acceder a esta página.
+          </Typography>
+          <Button 
+            component={Link} 
+            to="/equipos" 
+            variant="contained" 
+            sx={{ mt: 2 }}
+          >
+            Volver a Equipos
+          </Button>
+        </Alert>
+      </Box>
+    );
   }
 
   // Filtrar equipos por categoría seleccionada

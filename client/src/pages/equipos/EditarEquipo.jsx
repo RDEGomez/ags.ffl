@@ -21,17 +21,37 @@ import {
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
+import { useAuth } from '../../context/AuthContext' // 🔥 AGREGADO: Import useAuth
 
 export const EditarEquipo = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  
+  // 🔥 AGREGADO: Verificar permisos de gestión de equipos
+  const { puedeGestionarEquipos } = useAuth();
 
   const [previewUrl, setPreviewUrl] = useState('')
   const [fileName, setFileName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [equipoImagen, setEquipoImagen] = useState('') // 🔥 Estado para la imagen original del equipo
+
+  // 🔥 AGREGADO: Verificación de acceso al componente
+  useEffect(() => {
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acceso Denegado',
+        text: 'No tienes permisos para editar equipos.',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#1976d2'
+      }).then(() => {
+        navigate('/equipos'); // Redirigir a la lista de equipos
+      });
+      return;
+    }
+  }, [puedeGestionarEquipos, navigate]);
 
   // 🔥 Usar el hook para la imagen del equipo
   const equipoImageUrl = useImage(equipoImagen, '/images/equipo-default.jpg')
@@ -69,8 +89,11 @@ export const EditarEquipo = () => {
   const categoriaActual = watch('categoria');
 
   useEffect(() => {
-    fetchEquipo()
-  }, [])
+    // 🔥 AGREGADO: Solo cargar equipo si tiene permisos
+    if (puedeGestionarEquipos()) {
+      fetchEquipo();
+    }
+  }, [puedeGestionarEquipos]);
 
   const fetchEquipo = async () => {
     try {
@@ -102,6 +125,16 @@ export const EditarEquipo = () => {
   }
 
   const onSubmit = async (data) => {
+    // 🔥 AGREGADO: Verificación adicional antes de enviar
+    if (!puedeGestionarEquipos()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Acceso Denegado',
+        text: 'No tienes permisos para editar equipos.'
+      });
+      return;
+    }
+
     try {
       const formData = new FormData()
       formData.append('nombre', data.nombre)
@@ -145,6 +178,37 @@ export const EditarEquipo = () => {
       setValue('imagen', e.target.files)
       setFileName(file.name)
     }
+  }
+
+  // 🔥 AGREGADO: Si no tiene permisos, no renderizar el componente (redundancia de seguridad)
+  if (!puedeGestionarEquipos()) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '50vh',
+        backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
+        borderRadius: 2
+      }}>
+        <Alert severity="warning" sx={{ maxWidth: 400 }}>
+          <Typography variant="h6" gutterBottom>
+            Acceso Denegado
+          </Typography>
+          <Typography variant="body2">
+            No tienes permisos para acceder a esta página.
+          </Typography>
+          <Button 
+            component={Link} 
+            to="/equipos" 
+            variant="contained" 
+            sx={{ mt: 2 }}
+          >
+            Volver a Equipos
+          </Button>
+        </Alert>
+      </Box>
+    );
   }
 
   // 🔥 Determinar qué imagen mostrar

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import axiosInstance from '../../config/axios';
 import { UsuarioCard } from './UsuarioCard';
@@ -40,12 +40,29 @@ import {
 import { ListaUsuariosCompacta } from './ListaUsuariosCompacta';
 
 export const Usuarios = () => {
+  // 🔥 USAR: Nuevas funciones de permisos con validación por ID
+  const { usuario, puedeGestionarUsuarios, puedeEditarUsuario } = useAuth();
+  const navigate = useNavigate();
+
   const [usuarios, setUsuarios] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
   const [vistaCompacta, setVistaCompacta] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { usuario, logout } = useAuth();
+
+  // 🔥 AGREGADO: Función helper para imágenes (sin hook, evita error de hooks)
+  const getImageUrl = (imagen) => {
+    if (!imagen) return '';
+    if (imagen.startsWith('http://') || imagen.startsWith('https://')) {
+      return imagen;
+    }
+    return `${import.meta.env.VITE_BACKEND_URL || ''}/uploads/${imagen}`;
+  };
+
+  // 🔥 NUEVA: Función para verificar si puede editar un usuario específico
+  const puedeEditarEsteUsuario = (usuarioObj) => {
+    return puedeEditarUsuario(usuarioObj._id, usuarioObj);
+  };
 
   const obtenerUsuarios = async () => {
     try {
@@ -67,60 +84,75 @@ export const Usuarios = () => {
     obtenerUsuarios();
   }, []);
 
-  const eliminarUsuario = (_id) => {
-    Swal.fire({
-      title: '¿Estás seguro?',
-      text: 'No podrás revertir esto!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminarlo!',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
+  const eliminarUsuario = async (usuarioId) => {
+    // 🔥 VALIDACIÓN: Solo mostrar si tiene permisos (doble validación)
+    if (!puedeGestionarUsuarios()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tienes permisos para eliminar usuarios'
+      });
+      return;
+    }
+
+    try {
+      const result = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: 'No podrás revertir esto! Se eliminará el usuario y todos sus datos.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminarlo!',
+        cancelButtonText: 'Cancelar'
+      });
+
       if (result.isConfirmed) {
-        axiosInstance.delete(`/usuarios/${_id}`)
-          .then(() => {
-            Swal.fire({
-              icon: 'success',
-              title: 'Eliminado!',
-              text: 'El usuario ha sido eliminado.',
-              showConfirmButton: false,
-              timer: 2000
-            });
+        await axiosInstance.delete(`/usuarios/${usuarioId}`);
+        
+        const actualizados = usuarios.filter(user => user._id !== usuarioId);
+        setUsuarios(actualizados);
+        setFiltrados(actualizados);
 
-            const actualizados = usuarios.filter(user => user._id !== _id);
-            setUsuarios(actualizados);
-            setFiltrados(actualizados);
-
-            // Si el usuario eliminado es el que está loggeado, hacer logout
-            if (_id === usuario._id) {
-              logout();
-            }
-          })
-          .catch((error) => {
-            console.error('Error al eliminar usuario:', error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'No se pudo eliminar el usuario. Intenta nuevamente.',
-            });
-          });
+        // Si el usuario eliminado es el que está loggeado, hacer logout
+        if (usuarioId === usuario._id) {
+          logout();
+        }
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Eliminado!',
+          text: 'El usuario ha sido eliminado correctamente.',
+          timer: 2000,
+          showConfirmButton: false
+        });
       }
-    });
+    } catch (error) {
+      console.error('Error al eliminar usuario:', error);
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.mensaje || 'No se pudo eliminar el usuario. Intenta nuevamente.'
+      });
+    }
   };
 
   // Obtener estadísticas de usuarios
   const obtenerEstadisticas = () => {
     const totalUsuarios = usuarios.length;
-    const jugadores = usuarios.filter(u => u.rol === 'jugador' || u.rol === 'capitan').length;
+    const jugadores = usuarios.filter(u => u.rol === 'jugador').length;
+    const capitanes = usuarios.filter(u => u.rol === 'capitan').length;
     const administradores = usuarios.filter(u => u.rol === 'admin').length;
+    const arbitros = usuarios.filter(u => u.rol === 'arbitro').length;
     const usuariosConEquipos = usuarios.filter(u => u.equipos && u.equipos.length > 0).length;
 
     return {
       total: totalUsuarios,
       jugadores,
+      capitanes,
       administradores,
+      arbitros,
       conEquipos: usuariosConEquipos
     };
   };
@@ -212,7 +244,7 @@ export const Usuarios = () => {
         {/* Tarjetas de estadísticas */}
         <motion.div variants={itemVariants}>
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2.4}>
               <Card sx={cardStyle}>
                 <CardContent sx={{ textAlign: 'center', p: 2 }}>
                   <PeopleIcon sx={{ fontSize: 40, color: '#64b5f6', mb: 1 }} />
@@ -226,7 +258,7 @@ export const Usuarios = () => {
               </Card>
             </Grid>
             
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2.4}>
               <Card sx={cardStyle}>
                 <CardContent sx={{ textAlign: 'center', p: 2 }}>
                   <PersonAddIcon sx={{ fontSize: 40, color: '#4caf50', mb: 1 }} />
@@ -240,10 +272,24 @@ export const Usuarios = () => {
               </Card>
             </Grid>
             
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2.4}>
               <Card sx={cardStyle}>
                 <CardContent sx={{ textAlign: 'center', p: 2 }}>
                   <PeopleIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
+                  <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
+                    {stats.capitanes}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Capitanes
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2.4}>
+              <Card sx={cardStyle}>
+                <CardContent sx={{ textAlign: 'center', p: 2 }}>
+                  <PeopleIcon sx={{ fontSize: 40, color: '#f44336', mb: 1 }} />
                   <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
                     {stats.administradores}
                   </Typography>
@@ -254,7 +300,7 @@ export const Usuarios = () => {
               </Card>
             </Grid>
             
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2.4}>
               <Card sx={cardStyle}>
                 <CardContent sx={{ textAlign: 'center', p: 2 }}>
                   <PersonAddIcon sx={{ fontSize: 40, color: '#e91e63', mb: 1 }} />
@@ -374,7 +420,7 @@ export const Usuarios = () => {
                 <Typography variant="body2" sx={{ color: 'gray', mb: 3 }}>
                   {usuarios.length === 0 ? 'Crea el primer usuario para comenzar' : 'Intenta cambiar los filtros de búsqueda'}
                 </Typography>
-                {usuarios.length === 0 && (
+                {usuarios.length === 0 && puedeGestionarUsuarios() && (
                   <Button 
                     component={Link}
                     to="/usuarios/nuevo"
@@ -419,9 +465,9 @@ export const Usuarios = () => {
             justifyContent: { xs: 'center', sm: 'flex-start' }
           }}>
             <AnimatePresence>
-              {filtrados.map((usuario, index) => (
+              {filtrados.map((usuarioItem, index) => (
                 <Box 
-                  key={usuario._id} 
+                  key={usuarioItem._id} 
                   sx={{ 
                     flexBasis: { 
                       xs: '100%',                    // Mobile: 1 por fila
@@ -457,7 +503,7 @@ export const Usuarios = () => {
                         backgroundColor: 'rgba(0, 0, 0, 0.9)'
                       }
                     }}>
-                      <UsuarioCard usuario={usuario} eliminarUsuario={eliminarUsuario} />
+                      <UsuarioCard usuario={usuarioItem} eliminarUsuario={eliminarUsuario} />
                     </Box>
                   </motion.div>
                 </Box>
