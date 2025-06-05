@@ -211,6 +211,12 @@ export const Layout = () => {
           onClick={handleDrawerToggle} 
         />
         <NavMenuItem 
+          to="/partidos" 
+          icon={<GroupsIcon />} 
+          text="Partidos" 
+          onClick={handleDrawerToggle} 
+        />
+        <NavMenuItem 
           to="/perfil" 
           icon={<PersonIcon />} 
           text="Mi Perfil" 
@@ -382,6 +388,19 @@ export const Layout = () => {
               })}
             >
               <Typography variant="body1">Árbitros</Typography>
+            </NavLink>
+            <NavLink 
+              to="/Partidos" 
+              style={({ isActive }) => ({
+                textDecoration: 'none', 
+                color: isActive ? '#64b5f6' : 'white',
+                borderBottom: isActive ? '2px solid #64b5f6' : '2px solid transparent',
+                transition: 'all 0.3s ease',
+                padding: '6px 0',
+                fontWeight: isActive ? 'bold' : 'normal',
+              })}
+            >
+              <Typography variant="body1">Partidos</Typography>
             </NavLink>
           </Box>
 

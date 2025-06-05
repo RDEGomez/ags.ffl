@@ -1,4 +1,4 @@
-// 📁 src/context/AuthContext.jsx
+// 📁 src/context/AuthContext.jsx - CORRECCIÓN DE PERMISOS
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../config/axios';
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     return usuario && usuario.rol === 'arbitro';
   };
 
-  // 🔥 CORREGIDA - Función para verificar si puede gestionar equipos (solo admin y capitán)
+  // 🔥 Función para verificar si puede gestionar equipos (admin y capitán)
   const puedeGestionarEquipos = () => {
     return usuario && ['admin', 'capitan'].includes(usuario.rol);
   };
@@ -86,17 +86,17 @@ export const AuthProvider = ({ children }) => {
     return usuario && ['admin'].includes(usuario.rol);
   };
 
-  // 🔥 NUEVA - Función para verificar si puede gestionar torneos (solo admin)
+  // 🔥 CORREGIDA - Función para verificar si puede gestionar torneos (admin Y capitán)
   const puedeGestionarTorneos = () => {
-    return usuario && usuario.rol === 'admin';
+    return usuario && ['admin', 'capitan'].includes(usuario.rol);
   };
 
-  // 🔥 NUEVA - Función para verificar si puede gestionar usuarios (admin y capitán)
+  // 🔥 Función para verificar si puede gestionar usuarios (admin y capitán)
   const puedeGestionarUsuarios = () => {
     return usuario && ['admin', 'capitan'].includes(usuario.rol);
   };
 
-  // 🔥 NUEVA - Validación por ID para edición de perfiles de usuarios
+  // 🔥 Validación por ID para edición de perfiles de usuarios
   const puedeEditarUsuario = (usuarioId, usuarioObjetivo = null) => {
     if (!usuario) return false;
     
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
     return usuario._id === usuarioId;
   };
 
-  // 🔥 NUEVA - Validación por ID para edición de perfiles de árbitros
+  // 🔥 Validación por ID para edición de perfiles de árbitros
   const puedeEditarArbitro = (arbitroUserId) => {
     if (!usuario) return false;
     
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
     return usuario.rol === 'arbitro' && usuario._id === arbitroUserId;
   };
 
-  // 🔥 NUEVA - Función para verificar si puede cambiar disponibilidad de árbitros
+  // 🔥 Función para verificar si puede cambiar disponibilidad de árbitros
   const puedeCambiarDisponibilidadArbitro = (arbitroUserId) => {
     if (!usuario) return false;
     
@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }) => {
     return usuario.rol === 'arbitro' && usuario._id === arbitroUserId;
   };
 
-  // 🔥 NUEVA - Función para verificar si puede eliminar usuarios
+  // 🔥 Función para verificar si puede eliminar usuarios
   const puedeEliminarUsuario = (usuarioObjetivo = null) => {
     if (!usuario) return false;
     
@@ -154,9 +154,60 @@ export const AuthProvider = ({ children }) => {
     return false; // Jugadores y árbitros no pueden eliminar usuarios
   };
 
-  // 🔥 NUEVA - Función para verificar si puede eliminar árbitros
+  // 🔥 Función para verificar si puede eliminar árbitros
   const puedeEliminarArbitro = () => {
     return usuario && ['admin'].includes(usuario.rol);
+  };
+
+  const puedeInscribirseEquipo = (usuarioIdAInscribir = null) => {
+    if (!usuario) return false;
+    
+    // Admin y capitán pueden inscribir a cualquiera
+    if (['admin', 'capitan'].includes(usuario.rol)) return true;
+    
+    // Jugador solo puede inscribirse a sí mismo
+    if (usuario.rol === 'jugador') {
+      // Si no se especifica usuarioIdAInscribir, asumimos que es para sí mismo
+      if (!usuarioIdAInscribir) return true;
+      
+      // Verificar que sea el mismo usuario
+      return usuario._id === usuarioIdAInscribir || usuario.id === usuarioIdAInscribir;
+    }
+    
+    return false;
+  };
+
+  // 🔥 NUEVA - Función para verificar permisos de gestión de partidos
+  const puedeGestionarPartidos = () => {
+    return usuario && ['admin', 'capitan'].includes(usuario.rol);
+  };
+
+  // 🔥 NUEVA - Función para verificar si puede operar partidos en vivo (admin y árbitro)
+  const puedeOperarPartidosEnVivo = () => {
+    return usuario && ['admin', 'arbitro'].includes(usuario.rol);
+  };
+
+  // 🔥 NUEVA - Función para debugging - muestra información del usuario actual
+  const debugUsuario = () => {
+    console.log('🔍 DEBUG AuthContext:');
+    console.log('  Usuario:', usuario);
+    console.log('  Rol:', usuario?.rol);
+    console.log('  isAuthenticated:', isAuthenticated);
+    console.log('  puedeGestionarTorneos:', puedeGestionarTorneos());
+    console.log('  puedeGestionarPartidos:', puedeGestionarPartidos());
+    console.log('  puedeGestionarEquipos:', puedeGestionarEquipos());
+    console.log('  puedeGestionarArbitros:', puedeGestionarArbitros());
+    return {
+      usuario,
+      rol: usuario?.rol,
+      isAuthenticated,
+      permisos: {
+        torneos: puedeGestionarTorneos(),
+        partidos: puedeGestionarPartidos(),
+        equipos: puedeGestionarEquipos(),
+        arbitros: puedeGestionarArbitros()
+      }
+    };
   };
 
   // Valor expuesto por el contexto
@@ -173,13 +224,18 @@ export const AuthProvider = ({ children }) => {
     puedeGestionarArbitros,
     puedeGestionarTorneos,
     puedeGestionarUsuarios,
+    puedeGestionarPartidos, // 🔥 NUEVA
+    puedeOperarPartidosEnVivo, // 🔥 NUEVA
     // Funciones de edición por ID
     puedeEditarUsuario,
     puedeEditarArbitro,
     // Funciones específicas
     puedeCambiarDisponibilidadArbitro,
     puedeEliminarUsuario,
-    puedeEliminarArbitro
+    puedeEliminarArbitro,
+    puedeInscribirseEquipo,
+    // 🔥 Función de debugging
+    debugUsuario
   };
 
   return (

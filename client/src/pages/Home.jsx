@@ -18,10 +18,8 @@ import {
   MenuItem,
   TextField,
   CircularProgress,
-  ListItem,
-  ListItemButton,
   Stack,
-  IconButton
+  Collapse
 } from '@mui/material';
 import Swal from 'sweetalert2';
 import { motion } from 'framer-motion';
@@ -33,30 +31,101 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import GroupsIcon from '@mui/icons-material/Groups';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SportsIcon from '@mui/icons-material/Sports';
 import axiosInstance from '../config/axios';
 import { getCategoryName } from '../helpers/mappings';
 import { useImage } from '../hooks/useImage';
+import { ListaEquiposUsuario } from './EquipoCard'; // 🔥 IMPORTAR NUEVO COMPONENTE
 
 export const Home = () => {
-  const { usuario, token } = useAuth();
+  const { usuario, token, puedeInscribirseEquipo } = useAuth();
   const API_URL = import.meta.env.VITE_BACKEND_URL || '';
 
   const [equipos, setEquipos] = useState([]);
+  const [equiposUsuario, setEquiposUsuario] = useState([]); // 🔥 NUEVO ESTADO
   const [abierto, setAbierto] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState('');
   const [numeroJugador, setNumeroJugador] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [expandidoEquipos, setExpandidoEquipos] = useState(true); // 🔥 NUEVO ESTADO
 
   const imagePath = useImage(usuario?.imagen)
+
+  const getImageUrl = (imagen) => {
+    if (!imagen) return '';
+    if (imagen.startsWith('http://') || imagen.startsWith('https://')) {
+      return imagen;
+    }
+    return `${import.meta.env.VITE_BACKEND_URL || ''}/uploads/${imagen}`;
+  };
+
+  // 🔥 NUEVO: Cargar equipos del usuario
+  useEffect(() => {
+    const obtenerEquiposUsuario = async () => {
+      if (!usuario?.equipos || usuario.equipos.length === 0) {
+        setEquiposUsuario([]);
+        return;
+      }
+
+      try {
+        // Obtener IDs de equipos del usuario
+        const equiposIds = usuario.equipos.map(e => e.equipo);
+        
+        // Buscar información completa de esos equipos
+        const { data: todosLosEquipos } = await axiosInstance.get('/equipos');
+        
+        // Filtrar solo los equipos donde está inscrito el usuario
+        const equiposDelUsuario = todosLosEquipos.filter(equipo => 
+          equiposIds.includes(equipo._id)
+        );
+
+        console.log('🏆 Equipos del usuario:', equiposDelUsuario);
+        setEquiposUsuario(equiposDelUsuario);
+      } catch (error) {
+        console.error('Error al obtener equipos del usuario:', error);
+        setEquiposUsuario([]);
+      }
+    };
+
+    if (usuario) {
+      obtenerEquiposUsuario();
+    }
+  }, [usuario]);
 
   useEffect(() => {
     const obtenerEquipos = async () => {
       try {
         const { data } = await axiosInstance.get('/equipos');
-        // Filtra equipos donde el usuario ya esté inscrito
-        const equiposNoInscritos = data.filter(eq => 
-          !eq.jugadores?.some(j => j.usuario === usuario.id || j.usuario === usuario._id)
-        );
+        
+        // 🔥 FILTRO CORREGIDO
+        const equiposNoInscritos = data.filter(eq => {
+          // Verificar si el usuario ya está inscrito en el array de jugadores
+          const yaInscrito = eq.jugadores?.some(j => 
+            j._id === usuario.id || j._id === usuario._id
+          );
+          
+          // También verificar en el array de equipos del usuario
+          const inscritoEnEquipos = usuario.equipos?.some(e => 
+            e.equipo === eq._id || e.equipo === eq.id
+          );
+
+          console.log(`🔍 Equipo ${eq.nombre}:`, {
+            yaInscrito,
+            inscritoEnEquipos,
+            jugadores: eq.jugadores?.length || 0,
+            equiposUsuario: usuario.equipos?.length || 0,
+            // 🔥 NUEVO: Debug de IDs
+            jugadoresIds: eq.jugadores?.map(j => j._id),
+            usuarioId: usuario._id || usuario.id
+          });
+
+          return !yaInscrito && !inscritoEnEquipos;
+        });
+
+        console.log('📊 Equipos disponibles para inscripción:', equiposNoInscritos.length);
+        console.log('📊 Total de equipos:', data.length);
         setEquipos(equiposNoInscritos);
       } catch (error) {
         console.error('Error al obtener equipos:', error);
@@ -80,17 +149,13 @@ export const Home = () => {
   const manejarInscripcion = async () => {
     if (!equipoSeleccionado || !numeroJugador) return;
 
-    // Guardamos los datos antes de cerrar
     const datosInscripcion = {
       equipoId: equipoSeleccionado,
       numero: numeroJugador,
       usuarioId: usuario.id || usuario._id
     };
 
-    // Cerramos el modal para evitar que se interponga
     cerrarModal();
-
-    // Esperamos un pequeño delay para asegurar que el modal desaparezca visualmente
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     const resultado = await Swal.fire({
@@ -107,9 +172,20 @@ export const Home = () => {
         await axiosInstance.patch('/usuarios/equipo/', datosInscripcion);
 
         Swal.fire('¡Inscripción exitosa!', 'Te has inscrito en el equipo.', 'success');
+        
+        // 🔥 CAMBIO: En lugar de recargar, actualizar estados
+        // Buscar el equipo recién inscrito y agregarlo a equiposUsuario
+        const equipoInscrito = equipos.find(eq => eq._id === equipoSeleccionado);
+        if (equipoInscrito) {
+          setEquiposUsuario(prev => [...prev, equipoInscrito]);
+          setEquipos(prev => prev.filter(eq => eq._id !== equipoSeleccionado));
+        }
+        
+        // Actualizar el usuario en el contexto también sería ideal
+        // pero por ahora esto evita el refresh visual
+        
       } catch (error) {
         const mensaje = error.response?.data?.mensaje || 'Error al inscribir al jugador';
-
         Swal.fire('Error', mensaje, 'error');
       } finally {
         setCargando(false);
@@ -191,173 +267,225 @@ export const Home = () => {
         </motion.div>
 
         {usuario ? (
-          <Grid container spacing={4}>
-            {/* Tarjeta de perfil */}
-            <Grid item xs={12} md={6}>
-              <motion.div variants={itemVariants}>
-                <Card sx={cardStyle}>
-                  <Box sx={headerStyle}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <AccountCircleIcon sx={{ mr: 1, color: '#64b5f6' }} />
-                      <Typography variant="h6">Perfil de Usuario</Typography>
-                    </Box>
-                    <Chip 
-                      icon={<VerifiedUserIcon />} 
-                      label="Verificado" 
-                      color="success" 
-                      variant="outlined" 
-                      size="small" 
-                    />
-                  </Box>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      mb: 3,
-                      p: 2,
-                      borderRadius: 2,
-                      background: 'linear-gradient(145deg, rgba(25,118,210,0.1) 0%, rgba(25,118,210,0.05) 100%)'
-                    }}>
-                      <Avatar
-                        src={imagePath}
-                        sx={{ 
-                          width: 80, 
-                          height: 80, 
-                          bgcolor: 'primary.main',
-                          border: '3px solid rgba(255,255,255,0.2)',
-                          boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
-                        }}
-                      >
-                        {(usuario.nombre?.charAt(0) || usuario.email?.charAt(0) || 'U').toUpperCase()}
-                      </Avatar>
-                      <Box sx={{ ml: 3 }}>
-                        <Typography variant="h5" gutterBottom sx={{ color: 'white', fontWeight: 'medium' }}>
-                          {usuario.nombre || usuario.email}
-                        </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {/* FILA 1: Perfil + Acciones Rápidas */}
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', md: 'row' }, 
+              gap: 4 
+            }}>
+              {/* Tarjeta de Perfil */}
+              <Box sx={{ flex: 1 }}>
+                <motion.div variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <Box sx={headerStyle}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <AccountCircleIcon sx={{ mr: 1, color: '#64b5f6' }} />
+                        <Typography variant="h6">Perfil de Usuario</Typography>
                       </Box>
+                      <Chip 
+                        icon={<VerifiedUserIcon />} 
+                        label="Verificado" 
+                        color="success" 
+                        variant="outlined" 
+                        size="small" 
+                      />
                     </Box>
-
-                    <Divider sx={{ my: 3, opacity: 0.2 }} />
-
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      gap: 2
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)' }}>
-                        <EmailIcon sx={{ mr: 2, color: '#64b5f6' }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">Email</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{usuario.email}</Typography>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        mb: 3,
+                        p: 2,
+                        borderRadius: 2,
+                        background: 'linear-gradient(145deg, rgba(25,118,210,0.1) 0%, rgba(25,118,210,0.05) 100%)'
+                      }}>
+                        <Avatar
+                          src={imagePath}
+                          sx={{ 
+                            width: 80, 
+                            height: 80, 
+                            bgcolor: 'primary.main',
+                            border: '3px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          {(usuario.nombre?.charAt(0) || usuario.email?.charAt(0) || 'U').toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ ml: 3 }}>
+                          <Typography variant="h5" gutterBottom sx={{ color: 'white', fontWeight: 'medium' }}>
+                            {usuario.nombre || usuario.email}
+                          </Typography>
                         </Box>
                       </Box>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)' }}>
-                        <BadgeIcon sx={{ mr: 2, color: '#64b5f6' }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">CURP</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{usuario.documento}</Typography>
+
+                      <Divider sx={{ my: 3, opacity: 0.2 }} />
+
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        gap: 2
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)' }}>
+                          <EmailIcon sx={{ mr: 2, color: '#64b5f6' }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">Email</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{usuario.email}</Typography>
+                          </Box>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', alignItems: 'center', p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)' }}>
+                          <BadgeIcon sx={{ mr: 2, color: '#64b5f6' }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">CURP</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{usuario.documento}</Typography>
+                          </Box>
                         </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Box>
 
-            {/* Acciones rápidas + botón de inscripción */}
-            <Grid item xs={12} md={6}>
+              {/* Tarjeta de Acciones Rápidas */}
+              <Box sx={{ flex: 1 }}>
+                <motion.div variants={itemVariants}>
+                  <Card sx={cardStyle}>
+                    <Box sx={headerStyle}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <GroupsIcon sx={{ mr: 1, color: '#64b5f6' }} />
+                        <Typography variant="h6">Acciones Rápidas</Typography>
+                      </Box>
+                      <Chip 
+                        label={`${equipos.length} equipos disponibles`} 
+                        color="primary" 
+                        variant="outlined" 
+                        size="small" 
+                      />
+                    </Box>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <Box>
+                          <Button 
+                            variant="contained" 
+                            color="primary" 
+                            fullWidth 
+                            size="large"
+                            startIcon={<PersonAddIcon />}
+                            onClick={abrirModal}
+                            disabled={equipos.length === 0 || !puedeInscribirseEquipo()}
+                            sx={{
+                              py: 2,
+                              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                              boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                              borderRadius: 2,
+                              mb: 2,
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Inscribirme a un Equipo
+                          </Button>
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 1, mb: 3 }}>
+                            {equipos.length > 0 
+                              ? `Tienes ${equipos.length} equipos disponibles para inscribirse` 
+                              : 'No hay equipos disponibles para inscripción'}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ 
+                          display: 'flex', 
+                          flexDirection: { xs: 'column', sm: 'row' }, 
+                          gap: 2 
+                        }}>
+                          <Button 
+                            variant="outlined" 
+                            fullWidth 
+                            component={NavLink}
+                            to="/perfil"
+                            startIcon={<SettingsIcon />}
+                            sx={{
+                              py: 1.5,
+                              borderRadius: 2,
+                              borderWidth: 2,
+                              '&:hover': {
+                                borderWidth: 2,
+                                backgroundColor: 'rgba(255,255,255,0.05)'
+                              }
+                            }}
+                          >
+                            Perfil
+                          </Button>
+                          
+                          <Button 
+                            variant="outlined" 
+                            color="secondary"
+                            fullWidth 
+                            component={NavLink}
+                            to="/calendario"
+                            startIcon={<CalendarIcon />}
+                            sx={{
+                              py: 1.5,
+                              borderRadius: 2,
+                              borderWidth: 2,
+                              '&:hover': {
+                                borderWidth: 2,
+                                backgroundColor: 'rgba(255,255,255,0.05)'
+                              }
+                            }}
+                          >
+                            Calendario
+                          </Button>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Box>
+            </Box>
+
+            {/* FILA 2: Mis Equipos - SIEMPRE en su propia fila */}
+            <Box sx={{ width: '100%' }}>
               <motion.div variants={itemVariants}>
                 <Card sx={cardStyle}>
-                  <Box sx={headerStyle}>
+                  <Box 
+                    sx={{
+                      ...headerStyle,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                      }
+                    }}
+                    onClick={() => setExpandidoEquipos(!expandidoEquipos)}
+                  >
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <GroupsIcon sx={{ mr: 1, color: '#64b5f6' }} />
-                      <Typography variant="h6">Acciones Rápidas</Typography>
+                      <SportsIcon sx={{ mr: 1, color: '#64b5f6' }} />
+                      <Typography variant="h6">Mis Equipos</Typography>
                     </Box>
-                    <Chip 
-                      label={`${equipos.length} equipos disponibles`} 
-                      color="primary" 
-                      variant="outlined" 
-                      size="small" 
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip 
+                        label={`${equiposUsuario.length} ${equiposUsuario.length === 1 ? 'equipo' : 'equipos'}`} 
+                        color="secondary" 
+                        variant="outlined" 
+                        size="small" 
+                      />
+                      {expandidoEquipos ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    </Box>
                   </Box>
-                  <CardContent sx={{ p: 3 }}>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12}>
-                        <Button 
-                          variant="contained" 
-                          color="primary" 
-                          fullWidth 
-                          size="large"
-                          startIcon={<PersonAddIcon />}
-                          onClick={abrirModal}
-                          disabled={equipos.length === 0}
-                          sx={{
-                            py: 2,
-                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                            borderRadius: 2,
-                            mb: 2,
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          Inscribirme a un Equipo
-                        </Button>
-                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 1, mb: 3 }}>
-                          {equipos.length > 0 
-                            ? `Tienes ${equipos.length} equipos disponibles para inscribirse` 
-                            : 'No hay equipos disponibles para inscripción'}
-                        </Typography>
-                      </Grid>
-                      
-                      <Grid item xs={12} sm={6}>
-                        <Button 
-                          variant="outlined" 
-                          fullWidth 
-                          component={NavLink}
-                          to="/perfil"
-                          startIcon={<SettingsIcon />}
-                          sx={{
-                            py: 1.5,
-                            borderRadius: 2,
-                            borderWidth: 2,
-                            '&:hover': {
-                              borderWidth: 2,
-                              backgroundColor: 'rgba(255,255,255,0.05)'
-                            }
-                          }}
-                        >
-                          Perfil
-                        </Button>
-                      </Grid>
-                      
-                      <Grid item xs={12} sm={6}>
-                        <Button 
-                          variant="outlined" 
-                          color="secondary"
-                          fullWidth 
-                          component={NavLink}
-                          to="/calendario"
-                          startIcon={<CalendarIcon />}
-                          sx={{
-                            py: 1.5,
-                            borderRadius: 2,
-                            borderWidth: 2,
-                            '&:hover': {
-                              borderWidth: 2,
-                              backgroundColor: 'rgba(255,255,255,0.05)'
-                            }
-                          }}
-                        >
-                          Calendario
-                        </Button>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
+                  
+                  <Collapse in={expandidoEquipos} timeout="auto" unmountOnExit>
+                    <CardContent sx={{ p: 3, pt: 1 }}>
+                      <ListaEquiposUsuario 
+                        equipos={equiposUsuario}
+                        usuario={usuario}
+                        titulo=""
+                        showEmptyState={true}
+                      />
+                    </CardContent>
+                  </Collapse>
                 </Card>
               </motion.div>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         ) : (
           <motion.div variants={itemVariants}>
             <Paper sx={{ 
@@ -427,10 +555,12 @@ export const Home = () => {
               <MenuItem key={equipo._id || equipo.id} value={equipo._id || equipo.id}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Avatar
-                    src={`${API_URL}/uploads/${equipo.imagen}`}
+                    src={getImageUrl(equipo.imagen)}  // 🔥 Súper simple!
                     alt={equipo.nombre}
                     sx={{ width: 30, height: 30 }}
-                  />
+                  >
+                    <GroupsIcon sx={{ fontSize: 16 }} />
+                  </Avatar>
                   <Typography variant="body2">
                     {equipo.nombre} ({getCategoryName(equipo.categoria)})
                   </Typography>

@@ -8,7 +8,7 @@ const upload = require('../helpers/uploadConfig');
 // 🔒 Específicas sin parámetros
 
 // 🔥 ACTUALIZADO: Agregar usuario a equipo (Admin + Capitán)
-router.patch('/usuarios/equipo', auth, checkRole('admin', 'capitan'), usuarioController.agregarJugadorAEquipo);
+router.patch('/usuarios/equipo', auth, usuarioController.agregarJugadorAEquipo);
 
 // Registro (público)
 router.post('/auth/register', usuarioController.registro);

@@ -8,7 +8,7 @@ const upload = require('../helpers/uploadConfig');
 router.post('/', 
   [
     auth,           
-    checkRole('capitan'),
+    checkRole('admin'),
     upload,
     [
       check('nombre', 'El nombre del torneo es obligatorio').not().isEmpty(),
@@ -53,7 +53,7 @@ router.get('/:id', torneoController.obtenerTorneoPorId);
 router.put('/:id', 
   [
     auth,
-    checkRole('capitan'),
+    checkRole('admin'),
     upload,
     [
       check('nombre', 'El nombre del torneo es obligatorio').not().isEmpty(),
@@ -104,7 +104,7 @@ router.delete('/:id', auth, checkRole('capitan'), torneoController.eliminarTorne
 router.patch('/:id/estado', 
   [
     auth,
-    checkRole('capitan'),
+    checkRole('admin'),
     check('estado', 'El estado es obligatorio').isIn(['activo', 'inactivo'])
   ],
   torneoController.cambiarEstadoTorneo
@@ -113,7 +113,7 @@ router.patch('/:id/estado',
 router.post('/:id/equipos', 
   [
     auth,
-    checkRole('capitan'),
+    checkRole('admin'),
     check('equipoId', 'El ID del equipo es obligatorio').isMongoId()
   ],
   torneoController.agregarEquipo
@@ -121,14 +121,14 @@ router.post('/:id/equipos',
 
 router.delete('/:id/equipos/:equipoId', 
   auth,
-  checkRole('capitan'),
+  checkRole('admin'),
   torneoController.eliminarEquipo
 );
 
 router.post('/:id/resultados', 
   [
     auth,
-    checkRole('capitan'),
+    checkRole('admin'),
     check('campeon', 'El ID del equipo campeón es obligatorio').isMongoId(),
     check('subcampeon', 'El ID del equipo subcampeón es obligatorio').isMongoId(),
     check('tercerLugar', 'El ID del equipo en tercer lugar es obligatorio').isMongoId(),

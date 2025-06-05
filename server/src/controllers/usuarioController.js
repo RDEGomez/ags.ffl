@@ -357,7 +357,7 @@ exports.obtenerUsuarios = async (req, res) => {
     } else {
       // Por defecto, excluir árbitros de la lista general de usuarios
       // (los árbitros se gestionan en su propia sección)
-      filtro.rol = { $ne: 'arbitro' };
+      filtro.rol = { $nin: ['arbitro','admin'] };
     }
     
     const usuarios = await Usuario.find(filtro).select('-password').populate('equipos.equipo', 'nombre categoria imagen');
@@ -476,11 +476,30 @@ exports.agregarJugadorAEquipo = async (req, res) => {
 
   try {
     const { usuarioId, numero, equipoId } = req.body;
+    const usuarioLogueado = req.usuario;
 
     console.log('🔍 Validando parámetros...');
     console.log(`  👤 Usuario ID: ${usuarioId}`);
     console.log(`  🏈 Equipo ID: ${equipoId}`);
     console.log(`  🔢 Número: ${numero}`);
+
+    console.log('🔐 Validando permisos...');
+    
+    const puedeAgregar = usuarioLogueado.rol === 'admin' || 
+                        usuarioLogueado.rol === 'capitan' || 
+                        usuarioLogueado._id.toString() === usuarioId;
+
+    if (!puedeAgregar) {
+      console.log('❌ ERROR: Sin permisos para agregar jugador');
+      return res.status(403).json({ 
+        mensaje: 'No tienes permisos para agregar este jugador al equipo' 
+      });
+    }
+
+    console.log('✅ Permisos validados');
+    console.log(`👤 Usuario logueado: ${usuarioLogueado.nombre} (${usuarioLogueado.rol})`);
+    console.log(`🎯 Usuario a agregar: ${usuarioId}`);
+    console.log(`🏈 Equipo: ${equipoId}`);
 
     console.log('🔍 Buscando jugador...');
     const jugador = await Usuario.findById(usuarioId);

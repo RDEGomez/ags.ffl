@@ -41,7 +41,7 @@ import axiosInstance from '../../config/axios';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getCategoryName } from '../../helpers/mappings';
-import { useImage } from '../../hooks/useImage'; // 🔥 Importar el hook
+import { useImage } from '../../hooks/useImage';
 
 // 🔥 Componente para tarjeta de torneo individual
 const TorneoCard = ({ torneo, onAbrirDetalle }) => {
@@ -95,7 +95,7 @@ const TorneoCard = ({ torneo, onAbrirDetalle }) => {
       <CardMedia
         component="img"
         height="140"
-        image={torneoImageUrl} // 🔥 Usar la URL del hook
+        image={torneoImageUrl}
         alt={torneo.nombre}
         sx={{ 
           objectFit: 'cover',
@@ -283,8 +283,14 @@ const EquipoListItem = ({ equipo, index }) => {
 };
 
 export const Torneos = () => {
-  const { usuario, tieneRol } = useAuth();
-  const esCapitan = tieneRol('capitan');
+  // 🔥 CORREGIDO - Usar la función específica del contexto
+  const { usuario, puedeGestionarTorneos, debugUsuario } = useAuth();
+  
+  // 🔥 DEBUGGING - Para verificar permisos (temporal)
+  useEffect(() => {
+    console.log('🔍 Verificando permisos en Torneos:');
+    debugUsuario();
+  }, [usuario]);
 
   const [torneos, setTorneos] = useState([]);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState(null);
@@ -384,6 +390,13 @@ export const Torneos = () => {
           }}>
             <EmojiEventsIcon sx={{ color: '#FFD700' }} />
             Torneos
+            {/* 🔥 DEBUGGING - Mostrar rol actual (temporal) */}
+            <Chip 
+              label={`Rol: ${usuario?.rol || 'N/A'}`} 
+              size="small" 
+              color="info" 
+              sx={{ ml: 2 }} 
+            />
           </Typography>
         </motion.div>
 
@@ -427,7 +440,8 @@ export const Torneos = () => {
               <Typography variant="body2" sx={{ color: 'gray', mb: 3 }}>
                 Crea tu primer torneo para comenzar
               </Typography>
-              {esCapitan && (
+              {/* 🔥 CORREGIDO - Usar la función específica */}
+              {puedeGestionarTorneos() && (
                 <Button 
                   component={Link}
                   to="/torneos/crear"
@@ -459,8 +473,8 @@ export const Torneos = () => {
         )}
       </motion.div>
 
-      {/* FAB para agregar torneo - Solo para capitanes */}
-      {esCapitan && (
+      {/* 🔥 CORREGIDO - FAB para agregar torneo - Solo para quienes pueden gestionar torneos */}
+      {puedeGestionarTorneos() && (
         <Fab 
           component={Link}
           to="/torneos/crear"
@@ -717,8 +731,8 @@ export const Torneos = () => {
                 width: '100%',
                 gap: 2
               }}>
-                {/* Botón de inscripciones solo para capitanes */}
-                {esCapitan && (
+                {/* 🔥 CORREGIDO - Botón de inscripciones para quienes pueden gestionar torneos */}
+                {puedeGestionarTorneos() && (
                   <Button
                     component={Link}
                     to={`/torneos/${torneoSeleccionado._id}/inscripciones`}
@@ -734,6 +748,26 @@ export const Torneos = () => {
                     }}
                   >
                     Gestionar Inscripciones
+                  </Button>
+                )}
+                
+                {/* 🔥 NUEVO - Botón para gestionar partidos */}
+                {puedeGestionarTorneos() && (
+                  <Button
+                    component={Link}
+                    to={`/partidos?torneo=${torneoSeleccionado._id}`}
+                    variant="contained"
+                    startIcon={<SportsIcon />}
+                    color="info"
+                    sx={{
+                      borderRadius: 2,
+                      px: 3,
+                      py: 1,
+                      background: 'linear-gradient(45deg, #2196f3 30%, #21CBF3 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                    }}
+                  >
+                    Gestionar Partidos
                   </Button>
                 )}
                 

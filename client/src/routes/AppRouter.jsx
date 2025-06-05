@@ -13,6 +13,7 @@ import { CrearTorneo, GestionInscripciones } from '../pages/torneos';
 import { Arbitros } from '../pages/arbitros/Arbitros';
 import { NuevoArbitro } from '../pages/arbitros/NuevoArbitro'; // 🔥 Nueva importación
 import { EditarArbitro } from '../pages/arbitros/EditarArbitro'; // 🔥 Nueva importación
+import { Partidos, CrearPartido } from '../pages/partidos';
 
 // Componente ProtectedRoute para proteger rutas
 export const ProtectedRoute = () => {
@@ -46,6 +47,8 @@ export const AppRouter = () => {
           <Route path="arbitros" element={<Arbitros />} />
           <Route path="arbitros/nuevo" element={<NuevoArbitro />} /> {/* 🔥 Nueva ruta */}
           <Route path="arbitros/editar/:id" element={<EditarArbitro />} /> {/* 🔥 Nueva ruta */}
+          <Route path="partidos" element={<Partidos />} />
+          <Route path="partidos/crear" element={<CrearPartido />} /> {/* 🔥 Nueva ruta */}
           <Route path="perfil" element={<EditarPerfil />} />
           <Route path="perfil/:id" element={<EditarPerfil />} />
         </Route>
