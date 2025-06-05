@@ -516,4 +516,122 @@ router.get('/especiales/en-vivo',
   partidoController.obtenerPartidosEnVivo
 );
 
+// 📝 REGISTRAR JUGADA MANUAL (FUNCIÓN BÁSICA - FASE 1)
+router.post('/:id/jugadas', 
+  [
+    auth,
+    checkRole('admin', 'arbitro', 'capitan'), // 🔥 Permitir también capitanes
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      
+      check('tipoJugada', 'Tipo de jugada es obligatorio').isIn([
+        'pase_completo', 'pase_incompleto', 'intercepcion', 'corrida', 
+        'touchdown', 'conversion_1pt', 'conversion_2pt', 'safety', 
+        'timeout', 'sack', 'tackleo'
+      ]),
+      
+      check('equipoEnPosesion', 'Equipo en posesión es obligatorio').isMongoId(),
+      check('jugadorPrincipal', 'Jugador principal es obligatorio').isMongoId(),
+      
+      check('jugadorSecundario')
+        .optional()
+        .isMongoId()
+        .withMessage('ID de jugador secundario debe ser válido'),
+      
+      check('descripcion')
+        .optional()
+        .trim()
+        .isLength({ max: 200 })
+        .withMessage('La descripción no puede exceder 200 caracteres'),
+      
+      check('resultado.puntos')
+        .optional()
+        .isInt({ min: 0, max: 6 })
+        .withMessage('Los puntos deben estar entre 0 y 6')
+    ]
+  ],
+  partidoController.registrarJugada
+);
+
+// 🔥 TAMBIÉN AGREGAR ESTAS RUTAS ÚTILES SI NO LAS TIENES:
+
+// 📊 OBTENER JUGADAS DE UN PARTIDO
+router.get('/:id/jugadas', 
+  [
+    auth,
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId()
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const partido = await Partido.findById(req.params.id)
+        .populate('jugadas.jugadorPrincipal', 'nombre numero')
+        .populate('jugadas.jugadorSecundario', 'nombre numero')
+        .populate('jugadas.equipoEnPosesion', 'nombre');
+      
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      res.json({ 
+        jugadas: partido.jugadas || [],
+        total: partido.jugadas?.length || 0,
+        marcador: partido.marcador
+      });
+    } catch (error) {
+      console.error('Error al obtener jugadas:', error);
+      res.status(500).json({ mensaje: 'Error al obtener jugadas' });
+    }
+  }
+);
+
+// 🗑️ ELIMINAR ÚLTIMA JUGADA (PARA CORREGIR ERRORES)
+router.delete('/:id/jugadas/ultima', 
+  [
+    auth,
+    checkRole('admin', 'arbitro'),
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId()
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const partido = await Partido.findById(req.params.id);
+      
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      if (!partido.jugadas || partido.jugadas.length === 0) {
+        return res.status(400).json({ mensaje: 'No hay jugadas para eliminar' });
+      }
+      
+      // Eliminar última jugada
+      const jugadaEliminada = partido.jugadas.pop();
+      
+      // Actualizar marcador si la jugada tenía puntos
+      if (jugadaEliminada.resultado?.puntos > 0) {
+        const esLocal = jugadaEliminada.equipoEnPosesion.toString() === partido.equipoLocal.toString();
+        if (esLocal) {
+          partido.marcador.local = Math.max(0, partido.marcador.local - jugadaEliminada.resultado.puntos);
+        } else {
+          partido.marcador.visitante = Math.max(0, partido.marcador.visitante - jugadaEliminada.resultado.puntos);
+        }
+      }
+      
+      await partido.save();
+      
+      res.json({ 
+        mensaje: 'Última jugada eliminada exitosamente',
+        jugadaEliminada,
+        marcadorActualizado: partido.marcador
+      });
+    } catch (error) {
+      console.error('Error al eliminar jugada:', error);
+      res.status(500).json({ mensaje: 'Error al eliminar jugada' });
+    }
+  }
+);
+
 module.exports = router;

@@ -14,6 +14,8 @@ import { Arbitros } from '../pages/arbitros/Arbitros';
 import { NuevoArbitro } from '../pages/arbitros/NuevoArbitro'; // 🔥 Nueva importación
 import { EditarArbitro } from '../pages/arbitros/EditarArbitro'; // 🔥 Nueva importación
 import { Partidos, CrearPartido } from '../pages/partidos';
+import { DetallePartido } from '../pages/partidos/DetallePartido';
+import { ImportacionMasiva } from '../pages/partidos/importacion/ImportacionMasiva';
 
 // Componente ProtectedRoute para proteger rutas
 export const ProtectedRoute = () => {
@@ -49,8 +51,10 @@ export const AppRouter = () => {
           <Route path="arbitros/editar/:id" element={<EditarArbitro />} /> {/* 🔥 Nueva ruta */}
           <Route path="partidos" element={<Partidos />} />
           <Route path="partidos/crear" element={<CrearPartido />} /> {/* 🔥 Nueva ruta */}
+          <Route path="partidos/:id" element={<DetallePartido />} /> {/* 🔥 Nueva ruta */}
           <Route path="perfil" element={<EditarPerfil />} />
           <Route path="perfil/:id" element={<EditarPerfil />} />
+          <Route path="importacion" element={<ImportacionMasiva />} /> {/* 🔥 Nueva ruta para importación masiva */ }
         </Route>
       </Route>
 

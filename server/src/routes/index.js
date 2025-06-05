@@ -5,6 +5,7 @@ const usuarioRoutes = require('./usuarioRoutes');
 const torneoRoutes = require('./torneoRoutes');
 const arbitroRoutes = require('./arbitroRoutes');
 const partidoRoutes = require('./partidoRoutes');
+const importacionRoutes = require('./importacionRoutes');
 
 // Rutas de usuario (auth)
 router.use('/', usuarioRoutes);
@@ -12,11 +13,11 @@ router.use('/', usuarioRoutes);
 // Rutas de torneos
 router.use('/torneos', torneoRoutes);
 
-// Rutas de árbitros 🔥 NUEVO
 router.use('/arbitros', arbitroRoutes);
 
-//Rutas de partidos 🔥 NUEV
 router.use('/partidos', partidoRoutes);
+
+router.use('/importacion', importacionRoutes);
 
 module.exports = router;
 

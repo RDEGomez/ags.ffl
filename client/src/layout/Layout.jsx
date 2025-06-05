@@ -217,6 +217,12 @@ export const Layout = () => {
           onClick={handleDrawerToggle} 
         />
         <NavMenuItem 
+          to="/importacion" 
+          icon={<GroupsIcon />} 
+          text="Importación" 
+          onClick={handleDrawerToggle} 
+        />
+        <NavMenuItem 
           to="/perfil" 
           icon={<PersonIcon />} 
           text="Mi Perfil" 
@@ -402,7 +408,21 @@ export const Layout = () => {
             >
               <Typography variant="body1">Partidos</Typography>
             </NavLink>
+             <NavLink 
+              to="/Importacion" 
+              style={({ isActive }) => ({
+                textDecoration: 'none', 
+                color: isActive ? '#64b5f6' : 'white',
+                borderBottom: isActive ? '2px solid #64b5f6' : '2px solid transparent',
+                transition: 'all 0.3s ease',
+                padding: '6px 0',
+                fontWeight: isActive ? 'bold' : 'normal',
+              })}
+            >
+              <Typography variant="body1">Importacion</Typography>
+            </NavLink>
           </Box>
+          
 
           {/* Botón de logout */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
