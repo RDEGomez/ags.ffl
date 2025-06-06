@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 });
 
 // --- Rutas
-const rutas = require('../routes');
+const rutas = require('../src/routes');
 app.use('/api', rutas);
 
 // --- Ruta de prueba
