@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Box, 
@@ -37,22 +37,26 @@ import SportsIcon from '@mui/icons-material/Sports';
 import axiosInstance from '../config/axios';
 import { getCategoryName } from '../helpers/mappings';
 import { useImage } from '../hooks/useImage';
-import { ListaEquiposUsuario } from './EquipoCard'; // 🔥 IMPORTAR NUEVO COMPONENTE
+import { ListaEquiposUsuario } from './EquipoCard';
 
 export const Home = () => {
-  const { usuario, token, puedeInscribirseEquipo } = useAuth();
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
+  const { usuario, tieneTokenValido, getStoredToken, puedeInscribirseEquipo, refrescarUsuario } = useAuth();
 
   const [equipos, setEquipos] = useState([]);
-  const [equiposUsuario, setEquiposUsuario] = useState([]); // 🔥 NUEVO ESTADO
+  const [equiposUsuario, setEquiposUsuario] = useState([]);
   const [abierto, setAbierto] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState('');
   const [numeroJugador, setNumeroJugador] = useState('');
   const [cargando, setCargando] = useState(false);
-  const [expandidoEquipos, setExpandidoEquipos] = useState(true); // 🔥 NUEVO ESTADO
+  const [expandidoEquipos, setExpandidoEquipos] = useState(true);
+  const [loadingEquiposUsuario, setLoadingEquiposUsuario] = useState(false);
+  const [loadingEquiposDisponibles, setLoadingEquiposDisponibles] = useState(false);
 
-  const imagePath = useImage(usuario?.imagen)
+  const imagePath = useImage(usuario?.imagen);
+  const tokenValido = tieneTokenValido();
+  const storedToken = getStoredToken();
 
+  // 🔥 FUNCIÓN HELPER para URLs de imágenes
   const getImageUrl = (imagen) => {
     if (!imagen) return '';
     if (imagen.startsWith('http://') || imagen.startsWith('https://')) {
@@ -61,80 +65,212 @@ export const Home = () => {
     return `${import.meta.env.VITE_BACKEND_URL || ''}/uploads/${imagen}`;
   };
 
-  // 🔥 NUEVO: Cargar equipos del usuario
-  useEffect(() => {
-    const obtenerEquiposUsuario = async () => {
-      if (!usuario?.equipos || usuario.equipos.length === 0) {
-        setEquiposUsuario([]);
-        return;
-      }
-
-      try {
-        // Obtener IDs de equipos del usuario
-        const equiposIds = usuario.equipos.map(e => e.equipo);
-        
-        // Buscar información completa de esos equipos
-        const { data: todosLosEquipos } = await axiosInstance.get('/equipos');
-        
-        // Filtrar solo los equipos donde está inscrito el usuario
-        const equiposDelUsuario = todosLosEquipos.filter(equipo => 
-          equiposIds.includes(equipo._id)
-        );
-
-        console.log('🏆 Equipos del usuario:', equiposDelUsuario);
-        setEquiposUsuario(equiposDelUsuario);
-      } catch (error) {
-        console.error('Error al obtener equipos del usuario:', error);
-        setEquiposUsuario([]);
-      }
-    };
-
-    if (usuario) {
-      obtenerEquiposUsuario();
+  // 🔥 FUNCIÓN CORREGIDA - Cargar equipos del usuario
+  const obtenerEquiposUsuario = useCallback(async () => {
+    console.log('\n🔍 === INICIO CARGA EQUIPOS USUARIO ===');
+    console.log('👤 Usuario presente:', !!usuario);
+    console.log('🔑 Token válido:', tokenValido);
+    console.log('🗄️ Token en localStorage:', !!storedToken);
+    
+    if (!usuario || !tokenValido) {
+      console.log('❌ No hay usuario válido o token inválido, saliendo...');
+      setEquiposUsuario([]);
+      return;
     }
-  }, [usuario]);
 
-  useEffect(() => {
-    const obtenerEquipos = async () => {
-      try {
-        const { data } = await axiosInstance.get('/equipos');
-        
-        // 🔥 FILTRO CORREGIDO
-        const equiposNoInscritos = data.filter(eq => {
-          // Verificar si el usuario ya está inscrito en el array de jugadores
-          const yaInscrito = eq.jugadores?.some(j => 
-            j._id === usuario.id || j._id === usuario._id
-          );
+    if (!usuario.equipos || usuario.equipos.length === 0) {
+      console.log('❌ Usuario sin equipos asignados');
+      console.log('📋 usuario.equipos:', usuario.equipos);
+      setEquiposUsuario([]);
+      return;
+    }
+
+    setLoadingEquiposUsuario(true);
+    
+    try {
+      console.log('🆔 IDs de equipos del usuario:', usuario.equipos.map(e => e.equipo));
+      
+      // 🔥 CORREGIDO: Hacer múltiples peticiones para obtener detalles de cada equipo
+      const equiposPromises = usuario.equipos.map(async (equipoUsuario) => {
+        try {
+          const { data: equipo } = await axiosInstance.get(`/equipos/${equipoUsuario.equipo}`);
+          console.log(`✅ Equipo obtenido: ${equipo.nombre}`);
           
-          // También verificar en el array de equipos del usuario
-          const inscritoEnEquipos = usuario.equipos?.some(e => 
-            e.equipo === eq._id || e.equipo === eq.id
-          );
+          // 🔥 AGREGAR: Incluir el número del usuario en el equipo
+          return {
+            ...equipo,
+            numeroUsuario: equipoUsuario.numero
+          };
+        } catch (error) {
+          console.error(`❌ Error al obtener equipo ${equipoUsuario.equipo}:`, error);
+          return null;
+        }
+      });
 
-          console.log(`🔍 Equipo ${eq.nombre}:`, {
-            yaInscrito,
-            inscritoEnEquipos,
-            jugadores: eq.jugadores?.length || 0,
-            equiposUsuario: usuario.equipos?.length || 0,
-            // 🔥 NUEVO: Debug de IDs
-            jugadoresIds: eq.jugadores?.map(j => j._id),
-            usuarioId: usuario._id || usuario.id
-          });
+      const equiposResueltos = await Promise.all(equiposPromises);
+      const equiposValidos = equiposResueltos.filter(equipo => equipo !== null);
 
-          return !yaInscrito && !inscritoEnEquipos;
+      console.log('🏆 Equipos del usuario obtenidos:', equiposValidos.length);
+      console.log('📋 Equipos:', equiposValidos.map(e => ({ 
+        nombre: e.nombre, 
+        categoria: e.categoria, 
+        numero: e.numeroUsuario 
+      })));
+      
+      setEquiposUsuario(equiposValidos);
+      console.log('✅ Estado equiposUsuario actualizado');
+      
+    } catch (error) {
+      console.error('❌ Error al obtener equipos del usuario:', error);
+      
+      if (error.response?.status === 401) {
+        console.log('🔄 Error 401 - Intentando refrescar usuario...');
+        try {
+          await refrescarUsuario();
+        } catch (refreshError) {
+          console.error('❌ Error al refrescar usuario:', refreshError);
+        }
+      } else {
+        console.error('📋 Error completo:', error.response?.data || error.message);
+      }
+      setEquiposUsuario([]);
+    } finally {
+      setLoadingEquiposUsuario(false);
+      console.log('🔚 === FIN CARGA EQUIPOS USUARIO ===\n');
+    }
+  }, [usuario, tokenValido, storedToken, refrescarUsuario]);
+
+  // 🔥 FUNCIÓN MEJORADA - Cargar equipos disponibles
+  const obtenerEquiposDisponibles = useCallback(async () => {
+    console.log('\n🔍 === INICIO CARGA EQUIPOS DISPONIBLES ===');
+    console.log('👤 Usuario presente:', !!usuario);
+    console.log('🔑 Token válido:', tokenValido);
+    
+    if (!usuario || !tokenValido) {
+      console.log('❌ Usuario no disponible o token inválido, saliendo...');
+      setEquipos([]);
+      return;
+    }
+
+    setLoadingEquiposDisponibles(true);
+    
+    try {
+      const { data } = await axiosInstance.get('/equipos');
+      console.log('📊 Total equipos de la API:', data.length);
+      
+      // 🔥 LÓGICA CORREGIDA DE FILTRADO
+      const equiposNoInscritos = data.filter(eq => {
+        // Verificar si el usuario ya está inscrito usando los IDs de equipos del usuario
+        const usuarioYaInscrito = usuario.equipos?.some(equipoUsuario => {
+          const match = equipoUsuario.equipo === eq._id || equipoUsuario.equipo === eq.id;
+          if (match) {
+            console.log(`  ⚠️ Usuario YA INSCRITO en equipo ${eq.nombre} (ID: ${eq._id})`);
+          }
+          return match;
         });
 
-        console.log('📊 Equipos disponibles para inscripción:', equiposNoInscritos.length);
-        console.log('📊 Total de equipos:', data.length);
-        setEquipos(equiposNoInscritos);
-      } catch (error) {
-        console.error('Error al obtener equipos:', error);
+        // También verificar en el array de jugadores del equipo (por si acaso)
+        const inscritoEnJugadores = eq.jugadores?.some(j => {
+          const match = j._id === usuario._id || j._id === usuario.id;
+          if (match) {
+            console.log(`  ⚠️ Usuario encontrado en jugadores de ${eq.nombre}`);
+          }
+          return match;
+        });
+
+        const disponible = !usuarioYaInscrito && !inscritoEnJugadores;
+        
+        console.log(`  🔍 Equipo ${eq.nombre}:`, {
+          usuarioYaInscrito,
+          inscritoEnJugadores,
+          disponible,
+          equipoId: eq._id
+        });
+
+        return disponible;
+      });
+
+      console.log('📊 Equipos disponibles para inscripción:', equiposNoInscritos.length);
+      console.log('📋 Equipos disponibles:', equiposNoInscritos.map(e => e.nombre));
+      setEquipos(equiposNoInscritos);
+      console.log('✅ Estado equipos disponibles actualizado');
+      
+    } catch (error) {
+      console.error('❌ Error al obtener equipos disponibles:', error);
+      
+      if (error.response?.status === 401) {
+        console.log('🔄 Error 401 en equipos disponibles - intentando refrescar...');
+        try {
+          await refrescarUsuario();
+        } catch (refreshError) {
+          console.error('❌ Error al refrescar usuario:', refreshError);
+        }
+      } else {
+        console.error('📋 Error completo:', error.response?.data || error.message);
       }
-    };
-    if (usuario) {
-      obtenerEquipos();
+      setEquipos([]);
+    } finally {
+      setLoadingEquiposDisponibles(false);
+      console.log('🔚 === FIN CARGA EQUIPOS DISPONIBLES ===\n');
     }
-  }, [usuario, token]);
+  }, [usuario, tokenValido, refrescarUsuario]);
+
+  // 🔥 EFECTOS MEJORADOS
+  useEffect(() => {
+    if (usuario && tokenValido) {
+      obtenerEquiposUsuario();
+    }
+  }, [obtenerEquiposUsuario]);
+
+  useEffect(() => {
+    if (usuario && tokenValido) {
+      obtenerEquiposDisponibles();
+    }
+  }, [obtenerEquiposDisponibles]);
+
+  // 🔥 DEBUGGING MEJORADO
+  useEffect(() => {
+    console.log('\n📊 === ESTADO GENERAL ===');
+    console.log('👤 Usuario:', usuario ? 'Presente' : 'Ausente');
+    console.log('🔑 Token válido:', tokenValido);
+    console.log('🗄️ Token en localStorage:', !!storedToken);
+    console.log('🏆 Equipos del usuario:', equiposUsuario.length);
+    console.log('📋 Equipos disponibles:', equipos.length);
+    console.log('🔄 Loading equipos usuario:', loadingEquiposUsuario);
+    console.log('🔄 Loading equipos disponibles:', loadingEquiposDisponibles);
+    
+    if (usuario?.equipos) {
+      console.log('📝 Equipos en usuario.equipos:', usuario.equipos.map(e => ({
+        equipoId: e.equipo,
+        numero: e.numero
+      })));
+    }
+    
+    if (equiposUsuario.length > 0) {
+      console.log('📝 Equipos cargados en estado:', equiposUsuario.map(e => ({
+        id: e._id,
+        nombre: e.nombre,
+        categoria: e.categoria,
+        numero: e.numeroUsuario
+      })));
+    }
+    
+    // 🔥 NUEVA VALIDACIÓN: Detectar inconsistencias
+    if (usuario && usuario.equipos && usuario.equipos.length > 0 && equiposUsuario.length === 0 && !loadingEquiposUsuario) {
+      console.warn('⚠️ INCONSISTENCIA DETECTADA:');
+      console.warn('   - Usuario tiene equipos:', usuario.equipos.length);
+      console.warn('   - Estado equiposUsuario:', equiposUsuario.length);
+      console.warn('   - Loading:', loadingEquiposUsuario);
+      console.warn('   → Reintentando carga de equipos...');
+      
+      // Reintentar la carga con un pequeño delay
+      setTimeout(() => {
+        obtenerEquiposUsuario();
+      }, 500);
+    }
+    
+    console.log('========================\n');
+  }, [usuario, tokenValido, storedToken, equiposUsuario, equipos, loadingEquiposUsuario, loadingEquiposDisponibles, obtenerEquiposUsuario]);
 
   const abrirModal = () => {
     setAbierto(true);
@@ -170,19 +306,16 @@ export const Home = () => {
       setCargando(true);
       try {
         await axiosInstance.patch('/usuarios/equipo/', datosInscripcion);
-
         Swal.fire('¡Inscripción exitosa!', 'Te has inscrito en el equipo.', 'success');
         
-        // 🔥 CAMBIO: En lugar de recargar, actualizar estados
-        // Buscar el equipo recién inscrito y agregarlo a equiposUsuario
-        const equipoInscrito = equipos.find(eq => eq._id === equipoSeleccionado);
-        if (equipoInscrito) {
-          setEquiposUsuario(prev => [...prev, equipoInscrito]);
-          setEquipos(prev => prev.filter(eq => eq._id !== equipoSeleccionado));
-        }
+        // 🔥 MEJORADO: Refrescar datos y recargar listas
+        await refrescarUsuario();
         
-        // Actualizar el usuario en el contexto también sería ideal
-        // pero por ahora esto evita el refresh visual
+        // Recargar ambas listas
+        setTimeout(() => {
+          obtenerEquiposUsuario();
+          obtenerEquiposDisponibles();
+        }, 500);
         
       } catch (error) {
         const mensaje = error.response?.data?.mensaje || 'Error al inscribir al jugador';
@@ -239,6 +372,32 @@ export const Home = () => {
       minHeight: 'calc(100vh - 64px)',
       borderRadius: 2
     }}>
+      {/* 🔥 ALERTA MEJORADA: Solo si hay problemas con el token */}
+      {usuario && !tokenValido && (
+        <Box sx={{ mb: 2 }}>
+          <Paper sx={{ 
+            p: 2, 
+            bgcolor: 'rgba(255, 193, 7, 0.1)', 
+            border: '1px solid rgba(255, 193, 7, 0.3)',
+            borderRadius: 2
+          }}>
+            <Typography variant="body2" sx={{ color: '#ffa726' }}>
+              ⚠️ <strong>Problema de autenticación detectado:</strong> 
+              {!storedToken && ' No hay token guardado.'} 
+              {storedToken && !tokenValido && ' Token inválido o expirado.'} 
+              {' '}
+              <Button 
+                size="small" 
+                onClick={() => window.location.reload()}
+                sx={{ ml: 1, color: '#ffa726' }}
+              >
+                Recargar página
+              </Button>
+            </Typography>
+          </Paper>
+        </Box>
+      )}
+
       <motion.div
         initial="hidden"
         animate="visible"
@@ -285,8 +444,8 @@ export const Home = () => {
                       </Box>
                       <Chip 
                         icon={<VerifiedUserIcon />} 
-                        label="Verificado" 
-                        color="success" 
+                        label={tokenValido ? "Verificado" : "Sin autenticación"} 
+                        color={tokenValido ? "success" : "warning"}
                         variant="outlined" 
                         size="small" 
                       />
@@ -357,8 +516,8 @@ export const Home = () => {
                         <Typography variant="h6">Acciones Rápidas</Typography>
                       </Box>
                       <Chip 
-                        label={`${equipos.length} equipos disponibles`} 
-                        color="primary" 
+                        label={loadingEquiposDisponibles ? 'Cargando...' : `${equipos.length} equipos disponibles`} 
+                        color={loadingEquiposDisponibles ? "default" : "primary"}
                         variant="outlined" 
                         size="small" 
                       />
@@ -371,9 +530,9 @@ export const Home = () => {
                             color="primary" 
                             fullWidth 
                             size="large"
-                            startIcon={<PersonAddIcon />}
+                            startIcon={loadingEquiposDisponibles ? <CircularProgress size={20} /> : <PersonAddIcon />}
                             onClick={abrirModal}
-                            disabled={equipos.length === 0 || !puedeInscribirseEquipo()}
+                            disabled={equipos.length === 0 || !puedeInscribirseEquipo() || loadingEquiposDisponibles}
                             sx={{
                               py: 2,
                               background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
@@ -383,12 +542,14 @@ export const Home = () => {
                               fontWeight: 'bold'
                             }}
                           >
-                            Inscribirme a un Equipo
+                            {loadingEquiposDisponibles ? 'Cargando equipos...' : 'Inscribirme a un Equipo'}
                           </Button>
                           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 1, mb: 3 }}>
-                            {equipos.length > 0 
-                              ? `Tienes ${equipos.length} equipos disponibles para inscribirse` 
-                              : 'No hay equipos disponibles para inscripción'}
+                            {loadingEquiposDisponibles 
+                              ? 'Obteniendo equipos disponibles...'
+                              : equipos.length > 0 
+                                ? `Tienes ${equipos.length} equipos disponibles para inscribirse` 
+                                : 'No hay equipos disponibles para inscripción'}
                           </Typography>
                         </Box>
                         
@@ -443,7 +604,7 @@ export const Home = () => {
               </Box>
             </Box>
 
-            {/* FILA 2: Mis Equipos - SIEMPRE en su propia fila */}
+            {/* FILA 2: Mis Equipos */}
             <Box sx={{ width: '100%' }}>
               <motion.div variants={itemVariants}>
                 <Card sx={cardStyle}>
@@ -462,9 +623,13 @@ export const Home = () => {
                       <Typography variant="h6">Mis Equipos</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {loadingEquiposUsuario && <CircularProgress size={16} />}
                       <Chip 
-                        label={`${equiposUsuario.length} ${equiposUsuario.length === 1 ? 'equipo' : 'equipos'}`} 
-                        color="secondary" 
+                        label={loadingEquiposUsuario 
+                          ? 'Cargando...' 
+                          : `${equiposUsuario.length} ${equiposUsuario.length === 1 ? 'equipo' : 'equipos'}`
+                        } 
+                        color={loadingEquiposUsuario ? "default" : "secondary"}
                         variant="outlined" 
                         size="small" 
                       />
@@ -474,12 +639,18 @@ export const Home = () => {
                   
                   <Collapse in={expandidoEquipos} timeout="auto" unmountOnExit>
                     <CardContent sx={{ p: 3, pt: 1 }}>
-                      <ListaEquiposUsuario 
-                        equipos={equiposUsuario}
-                        usuario={usuario}
-                        titulo=""
-                        showEmptyState={true}
-                      />
+                      {loadingEquiposUsuario ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                          <CircularProgress />
+                        </Box>
+                      ) : (
+                        <ListaEquiposUsuario 
+                          equipos={equiposUsuario}
+                          usuario={usuario}
+                          titulo=""
+                          showEmptyState={true}
+                        />
+                      )}
                     </CardContent>
                   </Collapse>
                 </Card>
@@ -555,7 +726,7 @@ export const Home = () => {
               <MenuItem key={equipo._id || equipo.id} value={equipo._id || equipo.id}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Avatar
-                    src={getImageUrl(equipo.imagen)}  // 🔥 Súper simple!
+                    src={getImageUrl(equipo.imagen)}
                     alt={equipo.nombre}
                     sx={{ width: 30, height: 30 }}
                   >

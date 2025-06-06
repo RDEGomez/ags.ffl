@@ -30,26 +30,168 @@ import SportsFootballIcon from '@mui/icons-material/SportsFootball';
 import { motion } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
 import { useImage } from '../../hooks/useImage'
-import { useAuth } from '../../context/AuthContext' // 🔥 AGREGADO: Para permisos
+import { useAuth } from '../../context/AuthContext'
 
-// 🔥 Componente para el avatar principal del usuario
+// 🔥 FUNCIÓN DE LOGGING PARA USUARIO CARD
+const logUsuarioCard = (context, data, level = 'INFO') => {
+  const timestamp = new Date().toISOString();
+  const prefix = {
+    'ERROR': '❌',
+    'WARN': '⚠️', 
+    'INFO': '✅',
+    'DEBUG': '🔍'
+  }[level] || '📝';
+  
+  console.log(`[${timestamp}] ${prefix} USUARIO_CARD | ${context}:`, data);
+};
+
+// 🔥 FUNCIÓN DEFENSIVA PARA VALIDAR EQUIPO
+const validarEquipo = (equipo, context = 'GENERAL') => {
+  logUsuarioCard(`VALIDAR_EQUIPO_${context}`, { equipo });
+  
+  if (!equipo) {
+    logUsuarioCard(`EQUIPO_NULL_${context}`, { equipo }, 'WARN');
+    return false;
+  }
+  
+  if (typeof equipo !== 'object') {
+    logUsuarioCard(`EQUIPO_NO_OBJECT_${context}`, { 
+      equipo, 
+      tipo: typeof equipo 
+    }, 'WARN');
+    return false;
+  }
+  
+  if (!equipo._id) {
+    logUsuarioCard(`EQUIPO_SIN_ID_${context}`, { equipo }, 'WARN');
+    return false;
+  }
+  
+  logUsuarioCard(`EQUIPO_VALIDO_${context}`, { equipoId: equipo._id });
+  return true;
+};
+
+// 🔥 FUNCIÓN DEFENSIVA PARA VALIDAR RELACIÓN EQUIPO-USUARIO
+const validarRelacionEquipo = (equipoObj, index, usuarioId) => {
+  logUsuarioCard('VALIDAR_RELACION_EQUIPO', { 
+    equipoObj, 
+    index, 
+    usuarioId 
+  });
+  
+  if (!equipoObj) {
+    logUsuarioCard('RELACION_EQUIPO_NULL', { 
+      index, 
+      usuarioId 
+    }, 'WARN');
+    return false;
+  }
+  
+  if (typeof equipoObj !== 'object') {
+    logUsuarioCard('RELACION_EQUIPO_NO_OBJECT', { 
+      equipoObj, 
+      index, 
+      usuarioId,
+      tipo: typeof equipoObj
+    }, 'WARN');
+    return false;
+  }
+  
+  // Verificar que tenga la estructura esperada
+  if (!equipoObj.equipo) {
+    logUsuarioCard('RELACION_SIN_EQUIPO', { 
+      equipoObj, 
+      index, 
+      usuarioId 
+    }, 'WARN');
+    return false;
+  }
+  
+  // Validar el equipo anidado
+  if (!validarEquipo(equipoObj.equipo, `RELACION_${index}`)) {
+    return false;
+  }
+  
+  logUsuarioCard('RELACION_EQUIPO_VALIDA', { 
+    equipoId: equipoObj.equipo._id,
+    numero: equipoObj.numero,
+    index,
+    usuarioId
+  });
+  
+  return true;
+};
+
+// 🔥 FUNCIÓN PARA OBTENER EQUIPOS SEGUROS
+const getEquiposSeguro = (usuario) => {
+  logUsuarioCard('GET_EQUIPOS_SEGURO_INICIO', { 
+    usuarioId: usuario?._id,
+    equipos: usuario?.equipos
+  });
+  
+  if (!usuario) {
+    logUsuarioCard('USUARIO_NULL_GET_EQUIPOS', {}, 'WARN');
+    return [];
+  }
+  
+  if (!usuario.equipos) {
+    logUsuarioCard('USUARIO_SIN_EQUIPOS', { usuarioId: usuario._id }, 'WARN');
+    return [];
+  }
+  
+  if (!Array.isArray(usuario.equipos)) {
+    logUsuarioCard('EQUIPOS_NO_ARRAY', { 
+      usuarioId: usuario._id,
+      equipos: usuario.equipos,
+      tipo: typeof usuario.equipos
+    }, 'WARN');
+    return [];
+  }
+  
+  // Filtrar y validar cada equipo
+  const equiposValidos = usuario.equipos.filter((equipoObj, index) => {
+    try {
+      return validarRelacionEquipo(equipoObj, index, usuario._id);
+    } catch (error) {
+      logUsuarioCard('ERROR_VALIDAR_EQUIPO_INDIVIDUAL', {
+        index,
+        equipoObj,
+        usuarioId: usuario._id,
+        error: error.message
+      }, 'ERROR');
+      return false;
+    }
+  });
+  
+  logUsuarioCard('EQUIPOS_SEGUROS_RESULTADO', {
+    usuarioId: usuario._id,
+    equiposOriginales: usuario.equipos.length,
+    equiposValidos: equiposValidos.length
+  });
+  
+  return equiposValidos;
+};
+
+// 🔥 Componente para el avatar principal del usuario CON VALIDACIÓN
 const UsuarioAvatar = ({ imagen, nombre, equiposCount }) => {
+  logUsuarioCard('USUARIO_AVATAR_RENDER', { imagen, nombre, equiposCount });
+  
   const usuarioImageUrl = useImage(imagen, '');
   
   return (
     <Badge
-      badgeContent={equiposCount}
+      badgeContent={equiposCount || 0}
       color="primary"
       overlap="circular"
       anchorOrigin={{
         vertical: 'bottom',
         horizontal: 'right',
       }}
-      invisible={equiposCount === 0}
+      invisible={!equiposCount || equiposCount === 0}
     >
       <Avatar
         src={usuarioImageUrl}
-        alt={`Foto de ${nombre}`}
+        alt={`Foto de ${nombre || 'Usuario'}`}
         sx={{
           width: 80,
           height: 80,
@@ -64,13 +206,56 @@ const UsuarioAvatar = ({ imagen, nombre, equiposCount }) => {
   );
 };
 
-// 🔥 Componente para mostrar un equipo del usuario
-const EquipoUsuarioItem = ({ equipoObj, index }) => {
-  const equipoImageUrl = useImage(equipoObj.equipo?.imagen, '');
+// 🔥 Componente para mostrar un equipo del usuario CON VALIDACIÓN ROBUSTA
+const EquipoUsuarioItem = ({ equipoObj, index, usuarioId }) => {
+  logUsuarioCard('EQUIPO_USUARIO_ITEM_RENDER', { 
+    equipoObj, 
+    index, 
+    usuarioId 
+  });
+  
+  // Validación crítica - no renderizar si inválido
+  if (!validarRelacionEquipo(equipoObj, index, usuarioId)) {
+    logUsuarioCard('EQUIPO_ITEM_NO_RENDERIZADO', { 
+      equipoObj, 
+      index, 
+      usuarioId 
+    }, 'WARN');
+    return null;
+  }
+  
+  // Extraer datos de forma segura
+  const equipo = equipoObj.equipo;
+  const numero = equipoObj.numero;
+  
+  // Validaciones adicionales para el render
+  const equipoNombre = equipo.nombre || 'Equipo sin nombre';
+  const equipoCategoria = equipo.categoria || 'sin_categoria';
+  
+  let categoriaNombre;
+  try {
+    categoriaNombre = getCategoryName(equipoCategoria) || 'Sin categoría';
+  } catch (error) {
+    logUsuarioCard('ERROR_GET_CATEGORY_NAME_ITEM', {
+      equipoId: equipo._id,
+      categoria: equipoCategoria,
+      error: error.message
+    }, 'WARN');
+    categoriaNombre = equipoCategoria || 'Sin categoría';
+  }
+  
+  const equipoImageUrl = useImage(equipo.imagen, '');
+  
+  logUsuarioCard('EQUIPO_ITEM_DATOS_PROCESADOS', {
+    equipoId: equipo._id,
+    nombre: equipoNombre,
+    categoria: categoriaNombre,
+    numero: numero
+  });
   
   return (
     <motion.div
-      key={equipoObj.equipo._id || equipoObj.equipo.id}
+      key={equipo._id}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.1 }}
@@ -94,7 +279,7 @@ const EquipoUsuarioItem = ({ equipoObj, index }) => {
       >
         <Avatar
           src={equipoImageUrl}
-          alt={`Logo de ${equipoObj.equipo.nombre}`}
+          alt={`Logo de ${equipoNombre}`}
           sx={{ 
             width: 32, 
             height: 32,
@@ -115,7 +300,7 @@ const EquipoUsuarioItem = ({ equipoObj, index }) => {
               whiteSpace: 'nowrap'
             }}
           >
-            {equipoObj.equipo.nombre}
+            {equipoNombre}
           </Typography>
           <Typography 
             variant="caption" 
@@ -127,7 +312,7 @@ const EquipoUsuarioItem = ({ equipoObj, index }) => {
               display: 'block'
             }}
           >
-            {getCategoryName(equipoObj.equipo.categoria)}
+            {categoriaNombre}
           </Typography>
         </Box>
         
@@ -151,7 +336,7 @@ const EquipoUsuarioItem = ({ equipoObj, index }) => {
               boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
             }}
           >
-            {equipoObj.numero}
+            {numero || '?'}
           </Box>
         </Box>
       </Box>
@@ -160,34 +345,46 @@ const EquipoUsuarioItem = ({ equipoObj, index }) => {
 };
 
 // 🔥 Componente para lista de equipos vacía
-const EquiposVacios = () => (
-  <Box sx={{ 
-    textAlign: 'center',
-    p: 3,
-    border: '2px dashed rgba(255, 255, 255, 0.2)',
-    borderRadius: 2
-  }}>
-    <GroupsIcon sx={{ 
-      fontSize: 32, 
-      color: 'rgba(255, 255, 255, 0.3)', 
-      mb: 1 
-    }} />
-    <Typography 
-      variant="body2" 
-      sx={{ 
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontStyle: 'italic'
-      }}
-    >
-      Este usuario no está inscrito en ningún equipo
-    </Typography>
-  </Box>
-);
+const EquiposVacios = ({ usuarioId }) => {
+  logUsuarioCard('EQUIPOS_VACIOS_RENDER', { usuarioId });
+  
+  return (
+    <Box sx={{ 
+      textAlign: 'center',
+      p: 3,
+      border: '2px dashed rgba(255, 255, 255, 0.2)',
+      borderRadius: 2
+    }}>
+      <GroupsIcon sx={{ 
+        fontSize: 32, 
+        color: 'rgba(255, 255, 255, 0.3)', 
+        mb: 1 
+      }} />
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: 'rgba(255, 255, 255, 0.5)',
+          fontStyle: 'italic'
+        }}
+      >
+        Este usuario no está inscrito en ningún equipo
+      </Typography>
+    </Box>
+  );
+};
 
-// 🔥 Componente para lista de equipos del usuario
-const ListaEquiposUsuario = ({ equipos }) => {
-  if (!equipos || equipos.length === 0) {
-    return <EquiposVacios />;
+// 🔥 Componente para lista de equipos del usuario CON VALIDACIÓN
+const ListaEquiposUsuario = ({ equipos, usuarioId }) => {
+  logUsuarioCard('LISTA_EQUIPOS_RENDER', { 
+    equiposLength: equipos?.length || 0,
+    usuarioId 
+  });
+  
+  // Obtener equipos seguros
+  const equiposSeguro = getEquiposSeguro({ _id: usuarioId, equipos });
+  
+  if (!equiposSeguro || equiposSeguro.length === 0) {
+    return <EquiposVacios usuarioId={usuarioId} />;
   }
 
   return (
@@ -202,13 +399,31 @@ const ListaEquiposUsuario = ({ equipos }) => {
         borderRadius: '3px',
       }
     }}>
-      {equipos.map((equipoObj, index) => (
-        <EquipoUsuarioItem 
-          key={equipoObj.equipo._id || equipoObj.equipo.id}
-          equipoObj={equipoObj}
-          index={index}
-        />
-      ))}
+      {equiposSeguro.map((equipoObj, index) => {
+        try {
+          // Doble validación para seguridad
+          if (!validarRelacionEquipo(equipoObj, index, usuarioId)) {
+            return null;
+          }
+          
+          return (
+            <EquipoUsuarioItem 
+              key={equipoObj.equipo._id}
+              equipoObj={equipoObj}
+              index={index}
+              usuarioId={usuarioId}
+            />
+          );
+        } catch (error) {
+          logUsuarioCard('ERROR_RENDER_EQUIPO_LISTA', {
+            index,
+            equipoObj,
+            usuarioId,
+            error: error.message
+          }, 'ERROR');
+          return null;
+        }
+      })}
     </Box>
   );
 };
@@ -216,18 +431,43 @@ const ListaEquiposUsuario = ({ equipos }) => {
 export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
   const [expanded, setExpanded] = useState(false)
   
-  // 🔥 AGREGADO: Importar funciones de validación por ID
   const { puedeEditarUsuario, puedeGestionarUsuarios } = useAuth();
+  
+  // 🔥 LOGGING INICIAL DEL COMPONENTE
+  logUsuarioCard('USUARIO_CARD_RENDER_INICIO', { 
+    usuarioId: usuario?._id,
+    usuario: usuario,
+    equiposLength: usuario?.equipos?.length || 0
+  });
+  
+  // Validación crítica del usuario
+  if (!usuario) {
+    logUsuarioCard('USUARIO_NULL_NO_RENDER', {}, 'ERROR');
+    return null;
+  }
+  
+  if (!usuario._id) {
+    logUsuarioCard('USUARIO_SIN_ID_NO_RENDER', { usuario }, 'ERROR');
+    return null;
+  }
   
   const { _id, nombre, documento, imagen, equipos = [], rol } = usuario
 
   const handleExpandClick = () => {
+    logUsuarioCard('EXPAND_CLICK', { 
+      usuarioId: _id, 
+      expanded: !expanded,
+      equiposLength: equipos.length
+    });
     setExpanded(!expanded)
   }
 
-  // 🔥 NUEVO: Validar permisos específicos para este usuario
+  // Validar permisos específicos para este usuario
   const puedeEditarEsteUsuario = puedeEditarUsuario(_id, usuario);
   const puedeEliminarEsteUsuario = puedeGestionarUsuarios();
+  
+  // Obtener equipos de forma segura
+  const equiposSeguro = getEquiposSeguro(usuario);
 
   // Determinar color del rol
   const getRolColor = (rol) => {
@@ -235,7 +475,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
       case 'admin': return '#f44336'
       case 'capitan': return '#ff9800'
       case 'jugador': return '#4caf50'
-      case 'arbitro': return '#9c27b0' // 🔥 AGREGADO: Color para árbitro
+      case 'arbitro': return '#9c27b0'
       default: return '#9e9e9e'
     }
   }
@@ -246,7 +486,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
       case 'admin': return <AdminIcon />
       case 'capitan': return <GroupsIcon />
       case 'jugador': return <PersonIcon />
-      case 'arbitro': return <PersonIcon /> // 🔥 AGREGADO: Icono para árbitro
+      case 'arbitro': return <PersonIcon />
       default: return <PersonIcon />
     }
   }
@@ -256,10 +496,21 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
       case 'admin': return 'Administrador'
       case 'capitan': return 'Capitán'
       case 'jugador': return 'Jugador'
-      case 'arbitro': return 'Árbitro' // 🔥 AGREGADO: Label para árbitro
+      case 'arbitro': return 'Árbitro'
       default: return 'Usuario'
     }
   }
+
+  // Nombre seguro para mostrar
+  const nombreSeguro = nombre && nombre.trim() ? nombre : 'Sin nombre';
+
+  logUsuarioCard('USUARIO_CARD_DATOS_PROCESADOS', {
+    usuarioId: _id,
+    nombreSeguro,
+    rol,
+    equiposOriginales: equipos.length,
+    equiposSeguro: equiposSeguro.length
+  });
 
   return (
     <motion.div
@@ -318,8 +569,8 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
             {/* Avatar con badge de equipos */}
             <UsuarioAvatar 
               imagen={imagen}
-              nombre={nombre}
-              equiposCount={equipos.length}
+              nombre={nombreSeguro}
+              equiposCount={equiposSeguro.length}
             />
 
             {/* Información del usuario */}
@@ -338,7 +589,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
                 maxWidth: '200px'
               }}
             >
-              {nombre}
+              {nombreSeguro}
             </Typography>
 
             <Typography
@@ -349,7 +600,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
                 mb: 1
               }}
             >
-              {documento}
+              {documento || 'Sin documento'}
             </Typography>
 
             {/* Estadística de equipos */}
@@ -364,7 +615,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
             }}>
               <SportsFootballIcon sx={{ fontSize: 16, color: '#64b5f6' }} />
               <Typography variant="caption" sx={{ color: 'white' }}>
-                {equipos.length} {equipos.length === 1 ? 'equipo' : 'equipos'}
+                {equiposSeguro.length} {equiposSeguro.length === 1 ? 'equipo' : 'equipos'}
               </Typography>
             </Box>
           </Box>
@@ -377,7 +628,6 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          {/* 🔥 CORREGIDO: Solo mostrar botón de editar si tiene permisos */}
           {puedeEditarEsteUsuario && (
             <Tooltip title="Editar usuario">
               <IconButton
@@ -397,11 +647,13 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
             </Tooltip>
           )}
           
-          {/* 🔥 CORREGIDO: Solo mostrar botón de eliminar si tiene permisos */}
           {puedeEliminarEsteUsuario && (
             <Tooltip title="Eliminar usuario">
               <IconButton 
-                onClick={() => eliminarUsuario(_id)}
+                onClick={() => {
+                  logUsuarioCard('ELIMINAR_USUARIO_CLICK', { usuarioId: _id });
+                  eliminarUsuario(_id);
+                }}
                 sx={{
                   backgroundColor: 'rgba(244, 67, 54, 0.1)',
                   color: '#f44336',
@@ -417,7 +669,7 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
           )}
         </CardActions>
 
-        {/* Botón para expandir equipos */}
+        {/* Botón para expandir equipos - Solo para jugadores y capitanes */}
         {(rol === 'jugador' || rol === 'capitan') && (
           <>
             <Button
@@ -466,7 +718,10 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
                     Equipos del Usuario
                   </Typography>
 
-                  <ListaEquiposUsuario equipos={equipos} />
+                  <ListaEquiposUsuario 
+                    equipos={equipos} 
+                    usuarioId={_id}
+                  />
                 </CardContent>
               </Box>
             </Collapse>

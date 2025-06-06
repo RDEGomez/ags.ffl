@@ -281,7 +281,7 @@ export const Layout = () => {
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
     borderRadius: '8px',
     margin: '0 auto',
-    width: '70%',
+    width: '85%',
     left: '50%',
     transform: 'translateX(-50%)',
     top: '20px',

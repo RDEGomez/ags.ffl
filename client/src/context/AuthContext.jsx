@@ -1,4 +1,4 @@
-// 📁 src/context/AuthContext.jsx - CORRECCIÓN DE PERMISOS
+// 📁 src/context/AuthContext.jsx - VERSIÓN CORREGIDA
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../config/axios';
@@ -11,52 +11,103 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Cargar usuario desde localStorage al iniciar
+  // 🔥 FUNCIÓN CORREGIDA - Cargar usuario desde localStorage al iniciar
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('\n🔍 === INICIO VERIFICACIÓN AUTH ===');
+      
       const storedUser = localStorage.getItem('usuario');
       const storedToken = localStorage.getItem('token');
       
-      if (storedToken) {
+      console.log('📋 Datos en localStorage:');
+      console.log('  👤 Usuario:', storedUser ? 'Presente' : 'Ausente');
+      console.log('  🔑 Token:', storedToken ? 'Presente' : 'Ausente');
+      
+      if (storedToken && storedUser) {
         try {
-          var parsedUser = JSON.parse(storedUser);
-          // Configurar el token en los headers para todas las peticiones
+          console.log('🔧 Configurando token en axios...');
+          // 🔥 CORREGIDO: Configurar el token ANTES de hacer la petición
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
-          const { data } = await axiosInstance.get(`/usuarios/${parsedUser._id}`);
+          const parsedUser = JSON.parse(storedUser);
+          console.log('👤 Usuario parseado:', parsedUser);
+          
+          // 🔥 CORREGIDO: Verificar que el usuario tenga _id
+          if (!parsedUser._id && !parsedUser.id) {
+            console.log('❌ Usuario sin ID válido, reautenticando...');
+            throw new Error('Usuario sin ID válido');
+          }
 
+          const userId = parsedUser._id || parsedUser.id;
+          console.log(`🔍 Obteniendo datos actualizados del usuario: ${userId}`);
+          
+          const { data } = await axiosInstance.get(`/usuarios/${userId}`);
+          console.log('✅ Datos de usuario obtenidos de la API:', data);
+
+          // 🔥 IMPORTANTE: Establecer TANTO el usuario como el token
           setUsuario(data);
           setIsAuthenticated(true);
-          console.log("AuthContext - Usuario autenticado:", data);
+          
+          console.log('✅ Usuario autenticado correctamente');
+          console.log('  📋 Equipos del usuario:', data.equipos?.length || 0);
+          
         } catch (error) {
+          console.log('❌ Error en verificación de auth:', error);
+          console.log('  🔍 Tipo de error:', error.response?.status || error.name);
+          console.log('  📋 Mensaje:', error.response?.data?.mensaje || error.message);
+          
+          // 🔥 CORREGIDO: Limpiar datos en caso de error
+          console.log('🧹 Limpiando datos de autenticación...');
           logout();
         }
       } else {
+        console.log('❌ No hay token o usuario en localStorage');
         logout();
       }
+      
       setLoading(false);
+      console.log('🔚 === FIN VERIFICACIÓN AUTH ===\n');
     };
 
     checkAuth();
   }, []);
 
+  // 🔥 FUNCIÓN CORREGIDA - Login
   const login = ({ usuario, token }) => {
+    console.log('\n🚀 === EJECUTANDO LOGIN ===');
+    console.log('👤 Usuario recibido:', usuario);
+    console.log('🔑 Token recibido:', token ? 'Presente' : 'Ausente');
+    
+    // 🔥 CORREGIDO: Establecer estado primero
     setUsuario(usuario);
     setIsAuthenticated(true);
+    
+    // 🔥 CORREGIDO: Guardar en localStorage
     localStorage.setItem('usuario', JSON.stringify(usuario));
     localStorage.setItem('token', token);
-    // Configurar el token para todas las peticiones futuras
+    
+    // 🔥 CORREGIDO: Configurar token para todas las peticiones futuras
     axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
+    console.log('✅ Login completado exitosamente');
+    console.log('🔚 === FIN LOGIN ===\n');
   };
 
+  // 🔥 FUNCIÓN CORREGIDA - Logout
   const logout = () => {
+    console.log('\n🚪 === EJECUTANDO LOGOUT ===');
+    
     setUsuario(null);
     setIsAuthenticated(false);
     localStorage.removeItem('usuario');
     localStorage.removeItem('token');
-    // Eliminar el token de los headers
+    
+    // 🔥 CORREGIDO: Eliminar el token de los headers
     delete axiosInstance.defaults.headers.common['Authorization'];
 
+    console.log('✅ Logout completado');
+    console.log('🔚 === FIN LOGOUT ===\n');
+    
     navigate('/auth/login');
   };
 
@@ -86,9 +137,9 @@ export const AuthProvider = ({ children }) => {
     return usuario && ['admin'].includes(usuario.rol);
   };
 
-  // 🔥 CORREGIDA - Función para verificar si puede gestionar torneos (admin Y capitán)
+  // 🔥 Función para verificar si puede gestionar torneos (admin Y capitán)
   const puedeGestionarTorneos = () => {
-    return usuario && ['admin', 'capitan'].includes(usuario.rol);
+    return usuario && ['admin'].includes(usuario.rol);
   };
 
   // 🔥 Función para verificar si puede gestionar usuarios (admin y capitán)
@@ -177,30 +228,48 @@ export const AuthProvider = ({ children }) => {
     return false;
   };
 
-  // 🔥 NUEVA - Función para verificar permisos de gestión de partidos
+  // 🔥 Función para verificar permisos de gestión de partidos
   const puedeGestionarPartidos = () => {
     return usuario && ['admin', 'capitan'].includes(usuario.rol);
   };
 
-  // 🔥 NUEVA - Función para verificar si puede operar partidos en vivo (admin y árbitro)
+  // 🔥 Función para verificar si puede operar partidos en vivo (admin y árbitro)
   const puedeOperarPartidosEnVivo = () => {
     return usuario && ['admin', 'arbitro'].includes(usuario.rol);
   };
 
-  // 🔥 NUEVA - Función para debugging - muestra información del usuario actual
+  // 🔥 NUEVA FUNCIÓN: Obtener token del localStorage
+  const getStoredToken = () => {
+    return localStorage.getItem('token');
+  };
+
+  // 🔥 NUEVA FUNCIÓN: Verificar si hay token válido
+  const tieneTokenValido = () => {
+    const storedToken = getStoredToken();
+    return !!storedToken && !!usuario;
+  };
+
+  // 🔥 Función para debugging - muestra información del usuario actual
   const debugUsuario = () => {
+    const storedToken = getStoredToken();
+    
     console.log('🔍 DEBUG AuthContext:');
     console.log('  Usuario:', usuario);
     console.log('  Rol:', usuario?.rol);
     console.log('  isAuthenticated:', isAuthenticated);
+    console.log('  Token en localStorage:', storedToken ? 'Presente' : 'Ausente');
+    console.log('  Token en axios headers:', axiosInstance.defaults.headers.common['Authorization'] ? 'Configurado' : 'No configurado');
     console.log('  puedeGestionarTorneos:', puedeGestionarTorneos());
     console.log('  puedeGestionarPartidos:', puedeGestionarPartidos());
     console.log('  puedeGestionarEquipos:', puedeGestionarEquipos());
     console.log('  puedeGestionarArbitros:', puedeGestionarArbitros());
+    
     return {
       usuario,
       rol: usuario?.rol,
       isAuthenticated,
+      tokenEnLocalStorage: !!storedToken,
+      tokenEnAxios: !!axiosInstance.defaults.headers.common['Authorization'],
       permisos: {
         torneos: puedeGestionarTorneos(),
         partidos: puedeGestionarPartidos(),
@@ -208,6 +277,32 @@ export const AuthProvider = ({ children }) => {
         arbitros: puedeGestionarArbitros()
       }
     };
+  };
+
+  // 🔥 FUNCIÓN ADICIONAL: Refrescar datos del usuario
+  const refrescarUsuario = async () => {
+    if (!usuario || !tieneTokenValido()) {
+      console.log('❌ No se puede refrescar: usuario o token no válido');
+      return false;
+    }
+
+    try {
+      console.log('🔄 Refrescando datos del usuario...');
+      const userId = usuario._id || usuario.id;
+      const { data } = await axiosInstance.get(`/usuarios/${userId}`);
+      
+      setUsuario(data);
+      localStorage.setItem('usuario', JSON.stringify(data));
+      
+      console.log('✅ Datos del usuario refrescados');
+      return true;
+    } catch (error) {
+      console.error('❌ Error al refrescar usuario:', error);
+      if (error.response?.status === 401) {
+        logout();
+      }
+      return false;
+    }
   };
 
   // Valor expuesto por el contexto
@@ -224,8 +319,8 @@ export const AuthProvider = ({ children }) => {
     puedeGestionarArbitros,
     puedeGestionarTorneos,
     puedeGestionarUsuarios,
-    puedeGestionarPartidos, // 🔥 NUEVA
-    puedeOperarPartidosEnVivo, // 🔥 NUEVA
+    puedeGestionarPartidos,
+    puedeOperarPartidosEnVivo,
     // Funciones de edición por ID
     puedeEditarUsuario,
     puedeEditarArbitro,
@@ -234,7 +329,11 @@ export const AuthProvider = ({ children }) => {
     puedeEliminarUsuario,
     puedeEliminarArbitro,
     puedeInscribirseEquipo,
-    // 🔥 Función de debugging
+    // 🔥 NUEVAS FUNCIONES
+    getStoredToken,
+    tieneTokenValido,
+    refrescarUsuario,
+    // Función de debugging
     debugUsuario
   };
 
