@@ -1,58 +1,123 @@
+// 📁 api/index.js - Punto de entrada principal para Vercel
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const mongoose = require('mongoose');
-const serverless = require('serverless-http');
 require('dotenv').config();
 
 const app = express();
 
-// --- Mongoose (solo conecta si aún no hay conexión)
-if (mongoose.connection.readyState === 0) {
-  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/agsffl', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => console.log('✅ MongoDB conectado'))
-  .catch(err => console.error('❌ MongoDB error:', err));
-}
+// 🔥 MANEJO DE CONEXIÓN DB PARA SERVERLESS
+let isConnected = false;
 
-// --- CORS
+const connectDB = async () => {
+  if (isConnected) {
+    console.log('✅ MongoDB ya conectado');
+    return;
+  }
+
+  try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI no definida');
+    }
+
+    await mongoose.connect(process.env.MONGODB_URI, { 
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      maxPoolSize: 1, // Importante para serverless
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    
+    isConnected = true;
+    console.log('✅ MongoDB conectado');
+  } catch (err) {
+    console.error('❌ Error MongoDB:', err);
+    throw err;
+  }
+};
+
+// Middlewares
 const allowedOrigins = [
-  'http://localhost:5173',
+  'http://localhost:5173', 
   'https://ags-ffl-jyev.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
   origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'], 
   allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'],
   credentials: true,
   maxAge: 86400
 }));
 
-// --- Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// --- Logging (puedes conservarlo igual)
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.url}`);
-  next();
+// 🔥 MIDDLEWARE: Conectar DB en cada request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('❌ Error conectando DB:', error);
+    res.status(500).json({ 
+      error: 'Error de conexión a base de datos',
+      message: error.message 
+    });
+  }
 });
 
-// --- Rutas
-const rutas = require('../src/routes');
-app.use('/api', rutas);
+// 🔥 IMPORTAR RUTAS DESDE SRC
+try {
+  const rutas = require('../src/routes');
+  app.use('/api', rutas); // Todas las rutas van bajo /api
+} catch (error) {
+  console.error('❌ Error cargando rutas:', error);
+  app.use('/api', (req, res) => {
+    res.status(500).json({ 
+      error: 'Error cargando rutas',
+      message: error.message 
+    });
+  });
+}
 
-// --- Ruta de prueba
+// 🔥 RUTA RAÍZ
 app.get('/', (req, res) => {
-  res.json({ message: '🚀 API en Vercel funcionando correctamente' });
+  res.json({ 
+    message: '🚀 AGS Flag Football API',
+    version: '2.0.0',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
 });
 
-// --- Exportar como serverless function
+// 🔥 HEALTH CHECK
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    mongodb: isConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 🔥 MANEJO DE ERRORES GLOBAL
+app.use((err, req, res, next) => {
+  console.error('❌ Error global:', err);
+  res.status(500).json({
+    error: 'Error interno del servidor',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno'
+  });
+});
+
+// 🔥 RUTA 404
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Endpoint no encontrado',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
+// 🔥 EXPORTAR PARA VERCEL
 module.exports = app;
-module.exports.handler = serverless(app);
