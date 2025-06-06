@@ -405,7 +405,7 @@ const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugador
           fontWeight: 'bold',
           boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
         }}>
-          {jugador.numero || '?'}
+          {jugador.numero ?? '?'}
         </Box>
       </TableCell>
       <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>

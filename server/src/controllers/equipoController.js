@@ -62,7 +62,7 @@ exports.obtenerEquipos = async (req, res) => {
             nombre: usuario.nombre,
             documento: usuario.documento,
             imagen: getImageUrlServer(usuario.imagen, req), // 🔥 URL completa para jugador
-            numero: info?.numero || null
+            numero: info?.numero ?? null
           };
         });
 

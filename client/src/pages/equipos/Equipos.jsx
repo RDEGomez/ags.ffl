@@ -267,6 +267,7 @@ export const Equipos = () => {
     try {
       setCargando(true);
       setEquipoSeleccionado(equipo);
+      console.log("Equipo seleccionado:", equipo);
       setDetalleAbierto(true);
       setShowActionOverlay(false); // 🔥 NUEVO: Reset overlay state
     } catch (error) {

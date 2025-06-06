@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../config/axios';
+import { setLogoutFunction } from '../helpers/logoutHelper';
 
 const AuthContext = createContext();
 
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }) => {
       
       const storedUser = localStorage.getItem('usuario');
       const storedToken = localStorage.getItem('token');
+      setLogoutFunction(logout);
       
       console.log('📋 Datos en localStorage:');
       console.log('  👤 Usuario:', storedUser ? 'Presente' : 'Ausente');
