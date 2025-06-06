@@ -330,7 +330,7 @@ export const DetallePartido = () => {
                   gap: 2
                 }}>
                   <SportsFootballIcon sx={{ color: '#64b5f6' }} />
-                  Partido #{partido._id?.slice(-6)}
+                  Partido #{partido._id}
                 </Typography>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>

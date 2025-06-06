@@ -56,11 +56,74 @@ import axiosInstance from '../../config/axios';
 import Swal from 'sweetalert2';
 import { getCategoryName } from '../../helpers/mappings';
 import { useImage } from '../../hooks/useImage';
-import { useAuth } from '../../context/AuthContext'; // 🔥 AGREGADO
+import { useAuth } from '../../context/AuthContext';
 
-// 🔥 Componente para el avatar del equipo
+// 🔥 FUNCIÓN DE LOGGING MEJORADA
+const debugLog = (context, data, level = 'INFO') => {
+  const timestamp = new Date().toISOString();
+  const prefix = {
+    'ERROR': '❌',
+    'WARN': '⚠️',
+    'INFO': '✅',
+    'DEBUG': '🔍'
+  }[level] || '📝';
+  
+  console.log(`[${timestamp}] ${prefix} REGISTRAR_JUGADORES | ${context}:`, data);
+  
+  // Log adicional para errores críticos
+  if (level === 'ERROR') {
+    console.error(`💥 ERROR CRÍTICO en ${context}:`, data);
+    if (data?.stack) {
+      console.error('📋 Stack Trace:', data.stack);
+    }
+  }
+};
+
+// 🔥 FUNCIÓN HELPER PARA VALIDAR OBJETOS
+const validateObject = (obj, expectedProps, objectName) => {
+  debugLog(`VALIDANDO_OBJETO_${objectName}`, { obj, expectedProps });
+  
+  if (!obj) {
+    debugLog(`OBJETO_NULL_${objectName}`, { obj }, 'ERROR');
+    return false;
+  }
+  
+  if (typeof obj !== 'object') {
+    debugLog(`OBJETO_NO_ES_OBJECT_${objectName}`, { obj, type: typeof obj }, 'ERROR');
+    return false;
+  }
+  
+  for (const prop of expectedProps) {
+    if (!(prop in obj)) {
+      debugLog(`PROPIEDAD_FALTANTE_${objectName}`, { prop, obj }, 'ERROR');
+      return false;
+    }
+    if (obj[prop] === null || obj[prop] === undefined) {
+      debugLog(`PROPIEDAD_NULL_${objectName}`, { prop, value: obj[prop] }, 'ERROR');
+      return false;
+    }
+  }
+  
+  debugLog(`OBJETO_VALIDO_${objectName}`, { obj }, 'INFO');
+  return true;
+};
+
+// 🔥 Componente para el avatar del equipo CON VALIDACIÓN
 const EquipoAvatar = ({ equipo, size = 64 }) => {
+  debugLog('EQUIPO_AVATAR_RENDER', { equipo, size });
+  
+  // Validación segura
+  if (!equipo) {
+    debugLog('EQUIPO_AVATAR_NULL', { equipo }, 'WARN');
+    return (
+      <Avatar sx={{ width: size, height: size, border: '3px solid rgba(255, 255, 255, 0.2)' }}>
+        <GroupsIcon />
+      </Avatar>
+    );
+  }
+  
   const equipoImageUrl = useImage(equipo?.imagen, '');
+  debugLog('EQUIPO_AVATAR_IMAGE_URL', { equipoImageUrl, equipoImagen: equipo?.imagen });
   
   return (
     <Avatar
@@ -76,9 +139,18 @@ const EquipoAvatar = ({ equipo, size = 64 }) => {
   );
 };
 
-// 🔥 Componente para usuario disponible
+// 🔥 Componente para usuario disponible CON VALIDACIÓN
 const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
+  debugLog('USUARIO_DISPONIBLE_RENDER', { usuario, index });
+  
+  // Validación crítica
+  if (!validateObject(usuario, ['_id', 'nombre'], 'USUARIO_DISPONIBLE')) {
+    debugLog('USUARIO_DISPONIBLE_INVALIDO', { usuario }, 'ERROR');
+    return null; // No renderizar si el usuario es inválido
+  }
+  
   const usuarioImageUrl = useImage(usuario.imagen, '');
+  debugLog('USUARIO_DISPONIBLE_IMAGE_URL', { usuarioImageUrl, usuarioImagen: usuario.imagen });
   
   return (
     <motion.div
@@ -104,7 +176,10 @@ const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
             <IconButton
               edge="end"
               color="primary"
-              onClick={() => onAgregar(usuario)}
+              onClick={() => {
+                debugLog('USUARIO_DISPONIBLE_CLICK', { usuario });
+                onAgregar(usuario);
+              }}
               sx={{
                 backgroundColor: 'rgba(33, 150, 243, 0.1)',
                 '&:hover': {
@@ -129,12 +204,12 @@ const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
         <ListItemText
           primary={
             <Typography fontWeight="medium" sx={{ color: 'white' }}>
-              {usuario.nombre}
+              {usuario.nombre || 'Sin nombre'}
             </Typography>
           }
           secondary={
             <Typography variant="body2" color="text.secondary">
-              {usuario.documento}
+              {usuario.documento || 'Sin documento'}
             </Typography>
           }
         />
@@ -143,9 +218,28 @@ const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
   );
 };
 
-// 🔥 Componente para jugador seleccionado
+// 🔥 Componente para jugador seleccionado CON VALIDACIÓN
 const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index }) => {
+  debugLog('JUGADOR_SELECCIONADO_RENDER', { jugador, index });
+  
+  // Validación crítica con logging detallado
+  if (!jugador) {
+    debugLog('JUGADOR_SELECCIONADO_NULL', { jugador }, 'ERROR');
+    return null;
+  }
+  
+  if (!jugador.usuario) {
+    debugLog('JUGADOR_USUARIO_NULL', { jugador }, 'ERROR');
+    return null;
+  }
+  
+  if (!validateObject(jugador.usuario, ['_id', 'nombre'], 'JUGADOR_USUARIO')) {
+    debugLog('JUGADOR_USUARIO_INVALIDO', { jugador }, 'ERROR');
+    return null;
+  }
+  
   const usuarioImageUrl = useImage(jugador.usuario.imagen, '');
+  debugLog('JUGADOR_SELECCIONADO_IMAGE_URL', { usuarioImageUrl, usuarioImagen: jugador.usuario.imagen });
   
   return (
     <motion.div
@@ -189,12 +283,12 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
           <ListItemText
             primary={
               <Typography fontWeight="medium" sx={{ color: 'white' }}>
-                {jugador.usuario.nombre}
+                {jugador.usuario.nombre || 'Sin nombre'}
               </Typography>
             }
             secondary={
               <Typography variant="body2" color="text.secondary">
-                {jugador.usuario.documento}
+                {jugador.usuario.documento || 'Sin documento'}
               </Typography>
             }
           />
@@ -210,8 +304,14 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
           <TextField
             label="Número"
             type="number"
-            value={jugador.numero}
-            onChange={(e) => onActualizarNumero(jugador.usuario._id, e.target.value)}
+            value={jugador.numero || ''}
+            onChange={(e) => {
+              debugLog('NUMERO_CHANGE', { 
+                jugadorId: jugador.usuario._id, 
+                nuevoNumero: e.target.value 
+              });
+              onActualizarNumero(jugador.usuario._id, e.target.value);
+            }}
             size="small"
             sx={{
               width: 120,
@@ -229,7 +329,10 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
           />
           <IconButton
             color="error"
-            onClick={() => onQuitar(jugador.usuario._id)}
+            onClick={() => {
+              debugLog('QUITAR_JUGADOR_CLICK', { jugadorId: jugador.usuario._id });
+              onQuitar(jugador.usuario._id);
+            }}
             sx={{
               backgroundColor: 'rgba(244, 67, 54, 0.1)',
               '&:hover': {
@@ -246,9 +349,18 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
   );
 };
 
-// 🔥 Componente para jugador del roster
+// 🔥 Componente para jugador del roster CON VALIDACIÓN
 const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugadorAEliminar }) => {
+  debugLog('JUGADOR_ROSTER_RENDER', { jugador, index });
+  
+  // Validación crítica
+  if (!validateObject(jugador, ['_id', 'nombre'], 'JUGADOR_ROSTER')) {
+    debugLog('JUGADOR_ROSTER_INVALIDO', { jugador }, 'ERROR');
+    return null;
+  }
+  
   const jugadorImageUrl = useImage(jugador.imagen, '');
+  debugLog('JUGADOR_ROSTER_IMAGE_URL', { jugadorImageUrl, jugadorImagen: jugador.imagen });
   
   return (
     <motion.tr
@@ -271,14 +383,14 @@ const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugador
               border: '2px solid rgba(255, 255, 255, 0.2)'
             }}
           />
-          <Typography sx={{ color: 'white' }}>{jugador.nombre}</Typography>
+          <Typography sx={{ color: 'white' }}>{jugador.nombre || 'Sin nombre'}</Typography>
         </Box>
       </TableCell>
       <TableCell sx={{
         color: 'rgba(255, 255, 255, 0.7)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
-        {jugador.documento}
+        {jugador.documento || 'Sin documento'}
       </TableCell>
       <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <Box sx={{
@@ -293,7 +405,7 @@ const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugador
           fontWeight: 'bold',
           boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
         }}>
-          {jugador.numero}
+          {jugador.numero || '?'}
         </Box>
       </TableCell>
       <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -302,7 +414,10 @@ const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugador
             <IconButton
               color="error"
               disabled={deletingPlayer}
-              onClick={() => onEliminar(jugador._id)}
+              onClick={() => {
+                debugLog('ELIMINAR_JUGADOR_ROSTER_CLICK', { jugadorId: jugador._id });
+                onEliminar(jugador._id);
+              }}
               sx={{
                 backgroundColor: 'rgba(244, 67, 54, 0.1)',
                 '&:hover': {
@@ -330,7 +445,6 @@ export const RegistrarJugadores = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // 🔥 CAMBIADO: Usar puedeGestionarEquipos en lugar de tieneRol
   const { puedeGestionarEquipos } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -347,9 +461,25 @@ export const RegistrarJugadores = () => {
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [jugadorAEliminar, setJugadorAEliminar] = useState(null);
 
-  // 🔥 AGREGADO: Verificar permisos al cargar el componente
+  // 🔥 LOGGING DE ESTADOS CRÍTICOS
   useEffect(() => {
+    debugLog('ESTADO_CAMBIO', {
+      equipo: equipo ? { id: equipo._id, nombre: equipo.nombre } : null,
+      usuarios: usuarios.length,
+      usuariosFiltrados: usuariosFiltrados.length,
+      jugadoresSeleccionados: jugadoresSeleccionados.length,
+      jugadoresActuales: jugadoresActuales.length,
+      loading,
+      errorMessage
+    });
+  }, [equipo, usuarios, usuariosFiltrados, jugadoresSeleccionados, jugadoresActuales, loading, errorMessage]);
+
+  // Verificar permisos al cargar el componente
+  useEffect(() => {
+    debugLog('VERIFICANDO_PERMISOS', { puedeGestionarEquipos: puedeGestionarEquipos() });
+    
     if (!puedeGestionarEquipos()) {
+      debugLog('SIN_PERMISOS_GESTIONAR_EQUIPOS', {}, 'WARN');
       Swal.fire({
         icon: 'warning',
         title: 'Acceso Denegado',
@@ -367,63 +497,195 @@ export const RegistrarJugadores = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        debugLog('FETCH_DATA_INICIO', { equipoId: id });
         setLoading(true);
 
+        // 🔥 PASO 1: Cargar equipo
+        debugLog('CARGANDO_EQUIPO', { equipoId: id });
         const equipoResponse = await axiosInstance.get(`/equipos/${id}`);
+        debugLog('EQUIPO_RESPONSE', { 
+          status: equipoResponse.status, 
+          data: equipoResponse.data 
+        });
+        
+        // Validar respuesta del equipo
+        if (!equipoResponse.data) {
+          throw new Error('Respuesta del equipo vacía');
+        }
+        
+        if (!equipoResponse.data._id) {
+          debugLog('EQUIPO_SIN_ID', { equipoData: equipoResponse.data }, 'ERROR');
+          throw new Error('Equipo sin ID válido');
+        }
+        
         setEquipo(equipoResponse.data);
+        debugLog('EQUIPO_ESTABLECIDO', equipoResponse.data);
 
+        // 🔥 PASO 2: Cargar usuarios
+        debugLog('CARGANDO_USUARIOS', {});
         const usuariosResponse = await axiosInstance.get('/usuarios');
+        debugLog('USUARIOS_RESPONSE', { 
+          status: usuariosResponse.status, 
+          totalUsuarios: usuariosResponse.data?.length || 0,
+          primeros3: usuariosResponse.data?.slice(0, 3) || []
+        });
 
+        // Validar respuesta de usuarios
+        if (!Array.isArray(usuariosResponse.data)) {
+          debugLog('USUARIOS_NO_ARRAY', { usuariosData: usuariosResponse.data }, 'ERROR');
+          throw new Error('Respuesta de usuarios no es un array');
+        }
+
+        // 🔥 PASO 3: Procesar usuarios con validación detallada
         const usuariosEnEquipo = [];
-        const jugadoresFiltrados = usuariosResponse.data.filter(usuario => {
-          const estaEnEquipo = usuario.equipos.some(e => e.equipo._id === id);
-          if (estaEnEquipo) {
-            const equipoData = usuario.equipos.find(e => e.equipo._id === id);
-            usuariosEnEquipo.push({
-              ...usuario,
-              numero: equipoData.numero
+        const jugadoresFiltrados = [];
+
+        debugLog('PROCESANDO_USUARIOS', { totalUsuarios: usuariosResponse.data.length });
+
+        usuariosResponse.data.forEach((usuario, index) => {
+          try {
+            // Validar cada usuario
+            if (!validateObject(usuario, ['_id', 'equipos'], `USUARIO_${index}`)) {
+              debugLog('USUARIO_INVALIDO_SKIPPED', { index, usuario }, 'WARN');
+              return; // Skip usuario inválido
+            }
+
+            // Validar que equipos sea un array
+            if (!Array.isArray(usuario.equipos)) {
+              debugLog('USUARIO_EQUIPOS_NO_ARRAY', { 
+                index, 
+                usuarioId: usuario._id, 
+                equipos: usuario.equipos 
+              }, 'WARN');
+              usuario.equipos = []; // Corregir equipos inválidos
+            }
+
+            // Verificar si está en el equipo actual
+            const estaEnEquipo = usuario.equipos.some(e => {
+              if (!e || !e.equipo) {
+                debugLog('EQUIPO_RELACION_INVALIDA', { 
+                  usuarioId: usuario._id, 
+                  equipoRelacion: e 
+                }, 'WARN');
+                return false;
+              }
+              
+              const equipoId = typeof e.equipo === 'object' ? e.equipo._id : e.equipo;
+              return equipoId === id;
             });
+
+            if (estaEnEquipo) {
+              const equipoData = usuario.equipos.find(e => {
+                if (!e || !e.equipo) return false;
+                const equipoId = typeof e.equipo === 'object' ? e.equipo._id : e.equipo;
+                return equipoId === id;
+              });
+
+              usuariosEnEquipo.push({
+                ...usuario,
+                numero: equipoData?.numero || 0
+              });
+              
+              debugLog('USUARIO_EN_EQUIPO', { 
+                usuarioId: usuario._id, 
+                nombre: usuario.nombre, 
+                numero: equipoData?.numero 
+              });
+            } else {
+              jugadoresFiltrados.push(usuario);
+              debugLog('USUARIO_DISPONIBLE', { 
+                usuarioId: usuario._id, 
+                nombre: usuario.nombre 
+              });
+            }
+          } catch (error) {
+            debugLog('ERROR_PROCESANDO_USUARIO', { 
+              index, 
+              usuario, 
+              error: error.message 
+            }, 'ERROR');
           }
-          return !estaEnEquipo;
+        });
+
+        debugLog('USUARIOS_PROCESADOS', {
+          usuariosEnEquipo: usuariosEnEquipo.length,
+          jugadoresFiltrados: jugadoresFiltrados.length
         });
 
         setJugadoresActuales(usuariosEnEquipo);
         setUsuarios(jugadoresFiltrados);
         setUsuariosFiltrados(jugadoresFiltrados);
-        setLoading(false);
+        
+        debugLog('FETCH_DATA_COMPLETADO', {
+          equipo: equipoResponse.data.nombre,
+          jugadoresActuales: usuariosEnEquipo.length,
+          usuariosDisponibles: jugadoresFiltrados.length
+        });
+
       } catch (error) {
+        debugLog('ERROR_FETCH_DATA', { 
+          error: error.message, 
+          stack: error.stack,
+          equipoId: id 
+        }, 'ERROR');
+        
         console.error('Error al cargar datos:', error);
         setErrorMessage('Error al cargar los datos. Por favor, intenta nuevamente.');
+      } finally {
         setLoading(false);
+        debugLog('LOADING_FALSE', {});
       }
     };
 
-    // 🔥 CAMBIADO: Solo ejecutar si tiene permisos
     if (puedeGestionarEquipos()) {
+      debugLog('INICIANDO_FETCH_DATA', { equipoId: id });
       fetchData();
+    } else {
+      debugLog('SKIP_FETCH_DATA_SIN_PERMISOS', {});
     }
   }, [id, puedeGestionarEquipos]);
 
   // Filtrar usuarios cuando cambia el texto de búsqueda
   useEffect(() => {
+    debugLog('FILTRADO_USUARIOS', { 
+      filtroUsuarios, 
+      usuariosTotal: usuarios.length 
+    });
+    
     if (filtroUsuarios.trim() === '') {
       setUsuariosFiltrados(usuarios);
       return;
     }
 
     const filtroLowerCase = filtroUsuarios.toLowerCase();
-    const resultado = usuarios.filter(
-      usuario =>
-        usuario.nombre.toLowerCase().includes(filtroLowerCase) ||
-        usuario.documento.toLowerCase().includes(filtroLowerCase)
-    );
+    const resultado = usuarios.filter(usuario => {
+      // Validación segura para el filtrado
+      const nombre = usuario.nombre?.toLowerCase() || '';
+      const documento = usuario.documento?.toLowerCase() || '';
+      
+      return nombre.includes(filtroLowerCase) || documento.includes(filtroLowerCase);
+    });
 
+    debugLog('FILTRADO_RESULTADO', { 
+      filtro: filtroUsuarios, 
+      resultados: resultado.length 
+    });
+    
     setUsuariosFiltrados(resultado);
   }, [filtroUsuarios, usuarios]);
 
   // Agregar jugador a la lista de seleccionados
   const agregarJugador = (jugador) => {
+    debugLog('AGREGAR_JUGADOR', { jugador });
+    
+    // Validación
+    if (!validateObject(jugador, ['_id'], 'JUGADOR_A_AGREGAR')) {
+      debugLog('JUGADOR_INVALIDO_NO_AGREGADO', { jugador }, 'ERROR');
+      return;
+    }
+
     if (jugadoresSeleccionados.some(j => j.usuario._id === jugador._id)) {
+      debugLog('JUGADOR_YA_SELECCIONADO', { jugadorId: jugador._id }, 'WARN');
       return;
     }
 
@@ -436,19 +698,30 @@ export const RegistrarJugadores = () => {
     ]);
 
     setUsuarios(usuarios.filter(u => u._id !== jugador._id));
+    debugLog('JUGADOR_AGREGADO_EXITOSO', { jugadorId: jugador._id });
   };
 
   // Quitar jugador de la lista de seleccionados
   const quitarJugador = (jugadorId) => {
-    const jugadorAQuitar = jugadoresSeleccionados.find(j => j.usuario._id === jugadorId).usuario;
+    debugLog('QUITAR_JUGADOR', { jugadorId });
+    
+    const jugadorAQuitar = jugadoresSeleccionados.find(j => j.usuario._id === jugadorId);
+    
+    if (!jugadorAQuitar) {
+      debugLog('JUGADOR_A_QUITAR_NO_ENCONTRADO', { jugadorId }, 'ERROR');
+      return;
+    }
 
     setJugadoresSeleccionados(jugadoresSeleccionados.filter(j => j.usuario._id !== jugadorId));
-
-    setUsuarios([...usuarios, jugadorAQuitar]);
+    setUsuarios([...usuarios, jugadorAQuitar.usuario]);
+    
+    debugLog('JUGADOR_QUITADO_EXITOSO', { jugadorId });
   };
 
   // Actualizar número de camiseta
   const actualizarNumeroCamiseta = (jugadorId, nuevoNumero) => {
+    debugLog('ACTUALIZAR_NUMERO', { jugadorId, nuevoNumero });
+    
     setJugadoresSeleccionados(
       jugadoresSeleccionados.map(j =>
         j.usuario._id === jugadorId ? { ...j, numero: nuevoNumero } : j
@@ -456,25 +729,29 @@ export const RegistrarJugadores = () => {
     );
   };
 
-  // Abrir diálogo para ver roster
+  // Resto del código del componente permanece igual...
+  // [Mantienes todas las demás funciones sin cambios]
+
   const handleOpenRoster = () => {
+    debugLog('OPEN_ROSTER_DIALOG', {});
     setOpenRosterDialog(true);
   };
 
-  // Cerrar diálogo de roster
   const handleCloseRoster = () => {
+    debugLog('CLOSE_ROSTER_DIALOG', {});
     setOpenRosterDialog(false);
   };
 
-  // Manejar cambio en el filtro de búsqueda
   const handleFiltroChange = (e) => {
+    debugLog('FILTRO_CHANGE', { nuevoFiltro: e.target.value });
     setFiltroUsuarios(e.target.value);
   };
 
-  // Iniciar proceso de eliminación de jugador
   const iniciarEliminarJugador = async (jugadorId) => {
-    // 🔥 AGREGADO: Verificar permisos antes de eliminar
+    debugLog('INICIAR_ELIMINAR_JUGADOR', { jugadorId });
+    
     if (!puedeGestionarEquipos()) {
+      debugLog('SIN_PERMISOS_ELIMINAR', {}, 'ERROR');
       Swal.fire({
         icon: 'error',
         title: 'Sin permisos',
@@ -508,8 +785,9 @@ export const RegistrarJugadores = () => {
     }, 100);
   };
 
-  // Eliminar jugador del equipo
   const eliminarJugadorDelEquipo = async (jugadorId) => {
+    debugLog('ELIMINAR_JUGADOR_DEL_EQUIPO', { jugadorId });
+    
     try {
       setDeletingPlayer(true);
 
@@ -526,6 +804,7 @@ export const RegistrarJugadores = () => {
 
       if (jugadorEliminado) {
         setUsuarios([...usuarios, jugadorEliminado]);
+        debugLog('JUGADOR_MOVIDO_A_DISPONIBLES', { jugadorEliminado });
       }
 
       Swal.fire({
@@ -535,7 +814,15 @@ export const RegistrarJugadores = () => {
         showConfirmButton: false,
         timer: 1500,
       });
+      
+      debugLog('JUGADOR_ELIMINADO_EXITOSO', { jugadorId });
     } catch (error) {
+      debugLog('ERROR_ELIMINAR_JUGADOR', { 
+        jugadorId, 
+        error: error.message,
+        response: error.response?.data 
+      }, 'ERROR');
+      
       console.error('Error al eliminar jugador:', error);
       Swal.fire({
         icon: 'error',
@@ -547,10 +834,13 @@ export const RegistrarJugadores = () => {
     }
   };
 
-  // Guardar jugadores en el equipo
   const guardarJugadores = async () => {
-    // 🔥 AGREGADO: Verificar permisos antes de guardar
+    debugLog('GUARDAR_JUGADORES_INICIO', { 
+      jugadoresSeleccionados: jugadoresSeleccionados.length 
+    });
+    
     if (!puedeGestionarEquipos()) {
+      debugLog('SIN_PERMISOS_GUARDAR', {}, 'ERROR');
       Swal.fire({
         icon: 'error',
         title: 'Sin permisos',
@@ -559,8 +849,10 @@ export const RegistrarJugadores = () => {
       return;
     }
 
+    // Validaciones
     const faltanNumeros = jugadoresSeleccionados.some(j => !j.numero);
     if (faltanNumeros) {
+      debugLog('FALTAN_NUMEROS', { jugadoresSeleccionados }, 'WARN');
       Swal.fire({
         icon: 'error',
         title: 'Faltan datos',
@@ -572,6 +864,7 @@ export const RegistrarJugadores = () => {
     const numeros = jugadoresSeleccionados.map(j => j.numero);
     const numerosUnicos = new Set(numeros);
     if (numeros.length !== numerosUnicos.size) {
+      debugLog('NUMEROS_DUPLICADOS', { numeros }, 'WARN');
       Swal.fire({
         icon: 'error',
         title: 'Números duplicados',
@@ -584,6 +877,7 @@ export const RegistrarJugadores = () => {
     const numerosConflicto = numeros.filter(num => numerosExistentes.includes(num));
 
     if (numerosConflicto.length > 0) {
+      debugLog('NUMEROS_EN_CONFLICTO', { numerosConflicto, numerosExistentes }, 'WARN');
       Swal.fire({
         icon: 'error',
         title: 'Números en conflicto',
@@ -601,9 +895,13 @@ export const RegistrarJugadores = () => {
         numero: parseInt(j.numero)
       }));
 
+      debugLog('ENVIANDO_JUGADORES_AL_SERVIDOR', { jugadoresDatos });
+
       await axiosInstance.post('/equipos/registrarJugadores', {
         jugadores: jugadoresDatos
       });
+
+      debugLog('JUGADORES_GUARDADOS_EXITOSO', {});
 
       Swal.fire({
         icon: 'success',
@@ -615,6 +913,11 @@ export const RegistrarJugadores = () => {
 
       navigate('/equipos');
     } catch (error) {
+      debugLog('ERROR_GUARDAR_JUGADORES', { 
+        error: error.message,
+        response: error.response?.data 
+      }, 'ERROR');
+      
       console.error('Error al registrar jugadores:', error);
 
       if (error.response?.data?.errores && Array.isArray(error.response.data.errores)) {
@@ -638,8 +941,9 @@ export const RegistrarJugadores = () => {
     }
   };
 
-  // 🔥 AGREGADO: Si no tiene permisos, mostrar mensaje de acceso denegado
+  // Si no tiene permisos, mostrar mensaje de acceso denegado
   if (!puedeGestionarEquipos()) {
+    debugLog('RENDERIZANDO_SIN_PERMISOS', {});
     return (
       <Box sx={{
         display: 'flex',
@@ -703,6 +1007,7 @@ export const RegistrarJugadores = () => {
   };
 
   if (loading) {
+    debugLog('RENDERIZANDO_LOADING', {});
     return (
       <Box sx={{
         display: 'flex',
@@ -716,6 +1021,13 @@ export const RegistrarJugadores = () => {
       </Box>
     );
   }
+
+  debugLog('RENDERIZANDO_COMPONENTE_PRINCIPAL', {
+    equipoNombre: equipo?.nombre,
+    usuariosDisponibles: usuariosFiltrados.length,
+    jugadoresSeleccionados: jugadoresSeleccionados.length,
+    jugadoresActuales: jugadoresActuales.length
+  });
 
   return (
     <Box sx={{
@@ -822,10 +1134,10 @@ export const RegistrarJugadores = () => {
                     <EquipoAvatar equipo={equipo} size={64} />
                     <Box>
                       <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
-                        {equipo.nombre}
+                        {equipo.nombre || 'Sin nombre'}
                       </Typography>
                       <Typography variant="body1" color="text.secondary">
-                        {getCategoryName(equipo.categoria)}
+                        {getCategoryName(equipo.categoria) || 'Sin categoría'}
                       </Typography>
                     </Box>
                   </Box>
@@ -1106,7 +1418,7 @@ export const RegistrarJugadores = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PeopleIcon sx={{ color: '#64b5f6' }} />
               <Typography variant="h6">
-                Roster Actual: {equipo?.nombre}
+                Roster Actual: {equipo?.nombre || 'Sin nombre'}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
