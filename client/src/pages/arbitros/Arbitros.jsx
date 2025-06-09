@@ -30,7 +30,6 @@ import {
   IconButton
 } from '@mui/material';
 import {
-  SportsSoccer as SportsSoccerIcon,
   Add as AddIcon,
   Info as InfoIcon,
   Edit as EditIcon,
@@ -49,6 +48,7 @@ import {
   Gavel as GavelIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
+import SportsFootballIcon from '@mui/icons-material/SportsFootball';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../config/axios';
@@ -88,7 +88,7 @@ const PartidosArbitro = ({ partidos }) => {
         border: '2px dashed rgba(255, 255, 255, 0.2)',
         borderRadius: 2
       }}>
-        <SportsSoccerIcon sx={{ 
+        <SportsFootballIcon sx={{ 
           fontSize: 48, 
           color: 'rgba(255, 255, 255, 0.3)', 
           mb: 2 
@@ -110,7 +110,7 @@ const PartidosArbitro = ({ partidos }) => {
         }}>
           <ListItemAvatar>
             <Avatar sx={{ bgcolor: 'primary.main' }}>
-              <SportsSoccerIcon />
+              <SportsFootballIcon />
             </Avatar>
           </ListItemAvatar>
           <ListItemText 

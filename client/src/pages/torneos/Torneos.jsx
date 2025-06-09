@@ -31,7 +31,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import GroupsIcon from '@mui/icons-material/Groups';
 import InfoIcon from '@mui/icons-material/Info';
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
+import SportsFootballIcon from '@mui/icons-material/SportsFootball';
 import SportsIcon from '@mui/icons-material/Sports';
 import AddIcon from '@mui/icons-material/Add';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -156,7 +156,7 @@ const TorneoCard = ({ torneo, onAbrirDetalle }) => {
           
           {partidosEstimados > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <SportsSoccerIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+              <SportsFootballIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
               <Typography variant="body2" sx={{ color: '#aaa' }}>
                 ~{partidosEstimados} partidos estimados
               </Typography>
@@ -433,7 +433,7 @@ export const Torneos = () => {
               border: '1px solid rgba(255, 255, 255, 0.1)',
               textAlign: 'center'
             }}>
-              <SportsSoccerIcon sx={{ fontSize: 60, color: 'gray', mb: 2 }} />
+              <SportsFootballIcon sx={{ fontSize: 60, color: 'gray', mb: 2 }} />
               <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
                 No hay torneos disponibles
               </Typography>

@@ -23,8 +23,8 @@ import {
   Groups as GroupsIcon,
   Person as PersonIcon,
   AdminPanelSettings as AdminIcon,
-  SportsSoccer as SportsIcon
 } from '@mui/icons-material'
+import SportsFootballIcon from '@mui/icons-material/SportsFootball';
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
@@ -361,7 +361,7 @@ const UsuarioItem = ({ jugador, index, onEliminar }) => {
                     py: 0.25,
                     border: '1px solid rgba(100, 181, 246, 0.2)' // 🔥 Agregado: borde sutil
                   }}>
-                    <SportsIcon sx={{ fontSize: 14, color: '#64b5f6' }} />
+                    <SportsFootballIcon sx={{ fontSize: 14, color: '#64b5f6' }} />
                     <Typography 
                       variant="caption" 
                       sx={{ 

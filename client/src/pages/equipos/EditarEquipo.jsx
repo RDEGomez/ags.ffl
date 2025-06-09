@@ -4,7 +4,7 @@ import * as Yup from 'yup'
 import axiosInstance from '../../config/axios'
 import Swal from 'sweetalert2'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   TextField, MenuItem, Button, Box, CircularProgress,
   Typography, Card, CardContent, FormHelperText, Breadcrumbs,
@@ -15,29 +15,27 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
   ArrowBack as ArrowBackIcon,
-  AddPhotoAlternate as AddPhotoAlternateIcon,
   NavigateNext as NavigateNextIcon,
   Groups as GroupsIcon
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
-import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
-import { useAuth } from '../../context/AuthContext' // 🔥 AGREGADO: Import useAuth
+import { useImage } from '../../hooks/useImage'
+import { useAuth } from '../../context/AuthContext'
+import { ImageUpload } from '../../components/ImageUpload' // 🔥 AGREGADO: Import del nuevo componente
 
 export const EditarEquipo = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const fileInputRef = useRef(null)
   
-  // 🔥 AGREGADO: Verificar permisos de gestión de equipos
+  // 🔥 Verificar permisos de gestión de equipos
   const { puedeGestionarEquipos } = useAuth();
 
-  const [previewUrl, setPreviewUrl] = useState('')
-  const [fileName, setFileName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [equipoImagen, setEquipoImagen] = useState('') // 🔥 Estado para la imagen original del equipo
+  const [imagenSeleccionada, setImagenSeleccionada] = useState(null) // 🔥 NUEVO: Estado para la imagen seleccionada
 
-  // 🔥 AGREGADO: Verificación de acceso al componente
+  // 🔥 Verificación de acceso al componente
   useEffect(() => {
     if (!puedeGestionarEquipos()) {
       Swal.fire({
@@ -47,7 +45,7 @@ export const EditarEquipo = () => {
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#1976d2'
       }).then(() => {
-        navigate('/equipos'); // Redirigir a la lista de equipos
+        navigate('/equipos');
       });
       return;
     }
@@ -58,14 +56,7 @@ export const EditarEquipo = () => {
 
   const schema = Yup.object().shape({
     nombre: Yup.string().required('El nombre es obligatorio'),
-    categoria: Yup.string().required('La categoría es obligatoria'),
-    imagen: Yup.mixed().test('fileSize', 'El archivo es demasiado grande', (value) => {
-      if (!value || !value[0]) return true
-      return value[0].size <= 2000000
-    }).test('fileType', 'Solo se permiten imágenes', (value) => {
-      if (!value || !value[0]) return true
-      return value[0].type.startsWith('image/')
-    })
+    categoria: Yup.string().required('La categoría es obligatoria')
   })
 
   const {
@@ -73,7 +64,6 @@ export const EditarEquipo = () => {
     reset,
     control,
     handleSubmit,
-    setValue,
     watch,
     formState: { errors }
   } = useForm({
@@ -89,7 +79,6 @@ export const EditarEquipo = () => {
   const categoriaActual = watch('categoria');
 
   useEffect(() => {
-    // 🔥 AGREGADO: Solo cargar equipo si tiene permisos
     if (puedeGestionarEquipos()) {
       fetchEquipo();
     }
@@ -109,8 +98,6 @@ export const EditarEquipo = () => {
       // 🔥 Actualizar el estado de la imagen
       setEquipoImagen(equipoData.imagen || '')
       
-      // 🔥 El hook se encargará de construir la URL automáticamente
-      // No necesitamos llamar useImage aquí
     } catch (error) {
       console.error('Error al cargar equipo:', error)
       setError('Error al cargar la información del equipo')
@@ -125,7 +112,7 @@ export const EditarEquipo = () => {
   }
 
   const onSubmit = async (data) => {
-    // 🔥 AGREGADO: Verificación adicional antes de enviar
+    // 🔥 Verificación adicional antes de enviar
     if (!puedeGestionarEquipos()) {
       Swal.fire({
         icon: 'error',
@@ -140,8 +127,9 @@ export const EditarEquipo = () => {
       formData.append('nombre', data.nombre)
       formData.append('categoria', data.categoria)
 
-      if (data.imagen && data.imagen.length > 0) {
-        formData.append('imagen', data.imagen[0])
+      // 🔥 CAMBIADO: Usar la imagen seleccionada del nuevo componente
+      if (imagenSeleccionada) {
+        formData.append('imagen', imagenSeleccionada)
       }
 
       await axiosInstance.patch(`/equipos/${id}`, formData, {
@@ -166,21 +154,17 @@ export const EditarEquipo = () => {
     }
   }
 
-  const handleImageClick = () => {
-    fileInputRef.current.click()
-  }
+  // 🔥 NUEVO: Función para manejar selección de imagen
+  const handleImageSelect = (file) => {
+    setImagenSeleccionada(file);
+  };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      const imageUrl = URL.createObjectURL(file)
-      setPreviewUrl(imageUrl) // 🔥 Esto sobrescribe la imagen original
-      setValue('imagen', e.target.files)
-      setFileName(file.name)
-    }
-  }
+  // 🔥 NUEVO: Función para remover imagen
+  const handleImageRemove = () => {
+    setImagenSeleccionada(null);
+  };
 
-  // 🔥 AGREGADO: Si no tiene permisos, no renderizar el componente (redundancia de seguridad)
+  // 🔥 Si no tiene permisos, no renderizar el componente
   if (!puedeGestionarEquipos()) {
     return (
       <Box sx={{ 
@@ -210,9 +194,6 @@ export const EditarEquipo = () => {
       </Box>
     );
   }
-
-  // 🔥 Determinar qué imagen mostrar
-  const imagenAMostrar = previewUrl || equipoImageUrl
 
   // Animaciones
   const containerVariants = {
@@ -373,7 +354,7 @@ export const EditarEquipo = () => {
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
-                  {/* Sección de imagen */}
+                  {/* 🔥 CAMBIADO: Sección de imagen usando ImageUpload */}
                   <Box sx={{ flexBasis: { md: '40%' } }}>
                     <Card sx={{
                       backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -381,112 +362,13 @@ export const EditarEquipo = () => {
                       border: '1px solid rgba(255, 255, 255, 0.1)'
                     }}>
                       <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          mb: 2,
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                          pb: 1
-                        }}>
-                          <AddPhotoAlternateIcon sx={{ color: '#64b5f6', mr: 1 }} />
-                          <Typography variant="h6" sx={{ color: 'white' }}>
-                            Logo del Equipo
-                          </Typography>
-                        </Box>
-
-                        {/* Input file oculto */}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          ref={fileInputRef}
-                          style={{ display: 'none' }}
-                          onChange={handleImageChange}
+                        <ImageUpload
+                          onImageSelect={handleImageSelect}
+                          currentImage={equipoImageUrl}
+                          onImageRemove={handleImageRemove}
+                          size={200}
+                          label="Seleccionar logo del equipo"
                         />
-
-                        {/* Preview de imagen */}
-                        <Box
-                          onClick={handleImageClick}
-                          sx={{
-                            width: '100%',
-                            height: 200,
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '2px dashed rgba(255, 255, 255, 0.2)',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            mb: 2,
-                            '&:hover': {
-                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                              borderColor: 'rgba(100, 181, 246, 0.5)',
-                              transform: 'scale(1.02)'
-                            }
-                          }}
-                        >
-                          {imagenAMostrar ? (
-                            <Box
-                              component="img"
-                              src={imagenAMostrar}
-                              alt="Preview"
-                              sx={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain',
-                                borderRadius: 2
-                              }}
-                              onError={(e) => {
-                                // 🔥 Fallback en caso de error
-                                e.target.src = '/images/equipo-default.jpg'
-                              }}
-                            />
-                          ) : (
-                            <Box sx={{ textAlign: 'center', p: 3 }}>
-                              <AddPhotoAlternateIcon sx={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.3)', mb: 1 }} />
-                              <Typography variant="body2" color="text.secondary">
-                                Haz clic para seleccionar imagen
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          startIcon={<AddPhotoAlternateIcon />}
-                          onClick={handleImageClick}
-                          fullWidth
-                          sx={{
-                            borderRadius: 2,
-                            py: 1.5,
-                            borderWidth: 2,
-                            '&:hover': {
-                              borderWidth: 2,
-                              backgroundColor: 'rgba(255,255,255,0.05)'
-                            }
-                          }}
-                        >
-                          {imagenAMostrar ? 'Cambiar Imagen' : 'Seleccionar Imagen'}
-                        </Button>
-
-                        {errors.imagen && (
-                          <FormHelperText error sx={{ mt: 1 }}>
-                            {errors.imagen.message}
-                          </FormHelperText>
-                        )}
-
-                        {fileName && (
-                          <Typography variant="caption" sx={{ 
-                            display: 'block', 
-                            mt: 1, 
-                            color: 'rgba(255,255,255,0.7)',
-                            textAlign: 'center'
-                          }}>
-                            📁 {fileName}
-                          </Typography>
-                        )}
                       </CardContent>
                     </Card>
                   </Box>
@@ -568,7 +450,7 @@ export const EditarEquipo = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar
-                            src={imagenAMostrar}
+                            src={equipoImageUrl}
                             sx={{ 
                               width: 40, 
                               height: 40,

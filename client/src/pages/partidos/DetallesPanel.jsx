@@ -28,7 +28,6 @@ import {
   Visibility as VisibilityIcon,
   AccessTime as AccessTimeIcon,
   Place as PlaceIcon,
-  SportsSoccer as SportsSoccerIcon,
   Assessment as AssessmentIcon
 } from '@mui/icons-material';
 import { getCategoryName } from '../../helpers/mappings';

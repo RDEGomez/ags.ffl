@@ -1,0 +1,998 @@
+{
+  "timestamp": "2025-06-07T23:16:09.297Z",
+  "created_by": "backup_before_optimization",
+  "stats": {
+    "usuarios": 154,
+    "equipos": 43,
+    "total": 197
+  },
+  "usuarios": [
+    {
+      "id": "683a76f2f17e4e65179e1ed5",
+      "nombre": "Antetokacho",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749226874571/laces-uploads/1749226874571-IMG_0103.JPG.png"
+    },
+    {
+      "id": "684303a87c9fb86e70a19648",
+      "nombre": "Gpe Sides HC",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749224505076/laces-uploads/1749224505076-WhatsApp%20Image%202025-06-06%20at%209.39.48%20AM.jpeg.png"
+    },
+    {
+      "id": "684307987c9fb86e70a19672",
+      "nombre": "Santiago Amezquita",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749227124159/laces-uploads/1749227124159-050570B9-0BE2-4495-95FD-87AEFB755EBA.jpeg.png"
+    },
+    {
+      "id": "684309847c9fb86e70a19689",
+      "nombre": "ANTAR HERNANDEZ GARCIA",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749224173405/laces-uploads/1749224173405-AHG.JPG.png"
+    },
+    {
+      "id": "68430c6f1152e01f135ddc08",
+      "nombre": "Andrea Martínez López",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749224670999/laces-uploads/1749224670999-andy.JPG.png"
+    },
+    {
+      "id": "68430ce67c9fb86e70a196bb",
+      "nombre": "Alejandro Enriquez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749225095504/laces-uploads/1749225095504-WhatsApp%20Image%202025-06-06%20at%209.51.03%20AM.jpeg.png"
+    },
+    {
+      "id": "68430f511152e01f135ddc2f",
+      "nombre": "Sergio Alejandro Díaz Barba",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749329767088/laces-uploads/1749329767088-1000218611.JPG.png"
+    },
+    {
+      "id": "68430fa41152e01f135ddc3d",
+      "nombre": "Ricardo Pineda Ruiz",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230960864/laces-uploads/1749230960864-1000258568.JPG.png"
+    },
+    {
+      "id": "6843100b1152e01f135ddc40",
+      "nombre": "Alberto Janeiro RIO",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749225638728/laces-uploads/1749225638728-WhatsApp%20Image%202025-06-06%20at%2010.00.26.jpeg.png"
+    },
+    {
+      "id": "6843110a1152e01f135ddc6f",
+      "nombre": "Andrea Saucedo Martínez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749225844600/laces-uploads/1749225844600-58f9366f-f937-4c44-a381-0ddb4cc5dfed.JPG.png"
+    },
+    {
+      "id": "6843114d7c9fb86e70a19715",
+      "nombre": "Coach",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236095726/laces-uploads/1749236095726-1000488393.JPG.png"
+    },
+    {
+      "id": "684311507c9fb86e70a19718",
+      "nombre": "Juan Carlos Escareño Medina",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749225887142/laces-uploads/1749225887142-fb3a5c92-8639-47c6-ab56-37139949b1d7.jpeg.png"
+    },
+    {
+      "id": "684311947c9fb86e70a1971f",
+      "nombre": "Mon Flores",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749226217028/laces-uploads/1749226217028-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2010.08.13_cd1a2e4e.JPG.png"
+    },
+    {
+      "id": "684316227c9fb86e70a19821",
+      "nombre": "Rubén Cuevas",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228440165/laces-uploads/1749228440165-1000299049.JPG.png"
+    },
+    {
+      "id": "6843169d1152e01f135ddd9c",
+      "nombre": "Magda Nuñez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749227284911/laces-uploads/1749227284911-IMG_1670.jpeg.png"
+    },
+    {
+      "id": "684319617c9fb86e70a198f9",
+      "nombre": "KARENO",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228059690/laces-uploads/1749228059690-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2010.23.13_cbf23059.JPG.png"
+    },
+    {
+      "id": "684319881152e01f135ddeb4",
+      "nombre": "Rodrigo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228069093/laces-uploads/1749228069093-IMG_5486.jpeg.png"
+    },
+    {
+      "id": "684319a21152e01f135ddee2",
+      "nombre": "Ariel Said Rodríguez Flores",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228892222/laces-uploads/1749228892222-BD219467-A798-4C48-B0AE-B17AC06AD19F.jpeg.png"
+    },
+    {
+      "id": "68431a307c9fb86e70a19a04",
+      "nombre": "Abraham Rivera Guzman",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228968790/laces-uploads/1749228968790-IMG_20250606_105436.JPG.png"
+    },
+    {
+      "id": "68431a837c9fb86e70a19b49",
+      "nombre": "Matis",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228359739/laces-uploads/1749228359739-Pavel%20V%20Foto-13.jpeg.png"
+    },
+    {
+      "id": "68431b547c9fb86e70a19dab",
+      "nombre": "Adan González",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232806278/laces-uploads/1749232806278-1000143287.JPG.png"
+    },
+    {
+      "id": "68431ba41152e01f135de311",
+      "nombre": "José Andrés hernandez villalobos",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749295593192/laces-uploads/1749295593192-1000127796.JPG.png"
+    },
+    {
+      "id": "68431ba41152e01f135de314",
+      "nombre": "DAVID COLON",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228505949/laces-uploads/1749228505949-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2010.37.30_395e71d5.JPG.png"
+    },
+    {
+      "id": "68431c087c9fb86e70a19f41",
+      "nombre": "Daniela Ochoa",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228923800/laces-uploads/1749228923800-WhatsApp%20Image%202025-06-06%20at%2010.53.54%20AM.jpeg.png"
+    },
+    {
+      "id": "68431da81152e01f135de787",
+      "nombre": "Dante Sebastian García Nuñez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229034072/laces-uploads/1749229034072-Captura%20de%20pantalla%202025-03-06%20104509.PNG.png"
+    },
+    {
+      "id": "68431e227c9fb86e70a1a40a",
+      "nombre": "Brandon Meza Álvarez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229286278/laces-uploads/1749229286278-523a3e64-a9f7-4d33-9d91-fc04eb91fc48.jpeg.png"
+    },
+    {
+      "id": "68431e397c9fb86e70a1a42e",
+      "nombre": "Christian Abel Salazar",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229715492/laces-uploads/1749229715492-IMG_8597.jpeg.png"
+    },
+    {
+      "id": "68431eeb1152e01f135ded32",
+      "nombre": "Alicia idaly candelas reyes",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229740563/laces-uploads/1749229740563-IMG_9307.jpeg.png"
+    },
+    {
+      "id": "68431f887c9fb86e70a1a9f2",
+      "nombre": "Damian Jaramillo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229820339/laces-uploads/1749229820339-1000412434.JPG.png"
+    },
+    {
+      "id": "68431fad1152e01f135df132",
+      "nombre": "Javier Valencia Dávila",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230625018/laces-uploads/1749230625018-Javi.JPG.png"
+    },
+    {
+      "id": "6843204e1152e01f135df3ec",
+      "nombre": "Martin Alejandro Salinas Sandoval",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230165289/laces-uploads/1749230165289-Martin%20Salinas.jpeg.png"
+    },
+    {
+      "id": "684320721152e01f135df48f",
+      "nombre": "Gerardo Escobedo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230134375/laces-uploads/1749230134375-B0BF1D86-84E0-4556-B1E7-CC1183D6DC23.jpeg.png"
+    },
+    {
+      "id": "6843212c1152e01f135df742",
+      "nombre": "Ricardo Ernesto Ornelas Zapata",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230388385/laces-uploads/1749230388385-IMG_9159.jpeg.png"
+    },
+    {
+      "id": "684323321152e01f135dfd74",
+      "nombre": "Atzayra",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230869682/laces-uploads/1749230869682-1000212096.webp.png"
+    },
+    {
+      "id": "684324501152e01f135e00a5",
+      "nombre": "Ramón Esquivel",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749230861915/laces-uploads/1749230861915-1000258811.JPG.png"
+    },
+    {
+      "id": "684324cc1152e01f135e0296",
+      "nombre": "Valeria Elizabeth Botello Armendáriz",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231775130/laces-uploads/1749231775130-IMG_8594.jpeg.png"
+    },
+    {
+      "id": "684325e32bdff01c9aae91ec",
+      "nombre": "DANIEL AVILA",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231242039/laces-uploads/1749231242039-eb646f31-b028-4724-9239-3f3b5eb897da.jpeg.png"
+    },
+    {
+      "id": "6843262c46e1e130dd624d0a",
+      "nombre": "Sam Gallo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231339978/laces-uploads/1749231339978-FACAFA0D-8D91-4DF8-9271-73184EC7A7AB.jpeg.png"
+    },
+    {
+      "id": "684326d32bdff01c9aae960a",
+      "nombre": "Francisco Barba",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231372629/laces-uploads/1749231372629-Pancho.JPG.png"
+    },
+    {
+      "id": "684326d746e1e130dd624f5b",
+      "nombre": "Jaime Amezquita",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231496555/laces-uploads/1749231496555-f8827e63-52ad-4086-b4cc-bda5f641edd3.jpeg.png"
+    },
+    {
+      "id": "6843279b2bdff01c9aae9920",
+      "nombre": "Leonardo Antonio Rico Millan",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232149041/laces-uploads/1749232149041-IMG_3154.jpeg.png"
+    },
+    {
+      "id": "6843286046e1e130dd625542",
+      "nombre": "Cesar Adame Franco",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231817423/laces-uploads/1749231817423-cc129397-16d0-475f-bca5-12144aa5eec1.jpeg.png"
+    },
+    {
+      "id": "684328ef46e1e130dd62586a",
+      "nombre": "Efrain Hdz 'Pada'",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236743332/laces-uploads/1749236743332-IMG_20250606_130457.JPG.png"
+    },
+    {
+      "id": "6843292046e1e130dd625926",
+      "nombre": "Marco",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232359236/laces-uploads/1749232359236-1000034189.PNG.png"
+    },
+    {
+      "id": "6843298046e1e130dd625d0e",
+      "nombre": "Alicia Sandoval",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232220401/laces-uploads/1749232220401-IMG-20240821-WA0008.JPG.png"
+    },
+    {
+      "id": "6843298c2bdff01c9aaea4fc",
+      "nombre": "Karol Alonso Pérez Maldonado",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232118554/laces-uploads/1749232118554-IMG_5403.jpeg.png"
+    },
+    {
+      "id": "68432a202bdff01c9aaea7ce",
+      "nombre": "Luis Alarcón",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232275956/laces-uploads/1749232275956-08a8ebb9-c422-4588-8567-18e82fb52164.jpeg.png"
+    },
+    {
+      "id": "68432a8b2bdff01c9aaeaa74",
+      "nombre": "Christian Javier Valdez Leal",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233598345/laces-uploads/1749233598345-1000189933.JPG.png"
+    },
+    {
+      "id": "68432b392bdff01c9aaeb2bd",
+      "nombre": "José Marcos Marín Proa",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232839977/laces-uploads/1749232839977-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2012.00.15_fc533c15.JPG.png"
+    },
+    {
+      "id": "68432bad2bdff01c9aaeb906",
+      "nombre": "Anabel Torres Lara",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236803894/laces-uploads/1749236803894-IMG_20230603_221152.JPG.png"
+    },
+    {
+      "id": "68432be62bdff01c9aaeb90b",
+      "nombre": "Jeraldine Sánchez Chavarría",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232921880/laces-uploads/1749232921880-IMG_1385.jpeg.png"
+    },
+    {
+      "id": "68432cf22bdff01c9aaec27d",
+      "nombre": "Fidel Barreto",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233024177/laces-uploads/1749233024177-IMG_0734.jpeg.png"
+    },
+    {
+      "id": "68432d0a46e1e130dd627a69",
+      "nombre": "Esmeralda Correa Calvillo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233603977/laces-uploads/1749233603977-511DF892-F35E-40C8-AE14-13F52B68D2B0.jpeg.png"
+    },
+    {
+      "id": "68432e3f2bdff01c9aaeca48",
+      "nombre": "Aztecas flag ags",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233446344/laces-uploads/1749233446344-IMG_0966.jpeg.png"
+    },
+    {
+      "id": "68432e6546e1e130dd6282bd",
+      "nombre": "Grecia gallo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233760772/laces-uploads/1749233760772-IMG_4620.jpeg.png"
+    },
+    {
+      "id": "68432f7446e1e130dd6287d5",
+      "nombre": "Damaris Pacheco",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233846907/laces-uploads/1749233846907-1000061315.webp.png"
+    },
+    {
+      "id": "68432f8946e1e130dd6288c7",
+      "nombre": "Eduardo Sanchez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233913160/laces-uploads/1749233913160-Screenshot_20250606_121739_Gallery.JPG.png"
+    },
+    {
+      "id": "6843303046e1e130dd628f38",
+      "nombre": "Humberto Chávez Arratia",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233837151/laces-uploads/1749233837151-IMG_5051.jpeg.png"
+    },
+    {
+      "id": "6843303f2bdff01c9aaed790",
+      "nombre": "Leonardo Fabian Hernandez Barrios",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233864093/laces-uploads/1749233864093-1000406341.JPG.png"
+    },
+    {
+      "id": "6843304f46e1e130dd628fde",
+      "nombre": "Alejandro Romero Serrano",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749233965019/laces-uploads/1749233965019-IMG_2478.jpeg.png"
+    },
+    {
+      "id": "684330722bdff01c9aaeda6e",
+      "nombre": "Trysh",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235759205/laces-uploads/1749235759205-11D63593-F744-4B0D-A702-B697E1466EAE.jpeg.png"
+    },
+    {
+      "id": "684331af2bdff01c9aaee299",
+      "nombre": "Naomi Jaramillo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749234367890/laces-uploads/1749234367890-IMG_4443.jpeg.png"
+    },
+    {
+      "id": "684331eb46e1e130dd629bfd",
+      "nombre": "Sofía Marmolejo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749234283136/laces-uploads/1749234283136-B8AAE07B-ED97-4CF1-8572-383F8D814A53.jpeg.png"
+    },
+    {
+      "id": "6843329d46e1e130dd629f8d",
+      "nombre": "Luis Fernando Morán Esparza",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749234545333/laces-uploads/1749234545333-8759E2E0-9FB8-4A40-AF13-0A0899C5E569.jpeg.png"
+    },
+    {
+      "id": "684332dc46e1e130dd62a105",
+      "nombre": "Camila",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749234609185/laces-uploads/1749234609185-IMG_1600.jpeg.png"
+    },
+    {
+      "id": "684334162bdff01c9aaeec2a",
+      "nombre": "Luis Diego Martínez Montalvo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235179676/laces-uploads/1749235179676-foto%20diego.JPG.png"
+    },
+    {
+      "id": "6843347146e1e130dd62a911",
+      "nombre": "Hiram Castañeda López",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235267350/laces-uploads/1749235267350-Tuzos%20UAZ.JPG.png"
+    },
+    {
+      "id": "6843351a46e1e130dd62a9d0",
+      "nombre": "Camila Jimenez Santiago",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235099166/laces-uploads/1749235099166-IMG_9426.jpeg.png"
+    },
+    {
+      "id": "684336cf46e1e130dd62b446",
+      "nombre": "Tita",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235902583/laces-uploads/1749235902583-1000061864.JPG.png"
+    },
+    {
+      "id": "684336d046e1e130dd62b449",
+      "nombre": "Miguel Ramos",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749249713179/laces-uploads/1749249713179-17682c8e-0baa-44bd-9ef9-945e79768f44.jpeg.png"
+    },
+    {
+      "id": "6843373546e1e130dd62b701",
+      "nombre": "Roberto Santiago Ibarra Medina",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236146199/laces-uploads/1749236146199-98f848d2-e1ca-4ffc-a601-99d9154830b2.jpeg.png"
+    },
+    {
+      "id": "6843373f46e1e130dd62b709",
+      "nombre": "Kevin Triana",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235618170/laces-uploads/1749235618170-IMG_2360.jpeg.png"
+    },
+    {
+      "id": "684337462bdff01c9aaefa9f",
+      "nombre": "Estefanía Núñez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235734902/laces-uploads/1749235734902-1000344094.JPG.png"
+    },
+    {
+      "id": "684337af2bdff01c9aaeff61",
+      "nombre": "Zaid Aguilera",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749240250903/laces-uploads/1749240250903-IMG_1097.jpeg.png"
+    },
+    {
+      "id": "6843385d46e1e130dd62c2cd",
+      "nombre": "Roberto Carlos Naranjo prado",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235953431/laces-uploads/1749235953431-4cf8bec7-e624-43ba-a5ba-c1a0644760a4.jpeg.png"
+    },
+    {
+      "id": "684338b92bdff01c9aaf0a13",
+      "nombre": "Andrea Fernanda Ortiz Pérez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236425764/laces-uploads/1749236425764-WhatsApp%20Image%202025-06-06%20at%2012.59.31.jpeg.png"
+    },
+    {
+      "id": "684338bd46e1e130dd62c8c6",
+      "nombre": "Janeth Karina Gómez Carrillo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236039814/laces-uploads/1749236039814-1000060753.JPG.png"
+    },
+    {
+      "id": "6843399f46e1e130dd62cea3",
+      "nombre": "Ceiri Parra",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749332748/laces-uploads/1749332747749-IMG_5959.jpeg.png"
+    },
+    {
+      "id": "68433a3746e1e130dd62d50b",
+      "nombre": "Brandon González",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749236450946/laces-uploads/1749236450946-9b07725f-b719-4114-bb83-5e9aeb46546c.jpeg.png"
+    },
+    {
+      "id": "68433a5946e1e130dd62d585",
+      "nombre": "Luis Felipe Gándara Vázquez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237110612/laces-uploads/1749237110612-IMG_0191.jpeg.png"
+    },
+    {
+      "id": "68433b8146e1e130dd62e658",
+      "nombre": "Sergio Alfonso Berumen Gómez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237555723/laces-uploads/1749237555723-1000384325.JPG.png"
+    },
+    {
+      "id": "68433be946e1e130dd62eaa7",
+      "nombre": "Paola Muñoz",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237288845/laces-uploads/1749237288845-IMG_6636.jpeg.png"
+    },
+    {
+      "id": "68433c0f46e1e130dd62ec2a",
+      "nombre": "Luis Oscar",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237072217/laces-uploads/1749237072217-IMG_6018.PNG.png"
+    },
+    {
+      "id": "68433d3f46e1e130dd62fbe4",
+      "nombre": "Edmundo Diaz de Leon Perez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237365826/laces-uploads/1749237365826-WhatsApp%20Image%202025-06-06%20at%2013.15.31.jpeg.png"
+    },
+    {
+      "id": "68433db746e1e130dd62fd85",
+      "nombre": "Jack Ávila",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237755399/laces-uploads/1749237755399-WhatsApp%20Image%202025-06-06%20at%2013.21.56.jpeg.png"
+    },
+    {
+      "id": "68433de046e1e130dd62fe0b",
+      "nombre": "Enrique Elihu Salazar Bermudez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237530537/laces-uploads/1749237530537-HELLCATS-PROFILE.JPG.png"
+    },
+    {
+      "id": "684340752bdff01c9aaf6653",
+      "nombre": "Alessandra Galicia",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238180088/laces-uploads/1749238180088-IMG_1419.jpeg.png"
+    },
+    {
+      "id": "684340f546e1e130dd632c37",
+      "nombre": "Ricardo González",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238057188/laces-uploads/1749238057188-4281c768-e610-40a7-a6f1-fcaee34b7d23.jpeg.png"
+    },
+    {
+      "id": "684342842bdff01c9aaf80e4",
+      "nombre": "Pavel",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238546927/laces-uploads/1749238546927-IMG_7140.jpeg.png"
+    },
+    {
+      "id": "6843428346e1e130dd63397e",
+      "nombre": "Ivan Hernandez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238441727/laces-uploads/1749238441727-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2013.29.25_28b01a88.JPG.png"
+    },
+    {
+      "id": "684342aa2bdff01c9aaf8179",
+      "nombre": "Andoni Omar Serna Perez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238812322/laces-uploads/1749238812322-IMG-20241007-WA0009.JPG.png"
+    },
+    {
+      "id": "684342fa46e1e130dd633bdf",
+      "nombre": "Francisco Javier Pacheco Parra",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238922282/laces-uploads/1749238922282-WhatsApp%20Image%202025-05-13%20at%201.39.33%20PM.jpeg.png"
+    },
+    {
+      "id": "6843433b2bdff01c9aaf8589",
+      "nombre": "Sergio",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749238649007/laces-uploads/1749238649007-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2012.02.32_c2c7e79a.JPG.png"
+    },
+    {
+      "id": "6843448a46e1e130dd634fa4",
+      "nombre": "Carlos Montes",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749254582723/laces-uploads/1749254582723-f405a671-8a03-4e46-8e10-91c2e480efac.jpeg.png"
+    },
+    {
+      "id": "684344b346e1e130dd6350da",
+      "nombre": "Bruno Macias",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749241677163/laces-uploads/1749241677163-IMG-20190425-WA0014_Original.jpeg.png"
+    },
+    {
+      "id": "684346082bdff01c9aaf9ea0",
+      "nombre": "Armando Marquez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749239770246/laces-uploads/1749239770246-1000461328.JPG.png"
+    },
+    {
+      "id": "684346402bdff01c9aaf9f3f",
+      "nombre": "Jorge Enrique Serena Ventura",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749241173632/laces-uploads/1749241173632-WhatsApp%20Image%202025-06-06%20at%202.18.38%20PM.jpeg.png"
+    },
+    {
+      "id": "684346d446e1e130dd636603",
+      "nombre": "Ricardo Bustillos",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749240086889/laces-uploads/1749240086889-1000139373.JPG.png"
+    },
+    {
+      "id": "684347442bdff01c9aafac7d",
+      "nombre": "Aldahir Soto",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749239953588/laces-uploads/1749239953588-b6072870-7eff-4638-9cdd-05b6394748ed.jpeg.png"
+    },
+    {
+      "id": "68434946764e121ef6630957",
+      "nombre": "René Alejandro Román Landeros",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749240260050/laces-uploads/1749240260050-1000066007.JPG.png"
+    },
+    {
+      "id": "68434982764e121ef6630d53",
+      "nombre": "Luis Ángel Valdez Gonzalez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749240424214/laces-uploads/1749240424214-1000125032.JPG.png"
+    },
+    {
+      "id": "68434986948e16cb4573f8f4",
+      "nombre": "Luis Gabriel Diaz Lopez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/c_limit,f_auto,fl_progressive,h_800,q_auto:good,w_800/1749241609768-IMG_9406"
+    },
+    {
+      "id": "684349a0948e16cb4573faec",
+      "nombre": "Victoria Montserrat Vazquez Bermejo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749240462381/laces-uploads/1749240462381-IMG_20250308_152343_820.webp.png"
+    },
+    {
+      "id": "68434e68764e121ef66341dc",
+      "nombre": "Salsi",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749241627237/laces-uploads/1749241627237-IMG_2386.jpeg.png"
+    },
+    {
+      "id": "6843543b764e121ef6635d8c",
+      "nombre": "Selma Regina Peña Llamas",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749243105208/laces-uploads/1749243105208-CBCA0161-ED77-4FA5-B769-E6FE4332892A_1_105_c.jpeg.png"
+    },
+    {
+      "id": "684356b9764e121ef6636e81",
+      "nombre": "Zuri",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247180772/laces-uploads/1749247180772-1F98774A-3521-4626-B24F-431E4F11DEF3.jpeg.png"
+    },
+    {
+      "id": "68435702764e121ef6637159",
+      "nombre": "Montse 🦁",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749244169429/laces-uploads/1749244169429-1.JPG.png"
+    },
+    {
+      "id": "684358d3948e16cb457471d7",
+      "nombre": "Melissaa",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247341241/laces-uploads/1749247341241-Screenshot_2025-06-06-15-56-56-396_com.google.android.apps.photos.JPG.png"
+    },
+    {
+      "id": "68435eb9948e16cb45749298",
+      "nombre": "Octavio Argáez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749245732709/laces-uploads/1749245732709-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2015.34.33_11efe2c5.JPG.png"
+    },
+    {
+      "id": "68435ec6948e16cb45749409",
+      "nombre": "Eduardo Venegas",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749245691189/laces-uploads/1749245691189-Imagen%20de%20WhatsApp%202025-06-06%20a%20las%2014.54.42_3ae898ed.JPG.png"
+    },
+    {
+      "id": "68435eea764e121ef663973b",
+      "nombre": "Emiliano Tovar",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749245997426/laces-uploads/1749245997426-IMG_6986.jpeg.png"
+    },
+    {
+      "id": "6843603b948e16cb4574a68e",
+      "nombre": "Luis  Haro",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749246163168/laces-uploads/1749246163168-IMG_2045.jpeg.png"
+    },
+    {
+      "id": "684360c4948e16cb4574ae0d",
+      "nombre": "Sara Ortiz",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749246759739/laces-uploads/1749246759739-IMG_2832.jpeg.png"
+    },
+    {
+      "id": "684361a2764e121ef663c296",
+      "nombre": "Evelyn valdés",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749246589037/laces-uploads/1749246589037-1000340188.JPG.png"
+    },
+    {
+      "id": "68436207948e16cb4574bfab",
+      "nombre": "José Alejandro",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749246579708/laces-uploads/1749246579708-1000344275.jpeg.png"
+    },
+    {
+      "id": "68436251948e16cb4574c51e",
+      "nombre": "Bruno Mijail Díaz Barba",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749246653257/laces-uploads/1749246653257-FB1538ED-7E90-4586-8977-BCC177E0B8CC.jpeg.png"
+    },
+    {
+      "id": "684362a3948e16cb4574c6b6",
+      "nombre": "Lluvia Jazmín Cervantes Vega",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247294107/laces-uploads/1749247294107-7ac979a4-ff8e-497d-b1e7-aeefb814e7e8.jpeg.png"
+    },
+    {
+      "id": "6843635c948e16cb4574d43b",
+      "nombre": "Bladimir Hernández",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247144156/laces-uploads/1749247144156-FB_IMG_1685421308912~2.JPG.png"
+    },
+    {
+      "id": "684363f7948e16cb4574d90e",
+      "nombre": "Daniela",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247177878/laces-uploads/1749247177878-20250406_152208.JPG.png"
+    },
+    {
+      "id": "6843649b764e121ef663eee2",
+      "nombre": "Gabriela Pérez Juárez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247367870/laces-uploads/1749247367870-1000000418.JPG.png"
+    },
+    {
+      "id": "684364a5948e16cb4574e53a",
+      "nombre": "Aldair Estrada Molina",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247367738/laces-uploads/1749247367738-1000002356.JPG.png"
+    },
+    {
+      "id": "68436503948e16cb4574ebe3",
+      "nombre": "Daniel Hernández Berumen",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749248304628/laces-uploads/1749248304628-IMG_9852.jpeg.png"
+    },
+    {
+      "id": "68436537764e121ef663fd0b",
+      "nombre": "Arian Villarruel",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749247562227/laces-uploads/1749247562227-IMG_4508.jpeg.png"
+    },
+    {
+      "id": "68436e2e42fd0816aa25b1f4",
+      "nombre": "Lluvia Silva Betancourt",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749249981141/laces-uploads/1749249981141-Snapchat-1607497630.JPG.png"
+    },
+    {
+      "id": "684371dda68210fe1a65660a",
+      "nombre": "Cameron Vázquez Jaramillo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749250817926/laces-uploads/1749250817926-IMG_7079.PNG.png"
+    },
+    {
+      "id": "68437396a68210fe1a657496",
+      "nombre": "XIMENA MIROSLAVA LÓPEZ ESMOS",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749251403888/laces-uploads/1749251403888-IMG_1198.jpeg.png"
+    },
+    {
+      "id": "68437c48911a45f4f1f88562",
+      "nombre": "Elizabeth Bermejo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749253433056/laces-uploads/1749253433056-1000063288.JPG.png"
+    },
+    {
+      "id": "68437da8911a45f4f1f8a5da",
+      "nombre": "Alonso Martínez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749273639893/laces-uploads/1749273639893-IMG_9713.jpeg.png"
+    },
+    {
+      "id": "68438df0d8999883557a2124",
+      "nombre": "Marisabel Mendoza Davis",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749257955804/laces-uploads/1749257955804-500224.JPG.png"
+    },
+    {
+      "id": "68438ee1911a45f4f1f8d250",
+      "nombre": "SERGIO AMADOR",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749259727107/laces-uploads/1749259727107-SAH.JPG.png"
+    },
+    {
+      "id": "68439bdbd8999883557a51de",
+      "nombre": "Mauricio Ortega Cortes",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749261500970/laces-uploads/1749261500970-photo-output.PNG.png"
+    },
+    {
+      "id": "6843ae5a911a45f4f1f8ff1c",
+      "nombre": "Mafer Gallo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749266209489/laces-uploads/1749266209489-IMG_1508.PNG.png"
+    },
+    {
+      "id": "6843c986911a45f4f1f92329",
+      "nombre": "Marco Antonio Pérez Lozano",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749273819216/laces-uploads/1749273819216-Screenshot_20250606-232205_WhatsApp.JPG.png"
+    },
+    {
+      "id": "6843cd75911a45f4f1f934a7",
+      "nombre": "Daniela Yllen Gómez Pedroza",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749274268182/laces-uploads/1749274268182-1000213805.webp.png"
+    },
+    {
+      "id": "68444f58d8999883557ad807",
+      "nombre": "Lily Marlen correa",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749307412635/laces-uploads/1749307412635-2A8EEBED-B9AE-4B1F-8AFB-68622BBAECE3.jpeg.png"
+    },
+    {
+      "id": "68449344d8999883557afbab",
+      "nombre": "Miguel Ángel Aguilar Nuñez",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749325128430/laces-uploads/1749325128430-IMG_8554.jpeg.png"
+    },
+    {
+      "id": "68449d57911a45f4f1f9dec9",
+      "nombre": "Dylan Arriaga García",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749327362701/laces-uploads/1749327362701-IMG_8461.jpeg.png"
+    },
+    {
+      "id": "6844a0e5911a45f4f1f9f6ce",
+      "nombre": "Luis Eduardo Torres Becerra",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749328443541/laces-uploads/1749328443541-1000075619.JPG.png"
+    },
+    {
+      "id": "6844a423911a45f4f1fa0aad",
+      "nombre": "Leonardo Arriaga",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749329477554/laces-uploads/1749329477554-IMG_20241226_155733.JPG.png"
+    },
+    {
+      "id": "6844a485911a45f4f1fa0ed4",
+      "nombre": "Christian Leonardo Estrada Fierros",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749329850212/laces-uploads/1749329850212-IMG_3334.jpeg.png"
+    },
+    {
+      "id": "6844a776911a45f4f1fa32ed",
+      "nombre": "Christian Esquivel",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749330099405/laces-uploads/1749330099405-1000000209.JPG.png"
+    },
+    {
+      "id": "6844a7cfd8999883557b8de9",
+      "nombre": "Marco Antonio",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749334817/laces-uploads/1749334816660-1000120041.jpg.png"
+    },
+    {
+      "id": "6844a85dd8999883557b9377",
+      "nombre": "Karol Salas",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749330213998/laces-uploads/1749330213998-IMG_7287.jpeg.png"
+    },
+    {
+      "id": "6844ac00911a45f4f1fa86ca",
+      "nombre": "Ivan Eduardo Soto Castillo",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749331698/laces-uploads/1749331697437-IMG_4116.jpeg.png"
+    },
+    {
+      "id": "6844ad29d8999883557be7b5",
+      "nombre": "Álvaro Urzua",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749331364309/laces-uploads/1749331364309-ca308293-9577-4d36-a196-5b47c3684fe4.jpeg.png"
+    },
+    {
+      "id": "6844af6c911a45f4f1fab1bc",
+      "nombre": "Itzamara Arcos",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749332145/laces-uploads/1749332144528-IMG_1739.jpeg.png"
+    },
+    {
+      "id": "6844af96d8999883557c0417",
+      "nombre": "Miguel A Pascual",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749332427/laces-uploads/1749332426907-IMG_20250607_153613.jpg.png"
+    },
+    {
+      "id": "6844b0a0d8999883557c10b3",
+      "nombre": "MARIO TORRES CARREÑO",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749332377/laces-uploads/1749332377200-1000476786.jpg.png"
+    },
+    {
+      "id": "6844b30a911a45f4f1fae0b6",
+      "nombre": "Alexis García Cruz",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749333958/laces-uploads/1749333957117-IMG_6926.jpeg.png"
+    },
+    {
+      "id": "6844b3d0d8999883557c4ebb",
+      "nombre": "Rafael Gerardo Ayala Valderrama",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749333394/laces-uploads/1749333393966-WhatsApp%20Image%202025-06-07%20at%203.56.06%20PM.jpeg.png"
+    },
+    {
+      "id": "6844b463911a45f4f1faf8cb",
+      "nombre": "Daniel de la Serna",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749333370/laces-uploads/1749333369431-IMG_0318.jpeg.png"
+    },
+    {
+      "id": "6844b900911a45f4f1fb1dce",
+      "nombre": "Miriam Alejandra Gómez Luján",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749336116/laces-uploads/1749336115183-1000088205.jpg.png"
+    },
+    {
+      "id": "6844b924911a45f4f1fb1dd2",
+      "nombre": "Cesar Escobar",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749334513/laces-uploads/1749334512846-IMG_0707.JPEG.png"
+    },
+    {
+      "id": "6844be1fd8999883557cbfb3",
+      "nombre": "Fausto Omar Alba Avila",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749335981/laces-uploads/1749335980729-1000126943.webp.png"
+    }
+  ],
+  "equipos": [
+    {
+      "id": "683df0aac44be4786c2de655",
+      "nombre": "Kenais",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232041082/laces-uploads/1749232041082-1.PNG.png"
+    },
+    {
+      "id": "684311b71152e01f135ddc92",
+      "nombre": "Buffalos Ags. Femenil",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749225910668/laces-uploads/1749225910668-logo_buffalos_fem_4.PNG.png"
+    },
+    {
+      "id": "684314bb7c9fb86e70a197c4",
+      "nombre": "KINGS",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237657059/laces-uploads/1749237657059-logo%20king.PNG.png"
+    },
+    {
+      "id": "684316491152e01f135ddd7b",
+      "nombre": "Kenais",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749227080540/laces-uploads/1749227080540-photo_5051079633033866884_x-removebg-preview.PNG.png"
+    },
+    {
+      "id": "684317b91152e01f135dddcc",
+      "nombre": "Leones",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749227446659/laces-uploads/1749227446659-IMG_3055.jpeg.png"
+    },
+    {
+      "id": "684317dd1152e01f135dddd6",
+      "nombre": "Leones",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749227483189/laces-uploads/1749227483189-IMG_3055.jpeg.png"
+    },
+    {
+      "id": "684317f47c9fb86e70a1989d",
+      "nombre": "Leones",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749227505587/laces-uploads/1749227505587-IMG_3055.jpeg.png"
+    },
+    {
+      "id": "68431a397c9fb86e70a19a37",
+      "nombre": "Intochables",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228083892/laces-uploads/1749228083892-329ed4e0-be07-4331-a33f-65706145d160.jpeg.png"
+    },
+    {
+      "id": "68431a7d7c9fb86e70a19b17",
+      "nombre": "RABBITS AGS.",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228156038/laces-uploads/1749228156038-Imagen%20de%20WhatsApp%202025-05-28%20a%20las%2010.11.27_8c5b9bc2.JPG.png"
+    },
+    {
+      "id": "68431b097c9fb86e70a19d37",
+      "nombre": "MAMBAS MIXTO ELITE",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228295817/laces-uploads/1749228295817-1000547317.JPG.png"
+    },
+    {
+      "id": "68431b4a1152e01f135de289",
+      "nombre": "MAMBAS FEMENIL ELITE",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228360646/laces-uploads/1749228360646-1000547309.JPG.png"
+    },
+    {
+      "id": "68431c1c7c9fb86e70a19f61",
+      "nombre": "KAWA",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228783058/laces-uploads/1749228783058-KAWA%20BRAND%404x%20(1).PNG.png"
+    },
+    {
+      "id": "68431ca81152e01f135de5b5",
+      "nombre": "Ronins",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228710971/laces-uploads/1749228710971-ronins.jpeg.png"
+    },
+    {
+      "id": "68431cd51152e01f135de5be",
+      "nombre": "Ronins",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749228756035/laces-uploads/1749228756035-imgbin_japan-samurai-png.PNG.png"
+    },
+    {
+      "id": "68431dfa1152e01f135de8f4",
+      "nombre": "Sharkinos",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229048690/laces-uploads/1749229048690-24f82616-9dad-40c7-a287-781530056bd9.jpeg.png"
+    },
+    {
+      "id": "68431e401152e01f135de9d5",
+      "nombre": "Ronins",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229116931/laces-uploads/1749229116931-roninss.jpeg.png"
+    },
+    {
+      "id": "68431ea81152e01f135dec07",
+      "nombre": "BLACK MAMBA VARONIL",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229222735/laces-uploads/1749229222735-1000547321.JPG.png"
+    },
+    {
+      "id": "68431ec17c9fb86e70a1a5fa",
+      "nombre": "BLACK MAMBA MIXTO",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229247264/laces-uploads/1749229247264-1000547315.JPG.png"
+    },
+    {
+      "id": "68431ee81152e01f135ded09",
+      "nombre": "BLACK MAMBA FEMENIL",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749229285906/laces-uploads/1749229285906-1000547311.JPG.png"
+    },
+    {
+      "id": "684323f37c9fb86e70a1b6da",
+      "nombre": "Tuzas UAZ",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231421241/laces-uploads/1749231421241-WhatsApp%20Image%202025-06-06%20at%2011.34.36%20AM.jpeg.png"
+    },
+    {
+      "id": "684324247c9fb86e70a1b710",
+      "nombre": "Tuzos UAZ",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231344853/laces-uploads/1749231344853-WhatsApp%20Image%202025-06-06%20at%2011.34.35%20AM.jpeg.png"
+    },
+    {
+      "id": "6843266e2bdff01c9aae9466",
+      "nombre": "RICK’S",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749231212486/laces-uploads/1749231212486-IMG_0491.jpeg.png"
+    },
+    {
+      "id": "6843291e2bdff01c9aaea226",
+      "nombre": "Kenais",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749232058509/laces-uploads/1749232058509-1.PNG.png"
+    },
+    {
+      "id": "6843353f2bdff01c9aaef082",
+      "nombre": "Ingesaurios",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235005358/laces-uploads/1749235005358-IMG_7457.jpeg.png"
+    },
+    {
+      "id": "684335f846e1e130dd62af2b",
+      "nombre": "Hellcats",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235189542/laces-uploads/1749235189542-IMG-20250418-WA0021.JPG.png"
+    },
+    {
+      "id": "6843365346e1e130dd62b117",
+      "nombre": "Hellcats",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235280716/laces-uploads/1749235280716-IMG-20250418-WA0021.JPG.png"
+    },
+    {
+      "id": "6843368546e1e130dd62b12a",
+      "nombre": "Hellcats",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235329882/laces-uploads/1749235329882-IMG-20250418-WA0021.JPG.png"
+    },
+    {
+      "id": "684338712bdff01c9aaf07db",
+      "nombre": "Aztecas flag Ags",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235823151/laces-uploads/1749235823151-IMG_9339.jpeg.png"
+    },
+    {
+      "id": "6843389c2bdff01c9aaf08c7",
+      "nombre": "Aztecas Flag Ags",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749235865092/laces-uploads/1749235865092-IMG_9339.jpeg.png"
+    },
+    {
+      "id": "68433ea92bdff01c9aaf4c12",
+      "nombre": "NOCTA TEAM",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749237416455/laces-uploads/1749237416455-LOGO.PNG.png"
+    },
+    {
+      "id": "6843545d948e16cb45745b2e",
+      "nombre": "DUCKS DE AGS",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749242971547/laces-uploads/1749242971547-LOGO%20DUCKS.jpeg.png"
+    },
+    {
+      "id": "68435685948e16cb45746266",
+      "nombre": "CUERNOS LARGOS DE AGS",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749243523800/laces-uploads/1749243523800-CLA%20.jpeg.png"
+    },
+    {
+      "id": "68435df1948e16cb45748b62",
+      "nombre": "Storms",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749245421422/laces-uploads/1749245421422-1000196843.JPG.png"
+    },
+    {
+      "id": "6843630b948e16cb4574d0d9",
+      "nombre": "DUCKS 30+",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749246729414/laces-uploads/1749246729414-LOGO%20DUCKS.jpeg.png"
+    },
+    {
+      "id": "68437336a68210fe1a656dce",
+      "nombre": "Lobos",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749250867188/laces-uploads/1749250867188-logo.JPG.png"
+    },
+    {
+      "id": "684389fe911a45f4f1f8c95c",
+      "nombre": "Lobos 35+",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749256699425/laces-uploads/1749256699425-IMG_6111.jpeg.png"
+    },
+    {
+      "id": "6844970d911a45f4f1f9bfec",
+      "nombre": "Bengals",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749325576583/laces-uploads/1749325576583-IMG_8729.jpeg.png"
+    },
+    {
+      "id": "68449725911a45f4f1f9bff2",
+      "nombre": "Bengals",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749325601120/laces-uploads/1749325601120-IMG_8729.jpeg.png"
+    },
+    {
+      "id": "68449748d8999883557b0277",
+      "nombre": "Bengals",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749325636109/laces-uploads/1749325636109-IMG_8729.jpeg.png"
+    },
+    {
+      "id": "6844a41bd8999883557b4bdc",
+      "nombre": "Aztecas35",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749328920468/laces-uploads/1749328920468-IMG_9339.jpeg.png"
+    },
+    {
+      "id": "6844a437d8999883557b4ce7",
+      "nombre": "Aztecas moms",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749328948670/laces-uploads/1749328948670-IMG_9339.jpeg.png"
+    },
+    {
+      "id": "6844adcb911a45f4f1faa0a7",
+      "nombre": "Thundercats",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749331402395/laces-uploads/1749331402395-IMG_5471.jpeg.png"
+    },
+    {
+      "id": "6844ae36911a45f4f1faa2f2",
+      "nombre": "BERSERKERS",
+      "url_original": "https://res.cloudinary.com/dwviy7ft4/image/upload/v1749331508595/laces-uploads/1749331508595-1000085159.PNG.png"
+    }
+  ]
+}

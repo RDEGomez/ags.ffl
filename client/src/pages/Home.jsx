@@ -65,12 +65,11 @@ export const Home = () => {
     return `${import.meta.env.VITE_BACKEND_URL || ''}/uploads/${imagen}`;
   };
 
-  // 🔥 FUNCIÓN CORREGIDA - Cargar equipos del usuario
+  // 🔥 FUNCIÓN CORREGIDA - Usar equipos que ya vienen en usuario
   const obtenerEquiposUsuario = useCallback(async () => {
     console.log('\n🔍 === INICIO CARGA EQUIPOS USUARIO ===');
     console.log('👤 Usuario presente:', !!usuario);
     console.log('🔑 Token válido:', tokenValido);
-    console.log('🗄️ Token en localStorage:', !!storedToken);
     
     if (!usuario || !tokenValido) {
       console.log('❌ No hay usuario válido o token inválido, saliendo...');
@@ -78,46 +77,47 @@ export const Home = () => {
       return;
     }
 
-    if (!usuario.equipos || usuario.equipos.length === 0) {
-      console.log('❌ Usuario sin equipos asignados');
-      console.log('📋 usuario.equipos:', usuario.equipos);
-      setEquiposUsuario([]);
-      return;
-    }
-
+    // 🔥 NUEVO: Obtener usuario completo con equipos populados
     setLoadingEquiposUsuario(true);
     
     try {
-      console.log('🆔 IDs de equipos del usuario:', usuario.equipos.map(e => e.equipo));
+      console.log('🔄 Obteniendo perfil completo del usuario...');
+      const { data: perfilCompleto } = await axiosInstance.get('/auth/perfil');
       
-      // 🔥 CORREGIDO: Hacer múltiples peticiones para obtener detalles de cada equipo
-      const equiposPromises = usuario.equipos.map(async (equipoUsuario) => {
-        try {
-          const { data: equipo } = await axiosInstance.get(`/equipos/${equipoUsuario.equipo}`);
-          console.log(`✅ Equipo obtenido: ${equipo.nombre}`);
-          
-          // 🔥 AGREGAR: Incluir el número del usuario en el equipo
-          return {
-            ...equipo,
-            numeroUsuario: equipoUsuario.numero
-          };
-        } catch (error) {
-          console.error(`❌ Error al obtener equipo ${equipoUsuario.equipo}:`, error);
-          return null;
-        }
+      console.log('📋 Perfil obtenido:', {
+        email: perfilCompleto.email,
+        equipos: perfilCompleto.equipos?.length || 0
       });
 
-      const equiposResueltos = await Promise.all(equiposPromises);
-      const equiposValidos = equiposResueltos.filter(equipo => equipo !== null);
+      if (!perfilCompleto.equipos || perfilCompleto.equipos.length === 0) {
+        console.log('❌ Usuario sin equipos asignados');
+        setEquiposUsuario([]);
+        return;
+      }
 
-      console.log('🏆 Equipos del usuario obtenidos:', equiposValidos.length);
-      console.log('📋 Equipos:', equiposValidos.map(e => ({ 
-        nombre: e.nombre, 
-        categoria: e.categoria, 
-        numero: e.numeroUsuario 
+      // 🔥 PROCESAMIENTO DIRECTO: Los equipos ya vienen populados desde el backend
+      const equiposConNumero = perfilCompleto.equipos.map(equipoUsuario => {
+        console.log('🔍 Procesando equipo:', {
+          equipoId: equipoUsuario.equipo?._id,
+          nombre: equipoUsuario.equipo?.nombre,
+          numero: equipoUsuario.numero
+        });
+
+        return {
+          ...equipoUsuario.equipo, // Ya viene populado desde el backend
+          numeroUsuario: equipoUsuario.numero // Agregar el número del usuario
+        };
+      }).filter(equipo => equipo._id); // Filtrar equipos inválidos
+
+      console.log('🏆 Equipos procesados:', equiposConNumero.length);
+      console.log('📋 Lista final:', equiposConNumero.map(e => ({
+        id: e._id,
+        nombre: e.nombre,
+        categoria: e.categoria,
+        numero: e.numeroUsuario
       })));
       
-      setEquiposUsuario(equiposValidos);
+      setEquiposUsuario(equiposConNumero);
       console.log('✅ Estado equiposUsuario actualizado');
       
     } catch (error) {
@@ -138,7 +138,7 @@ export const Home = () => {
       setLoadingEquiposUsuario(false);
       console.log('🔚 === FIN CARGA EQUIPOS USUARIO ===\n');
     }
-  }, [usuario, tokenValido, storedToken, refrescarUsuario]);
+  }, [usuario, tokenValido, refrescarUsuario]);
 
   // 🔥 FUNCIÓN MEJORADA - Cargar equipos disponibles
   const obtenerEquiposDisponibles = useCallback(async () => {
@@ -160,9 +160,9 @@ export const Home = () => {
       
       // 🔥 LÓGICA CORREGIDA DE FILTRADO
       const equiposNoInscritos = data.filter(eq => {
-        // Verificar si el usuario ya está inscrito usando los IDs de equipos del usuario
-        const usuarioYaInscrito = usuario.equipos?.some(equipoUsuario => {
-          const match = equipoUsuario.equipo === eq._id || equipoUsuario.equipo === eq.id;
+        // Verificar si el usuario ya está inscrito usando los equipos del estado
+        const usuarioYaInscrito = equiposUsuario.some(equipoUsuario => {
+          const match = equipoUsuario._id === eq._id;
           if (match) {
             console.log(`  ⚠️ Usuario YA INSCRITO en equipo ${eq.nombre} (ID: ${eq._id})`);
           }
@@ -213,7 +213,7 @@ export const Home = () => {
       setLoadingEquiposDisponibles(false);
       console.log('🔚 === FIN CARGA EQUIPOS DISPONIBLES ===\n');
     }
-  }, [usuario, tokenValido, refrescarUsuario]);
+  }, [usuario, tokenValido, equiposUsuario, refrescarUsuario]); // 🔥 DEPENDENCIA AGREGADA: equiposUsuario
 
   // 🔥 EFECTOS MEJORADOS
   useEffect(() => {
@@ -241,7 +241,7 @@ export const Home = () => {
     
     if (usuario?.equipos) {
       console.log('📝 Equipos en usuario.equipos:', usuario.equipos.map(e => ({
-        equipoId: e.equipo,
+        equipoId: e.equipo?._id || e.equipo,
         numero: e.numero
       })));
     }
@@ -255,22 +255,8 @@ export const Home = () => {
       })));
     }
     
-    // 🔥 NUEVA VALIDACIÓN: Detectar inconsistencias
-    if (usuario && usuario.equipos && usuario.equipos.length > 0 && equiposUsuario.length === 0 && !loadingEquiposUsuario) {
-      console.warn('⚠️ INCONSISTENCIA DETECTADA:');
-      console.warn('   - Usuario tiene equipos:', usuario.equipos.length);
-      console.warn('   - Estado equiposUsuario:', equiposUsuario.length);
-      console.warn('   - Loading:', loadingEquiposUsuario);
-      console.warn('   → Reintentando carga de equipos...');
-      
-      // Reintentar la carga con un pequeño delay
-      setTimeout(() => {
-        obtenerEquiposUsuario();
-      }, 500);
-    }
-    
     console.log('========================\n');
-  }, [usuario, tokenValido, storedToken, equiposUsuario, equipos, loadingEquiposUsuario, loadingEquiposDisponibles, obtenerEquiposUsuario]);
+  }, [usuario, tokenValido, storedToken, equiposUsuario, equipos, loadingEquiposUsuario, loadingEquiposDisponibles]);
 
   const abrirModal = () => {
     setAbierto(true);

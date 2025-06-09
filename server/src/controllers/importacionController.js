@@ -54,28 +54,87 @@ const procesarCSV = (file) => {
   });
 };
 
-// 🔍 Helper para buscar equipo por nombre (fuzzy search)
-const buscarEquipoPorNombre = async (nombreEquipo) => {
+// 🔍 Helper mejorado para buscar equipo por nombre y categoría (fuzzy search)
+const buscarEquipoPorNombreYCategoria = async (nombreEquipo, categoria = null) => {
   if (!nombreEquipo) throw new Error('Nombre de equipo requerido');
   
   const nombreLimpio = nombreEquipo.trim();
   
-  // Búsqueda exacta primero
-  let equipo = await Equipo.findOne({ 
+  console.log(`🔍 Buscando equipo: "${nombreLimpio}" ${categoria ? `en categoría: "${categoria}"` : '(sin categoría especificada)'}`);
+  
+  // 1. Si tenemos categoría, buscar por nombre + categoría (más específico)
+  if (categoria) {
+    console.log(`🎯 Búsqueda específica: nombre + categoría`);
+    
+    // Búsqueda exacta con nombre y categoría
+    let equipo = await Equipo.findOne({ 
+      nombre: { $regex: `^${nombreLimpio}$`, $options: 'i' },
+      categoria: categoria.toLowerCase()
+    });
+    
+    if (equipo) {
+      console.log(`✅ Equipo encontrado (exacto con categoría): ${equipo.nombre} - ${equipo.categoria}`);
+      return equipo;
+    }
+    
+    // Búsqueda parcial con nombre y categoría
+    equipo = await Equipo.findOne({
+      nombre: { $regex: nombreLimpio, $options: 'i' },
+      categoria: categoria.toLowerCase()
+    });
+    
+    if (equipo) {
+      console.log(`✅ Equipo encontrado (parcial con categoría): ${equipo.nombre} - ${equipo.categoria}`);
+      return equipo;
+    }
+    
+    console.log(`⚠️ No se encontró equipo con nombre "${nombreLimpio}" en categoría "${categoria}"`);
+    
+    // Si no encontramos con categoría específica, buscar solo por nombre y mostrar opciones
+    const equiposConMismoNombre = await Equipo.find({
+      nombre: { $regex: nombreLimpio, $options: 'i' }
+    });
+    
+    if (equiposConMismoNombre.length > 0) {
+      const categoriasDisponibles = equiposConMismoNombre.map(e => e.categoria).join(', ');
+      throw new Error(
+        `Equipo "${nombreEquipo}" encontrado en otras categorías: [${categoriasDisponibles}]. ` +
+        `Especifica la categoría correcta o verifica que el equipo esté en la categoría "${categoria}".`
+      );
+    }
+  }
+  
+  // 2. Si no tenemos categoría, buscar solo por nombre (comportamiento original mejorado)
+  console.log(`🔍 Búsqueda general: solo por nombre`);
+  
+  // Búsqueda exacta por nombre
+  let equipos = await Equipo.find({ 
     nombre: { $regex: `^${nombreLimpio}$`, $options: 'i' }
   });
   
-  if (!equipo) {
+  if (equipos.length === 0) {
     // Búsqueda parcial si no encuentra exacta
-    equipo = await Equipo.findOne({
+    equipos = await Equipo.find({
       nombre: { $regex: nombreLimpio, $options: 'i' }
     });
   }
   
-  if (!equipo) {
+  if (equipos.length === 0) {
     throw new Error(`Equipo "${nombreEquipo}" no encontrado. Verifica que esté registrado en el sistema.`);
   }
   
+  // Si encontramos múltiples equipos con el mismo nombre
+  if (equipos.length > 1) {
+    const categoriasDisponibles = equipos.map(e => `${e.nombre} (${e.categoria})`).join(', ');
+    throw new Error(
+      `Se encontraron ${equipos.length} equipos con nombre similar: [${categoriasDisponibles}]. ` +
+      `Especifica la categoría en tu CSV para una búsqueda más precisa.`
+    );
+  }
+  
+  // Si encontramos exactamente uno
+  const equipo = equipos[0];
+  console.log(`✅ Equipo encontrado (único): ${equipo.nombre} - ${equipo.categoria}`);
   return equipo;
 };
 
@@ -141,7 +200,104 @@ const buscarJugadorPorNombre = async (nombreJugador, equipoId) => {
   return usuario;
 };
 
-// 🎯 IMPORTAR PARTIDOS MASIVAMENTE
+// 🔍 Función de validación previa para detectar posibles conflictos
+const validarEquiposEnCSV = async (csvData, mappings) => {
+  console.log('🔍 Validando equipos en CSV para detectar posibles conflictos...');
+  
+  const equiposEnCSV = new Set();
+  const conflictosPotenciales = [];
+  
+  // Extraer todos los nombres de equipos del CSV
+  csvData.forEach((fila, index) => {
+    const equipoLocal = fila[mappings.equipo_local];
+    const equipoVisitante = fila[mappings.equipo_visitante];
+    const categoria = fila[mappings.categoria];
+    
+    if (equipoLocal) {
+      equiposEnCSV.add({
+        nombre: equipoLocal.trim(),
+        categoria: categoria ? categoria.trim() : null,
+        fila: index + 2
+      });
+    }
+    
+    if (equipoVisitante) {
+      equiposEnCSV.add({
+        nombre: equipoVisitante.trim(),
+        categoria: categoria ? categoria.trim() : null,
+        fila: index + 2
+      });
+    }
+  });
+  
+  // 🔥 CORREGIDO: Solo buscar conflictos si NO hay categoría especificada
+  for (const equipoCSV of equiposEnCSV) {
+    try {
+      const equiposEncontrados = await Equipo.find({
+        nombre: { $regex: equipoCSV.nombre, $options: 'i' }
+      });
+      
+      // 🔥 CLAVE: Solo es conflicto si hay múltiples equipos Y no hay categoría
+      if (equiposEncontrados.length > 1 && !equipoCSV.categoria) {
+        conflictosPotenciales.push({
+          nombreCSV: equipoCSV.nombre,
+          categoriaCSV: equipoCSV.categoria,
+          filaCSV: equipoCSV.fila,
+          equiposEncontrados: equiposEncontrados.map(e => ({
+            nombre: e.nombre,
+            categoria: e.categoria,
+            id: e._id
+          }))
+        });
+      }
+    } catch (error) {
+      // Continuar con la validación aunque haya errores individuales
+      console.warn(`⚠️ Error validando equipo "${equipoCSV.nombre}":`, error.message);
+    }
+  }
+  
+  return conflictosPotenciales;
+};
+
+// 🔍 Helper para detectar mapeo automático mejorado
+const detectarMapeoAutomatico = (headers) => {
+  const mappings = {};
+  
+  const camposEsperados = {
+    equipo_local: ['equipo_local', 'local', 'home', 'casa', 'equipo1', 'equipolocal'],
+    equipo_visitante: ['equipo_visitante', 'visitante', 'away', 'visita', 'equipo2', 'equipovisitante'],
+    torneo: ['torneo', 'tournament', 'liga', 'championship', 'competicion'],
+    fecha_hora: ['fecha_hora', 'fecha', 'date', 'datetime', 'when', 'hora', 'fechahora'],
+    categoria: ['categoria', 'category', 'division', 'clase'], // 🔥 AGREGADO
+    sede_nombre: ['sede_nombre', 'sede', 'venue', 'lugar', 'campo', 'stadium'],
+    sede_direccion: ['sede_direccion', 'direccion', 'address', 'ubicacion'],
+    arbitro_principal: ['arbitro_principal', 'arbitro', 'referee', 'juez'],
+    estado: ['estado', 'status', 'state'],
+    marcador_local: ['marcador_local', 'goles_local', 'puntos_casa', 'score_home'],
+    marcador_visitante: ['marcador_visitante', 'goles_visitante', 'puntos_visita', 'score_away'],
+    observaciones: ['observaciones', 'notas', 'comments', 'notes'],
+    duracion_minutos: ['duracion_minutos', 'duracion', 'duration', 'minutos']
+  };
+  
+  Object.entries(camposEsperados).forEach(([campo, alternativas]) => {
+    const header = headers.find(h => {
+      const headerNormalizado = h.toLowerCase().replace(/[_\s-]/g, '');
+      return alternativas.some(alt => 
+        headerNormalizado === alt.replace(/[_\s-]/g, '') ||
+        headerNormalizado.includes(alt.replace(/[_\s-]/g, '')) ||
+        alt.replace(/[_\s-]/g, '').includes(headerNormalizado)
+      );
+    });
+    
+    if (header) {
+      mappings[campo] = header;
+    }
+  });
+  
+  return mappings;
+};
+
+// 🎯 IMPORTAR PARTIDOS MASIVAMENTE - Versión mejorada
 exports.importarPartidos = async (req, res) => {
   const timestamp = new Date().toISOString();
   
@@ -170,6 +326,33 @@ exports.importarPartidos = async (req, res) => {
 
     console.log(`📊 Procesando ${data.length} filas de datos`);
 
+    // 🔥 NUEVO: Detectar mapeo automático de campos
+    const headers = Object.keys(data[0] || {});
+    const mappings = detectarMapeoAutomatico(headers);
+    
+    console.log('🗺️ Mapeo detectado:', mappings);
+
+    // 🔥 NUEVO: Validación previa de equipos para detectar conflictos
+    console.log('🔍 Ejecutando validación previa de equipos...');
+    const conflictosPotenciales = await validarEquiposEnCSV(data, mappings);
+    
+    if (conflictosPotenciales.length > 0) {
+      console.log(`⚠️ Detectados ${conflictosPotenciales.length} conflictos potenciales de equipos`);
+      
+      return res.status(400).json({
+        mensaje: 'Detectados conflictos de equipos con nombres similares',
+        conflictos: conflictosPotenciales,
+        sugerencia: 'Incluye la columna "categoria" en tu CSV para resolver ambigüedades, o revisa los nombres de equipos.',
+        detalles: conflictosPotenciales.map(conflicto => ({
+          problema: `Equipo "${conflicto.nombreCSV}" en fila ${conflicto.filaCSV}`,
+          opciones: conflicto.equiposEncontrados.map(e => `${e.nombre} (${e.categoria})`).join(', '),
+          solucion: conflicto.categoriaCSV 
+            ? `Categoría especificada: ${conflicto.categoriaCSV}` 
+            : 'Agregar columna "categoria" al CSV'
+        }))
+      });
+    }
+
     const resultados = {
       exitosos: [],
       errores: [],
@@ -192,54 +375,80 @@ exports.importarPartidos = async (req, res) => {
 
         // Validar campos requeridos
         const camposRequeridos = ['equipo_local', 'equipo_visitante', 'torneo', 'fecha_hora'];
-        const camposFaltantes = camposRequeridos.filter(campo => !fila[campo]);
+        const camposFaltantes = camposRequeridos.filter(campo => !fila[mappings[campo]]);
         
         if (camposFaltantes.length > 0) {
           throw new Error(`Campos requeridos faltantes: ${camposFaltantes.join(', ')}`);
         }
 
-        // 1. Buscar equipos
-        console.log(`🔍 Buscando equipos: "${fila.equipo_local}" vs "${fila.equipo_visitante}"`);
-        const equipoLocal = await buscarEquipoPorNombre(fila.equipo_local);
-        const equipoVisitante = await buscarEquipoPorNombre(fila.equipo_visitante);
+        // 🔥 MEJORADO: Buscar equipos con categoría si está disponible
+        const categoria = fila[mappings.categoria] || null;
+        
+        console.log(`🔍 Buscando equipos con categoría: ${categoria || 'NO ESPECIFICADA'}`);
+        
+        const equipoLocal = await buscarEquipoPorNombreYCategoria(
+          fila[mappings.equipo_local], 
+          categoria
+        );
+        
+        const equipoVisitante = await buscarEquipoPorNombreYCategoria(
+          fila[mappings.equipo_visitante], 
+          categoria
+        );
 
         // Validar que no sea el mismo equipo
         if (equipoLocal._id.toString() === equipoVisitante._id.toString()) {
           throw new Error('Un equipo no puede jugar contra sí mismo');
         }
 
-        // Validar que sean de la misma categoría
+        // 🔥 MEJORADO: Validar que sean de la misma categoría con mejor mensaje
         if (equipoLocal.categoria !== equipoVisitante.categoria) {
-          throw new Error(`Los equipos deben ser de la misma categoría. ${equipoLocal.nombre}: ${equipoLocal.categoria}, ${equipoVisitante.nombre}: ${equipoVisitante.categoria}`);
+          throw new Error(
+            `Los equipos deben ser de la misma categoría. ` +
+            `${equipoLocal.nombre}: ${equipoLocal.categoria}, ` +
+            `${equipoVisitante.nombre}: ${equipoVisitante.categoria}. ` +
+            `${categoria ? `Categoría especificada en CSV: ${categoria}` : 'Considera agregar la columna "categoria" al CSV.'}`
+          );
+        }
+
+        // 🔥 MEJORADO: Si no se especificó categoría en CSV, usar la detectada
+        const categoriaFinal = categoria || equipoLocal.categoria;
+        
+        if (!categoria && equipoLocal.categoria === equipoVisitante.categoria) {
+          resultados.warnings.push({
+            fila: numeroFila,
+            mensaje: `Categoría auto-detectada como "${equipoLocal.categoria}" basada en los equipos`,
+            datos: fila
+          });
         }
 
         // 2. Buscar torneo
-        console.log(`🏆 Buscando torneo: "${fila.torneo}"`);
-        const torneo = await buscarTorneoPorNombre(fila.torneo);
+        console.log(`🏆 Buscando torneo: "${fila[mappings.torneo]}"`);
+        const torneo = await buscarTorneoPorNombre(fila[mappings.torneo]);
 
         // 3. Buscar árbitro (opcional)
         let arbitro = null;
-        if (fila.arbitro_principal) {
-          console.log(`⚖️ Buscando árbitro: "${fila.arbitro_principal}"`);
-          arbitro = await buscarArbitroPorNombre(fila.arbitro_principal);
+        if (fila[mappings.arbitro_principal]) {
+          console.log(`⚖️ Buscando árbitro: "${fila[mappings.arbitro_principal]}"`);
+          arbitro = await buscarArbitroPorNombre(fila[mappings.arbitro_principal]);
           if (!arbitro) {
             resultados.warnings.push({
               fila: numeroFila,
-              mensaje: `Árbitro "${fila.arbitro_principal}" no encontrado, se creará el partido sin árbitro`,
+              mensaje: `Árbitro "${fila[mappings.arbitro_principal]}" no encontrado, se creará el partido sin árbitro`,
               datos: fila
             });
           }
         }
 
         // 4. Validar y formatear fecha
-        const fechaHora = new Date(fila.fecha_hora);
+        const fechaHora = new Date(fila[mappings.fecha_hora]);
         if (isNaN(fechaHora.getTime())) {
-          throw new Error(`Fecha inválida: "${fila.fecha_hora}". Formato esperado: YYYY-MM-DD HH:MM`);
+          throw new Error(`Fecha inválida: "${fila[mappings.fecha_hora]}". Formato esperado: YYYY-MM-DD HH:MM`);
         }
 
         // 5. Validar estado
         const estadosValidos = ['programado', 'en_curso', 'medio_tiempo', 'finalizado', 'suspendido', 'cancelado'];
-        const estado = fila.estado || 'programado';
+        const estado = fila[mappings.estado] || 'programado';
         if (!estadosValidos.includes(estado)) {
           throw new Error(`Estado inválido: "${estado}". Estados válidos: ${estadosValidos.join(', ')}`);
         }
@@ -249,26 +458,26 @@ exports.importarPartidos = async (req, res) => {
           equipoLocal: equipoLocal._id,
           equipoVisitante: equipoVisitante._id,
           torneo: torneo._id,
-          categoria: fila.categoria || equipoLocal.categoria,
+          categoria: categoriaFinal, // Usar categoría final (especificada o detectada)
           fechaHora: fechaHora,
           estado: estado,
-          duracionMinutos: parseInt(fila.duracion_minutos) || 50,
+          duracionMinutos: parseInt(fila[mappings.duracion_minutos]) || 50,
           creadoPor: req.usuario._id
         };
 
         // Agregar marcador si está presente
-        if (fila.marcador_local !== undefined || fila.marcador_visitante !== undefined) {
+        if (fila[mappings.marcador_local] !== undefined || fila[mappings.marcador_visitante] !== undefined) {
           partidoData.marcador = {
-            local: parseInt(fila.marcador_local) || 0,
-            visitante: parseInt(fila.marcador_visitante) || 0
+            local: parseInt(fila[mappings.marcador_local]) || 0,
+            visitante: parseInt(fila[mappings.marcador_visitante]) || 0
           };
         }
 
         // Agregar sede si está presente
-        if (fila.sede_nombre || fila.sede_direccion) {
+        if (fila[mappings.sede_nombre] || fila[mappings.sede_direccion]) {
           partidoData.sede = {};
-          if (fila.sede_nombre) partidoData.sede.nombre = fila.sede_nombre;
-          if (fila.sede_direccion) partidoData.sede.direccion = fila.sede_direccion;
+          if (fila[mappings.sede_nombre]) partidoData.sede.nombre = fila[mappings.sede_nombre];
+          if (fila[mappings.sede_direccion]) partidoData.sede.direccion = fila[mappings.sede_direccion];
         }
 
         // Agregar árbitros si están presentes
@@ -279,8 +488,8 @@ exports.importarPartidos = async (req, res) => {
         }
 
         // Agregar observaciones si están presentes
-        if (fila.observaciones) {
-          partidoData.observaciones = fila.observaciones;
+        if (fila[mappings.observaciones]) {
+          partidoData.observaciones = fila[mappings.observaciones];
         }
 
         // 7. Crear el partido
@@ -294,6 +503,7 @@ exports.importarPartidos = async (req, res) => {
           fila: numeroFila,
           partidoId: partido._id,
           equipos: `${equipoLocal.nombre} vs ${equipoVisitante.nombre}`,
+          categoria: categoriaFinal,
           torneo: torneo.nombre,
           fecha: fechaHora.toLocaleString('es-MX'),
           estado: estado
@@ -501,145 +711,244 @@ exports.importarJugadas = async (req, res) => {
             };
 
             // Agregar jugada al partido
-            partido.jugadas.push(nuevaJugada);
+           partido.jugadas.push(nuevaJugada);
 
-            resultados.exitosos.push({
-              fila: jugada.fila,
-              partidoId: partidoId,
-              jugada: `${fila.tipo_jugada} - ${jugadorPrincipal.nombre}`,
-              puntos: nuevaJugada.resultado.puntos
-            });
+           resultados.exitosos.push({
+             fila: jugada.fila,
+             partidoId: partidoId,
+             jugada: `${fila.tipo_jugada} - ${jugadorPrincipal.nombre}`,
+             puntos: nuevaJugada.resultado.puntos
+           });
 
-            resultados.estadisticas.creados++;
+           resultados.estadisticas.creados++;
 
-          } catch (error) {
-            resultados.errores.push({
-              fila: jugada.fila,
-              error: error.message,
-              datos: jugada.datos
-            });
-            resultados.estadisticas.errores++;
-          }
-        }
+         } catch (error) {
+           resultados.errores.push({
+             fila: jugada.fila,
+             error: error.message,
+             datos: jugada.datos
+           });
+           resultados.estadisticas.errores++;
+         }
+       }
 
-        // Guardar partido con todas las jugadas
-        await partido.save();
-        console.log(`✅ Partido ${partidoId} actualizado con ${jugadas.length} jugadas`);
+       // Guardar partido con todas las jugadas
+       await partido.save();
+       console.log(`✅ Partido ${partidoId} actualizado con ${jugadas.length} jugadas`);
 
-      } catch (error) {
-        console.log(`❌ Error procesando partido ${partidoId}:`, error.message);
-        
-        // Marcar todas las jugadas del partido como errores
-        jugadas.forEach(jugada => {
-          resultados.errores.push({
-            fila: jugada.fila,
-            error: `Error en partido: ${error.message}`,
-            datos: jugada.datos
-          });
-          resultados.estadisticas.errores++;
-        });
-      }
-    }
+     } catch (error) {
+       console.log(`❌ Error procesando partido ${partidoId}:`, error.message);
+       
+       // Marcar todas las jugadas del partido como errores
+       jugadas.forEach(jugada => {
+         resultados.errores.push({
+           fila: jugada.fila,
+           error: `Error en partido: ${error.message}`,
+           datos: jugada.datos
+         });
+         resultados.estadisticas.errores++;
+       });
+     }
+   }
 
-    console.log('\n📊 RESUMEN DE IMPORTACIÓN DE JUGADAS:');
-    console.log(`  ✅ Exitosos: ${resultados.estadisticas.creados}`);
-    console.log(`  ❌ Errores: ${resultados.estadisticas.errores}`);
-    console.log(`  ⚠️ Warnings: ${resultados.warnings.length}`);
+   console.log('\n📊 RESUMEN DE IMPORTACIÓN DE JUGADAS:');
+   console.log(`  ✅ Exitosos: ${resultados.estadisticas.creados}`);
+   console.log(`  ❌ Errores: ${resultados.estadisticas.errores}`);
+   console.log(`  ⚠️ Warnings: ${resultados.warnings.length}`);
 
-    // 📊 Log de éxito con métricas
-    logWithContext('INFO', 'Importación de jugadas completada', {
-      usuario: req.usuario._id,
-      archivo: req.file.originalname,
-      exitosos: resultados.estadisticas.creados,
-      errores: resultados.estadisticas.errores,
-      partidosProcesados: Object.keys(jugadasPorPartido).length
-    });
+   // 📊 Log de éxito con métricas
+   logWithContext('INFO', 'Importación de jugadas completada', {
+     usuario: req.usuario._id,
+     archivo: req.file.originalname,
+     exitosos: resultados.estadisticas.creados,
+     errores: resultados.estadisticas.errores,
+     partidosProcesados: Object.keys(jugadasPorPartido).length
+   });
 
-    console.log(`✅ [${new Date().toISOString()}] FIN - Importación de jugadas completada\n`);
+   console.log(`✅ [${new Date().toISOString()}] FIN - Importación de jugadas completada\n`);
 
-    res.status(200).json({
-      mensaje: 'Importación de jugadas completada',
-      resultados,
-      resumen: {
-        archivo: req.file.originalname,
-        procesadoPor: req.usuario.nombre || req.usuario.email,
-        fechaProceso: new Date().toISOString()
-      }
-    });
+   res.status(200).json({
+     mensaje: 'Importación de jugadas completada',
+     resultados,
+     resumen: {
+       archivo: req.file.originalname,
+       procesadoPor: req.usuario.nombre || req.usuario.email,
+       fechaProceso: new Date().toISOString()
+     }
+   });
 
-  } catch (error) {
-    logWithContext('ERROR', 'ERROR en importación de jugadas', {
-      usuario: req.usuario._id,
-      archivo: req.file?.originalname,
-      error: error.message,
-      stack: error.stack
-    });
-    
-    res.status(500).json({ 
-      mensaje: 'Error al importar jugadas', 
-      error: error.message 
-    });
-  }
+ } catch (error) {
+   logWithContext('ERROR', 'ERROR en importación de jugadas', {
+     usuario: req.usuario._id,
+     archivo: req.file?.originalname,
+     error: error.message,
+     stack: error.stack
+   });
+   
+   res.status(500).json({ 
+     mensaje: 'Error al importar jugadas', 
+     error: error.message 
+   });
+ }
 };
 
-// 📋 DESCARGAR PLANTILLAS CSV
+// 📋 DESCARGAR PLANTILLAS CSV - Versión mejorada
 exports.descargarPlantilla = async (req, res) => {
-  try {
-    const { tipo } = req.params;
-    
-    let csvContent = '';
-    let filename = '';
-    
-    switch (tipo) {
-      case 'partidos':
-        csvContent = `equipo_local,equipo_visitante,torneo,categoria,fecha_hora,sede_nombre,sede_direccion,arbitro_principal,estado,marcador_local,marcador_visitante,observaciones,duracion_minutos
+ try {
+   const { tipo } = req.params;
+   
+   let csvContent = '';
+   let filename = '';
+   
+   switch (tipo) {
+     case 'partidos':
+       // 🔥 MEJORADO: Incluir categoría en la plantilla
+       csvContent = `equipo_local,equipo_visitante,torneo,categoria,fecha_hora,sede_nombre,sede_direccion,arbitro_principal,estado,marcador_local,marcador_visitante,observaciones,duracion_minutos
 Tigres,Leones,Copa Primavera,mixgold,2024-03-15 16:00,Campo Central,Av. Principal 123,Juan Pérez,finalizado,21,14,Partido emocionante,50
-Águilas,Pumas,Copa Primavera,mixgold,2024-03-16 18:00,Campo Norte,Calle Secundaria 456,María López,programado,0,0,,50`;
-        filename = 'plantilla_partidos.csv';
-        break;
-        
-      case 'jugadas':
-        csvContent = `partido_id,minuto,segundo,periodo,equipo_posesion,tipo_jugada,jugador_principal,jugador_secundario,descripcion,puntos,touchdown,intercepcion,sack
+Águilas,Pumas,Copa Primavera,mixgold,2024-03-16 18:00,Campo Norte,Calle Secundaria 456,María López,programado,0,0,,50
+Halcones,Lobos,Liga Regular,varsilv,2024-03-17 16:30,Campo Sur,Blvd. Deportivo 789,Carlos Ruiz,finalizado,14,7,Gran defensa,50
+Panteras,Jaguares,Copa Primavera,femgold,2024-03-18 15:00,Campo Central,Av. Principal 123,Ana García,programado,0,0,Clásico femenil,50`;
+       filename = 'plantilla_partidos.csv';
+       break;
+       
+     case 'jugadas':
+       csvContent = `partido_id,minuto,segundo,periodo,equipo_posesion,tipo_jugada,jugador_principal,jugador_secundario,descripcion,puntos,touchdown,intercepcion,sack
 64f7b123abc456def789,5,30,1,Tigres,pase_completo,Juan García,Pedro López,Pase de 15 yardas,0,false,false,false
 64f7b123abc456def789,6,45,1,Tigres,touchdown,Pedro López,,Corrida para TD,6,true,false,false
 64f7b123abc456def789,7,12,1,Leones,intercepcion,Carlos Ruiz,,Intercepción en zona roja,0,false,true,false`;
-        filename = 'plantilla_jugadas.csv';
-        break;
-        
-      default:
-        return res.status(400).json({ mensaje: 'Tipo de plantilla no válido' });
-    }
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvContent);
-    
-  } catch (error) {
-    console.error('Error al generar plantilla:', error);
-    res.status(500).json({ mensaje: 'Error al generar plantilla', error: error.message });
-  }
+       filename = 'plantilla_jugadas.csv';
+       break;
+       
+     default:
+       return res.status(400).json({ mensaje: 'Tipo de plantilla no válido' });
+   }
+   
+   res.setHeader('Content-Type', 'text/csv');
+   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+   res.send(csvContent);
+   
+ } catch (error) {
+   console.error('Error al generar plantilla:', error);
+   res.status(500).json({ mensaje: 'Error al generar plantilla', error: error.message });
+ }
+};
+
+// 🔥 NUEVO: Función helper para obtener información de equipos y categorías
+exports.obtenerInfoEquiposYCategorias = async (req, res) => {
+ try {
+   console.log('📊 Obteniendo información de equipos y categorías...');
+   
+   // Obtener todos los equipos agrupados por categoría
+   const equiposPorCategoria = await Equipo.aggregate([
+     {
+       $match: { estado: 'activo' }
+     },
+     {
+       $group: {
+         _id: '$categoria',
+         equipos: {
+           $push: {
+             id: '$_id',
+             nombre: '$nombre',
+             imagen: '$imagen'
+           }
+         },
+         total: { $sum: 1 }
+       }
+     },
+     {
+       $sort: { _id: 1 }
+     }
+   ]);
+   
+   // Obtener estadísticas generales
+   const estadisticas = {
+     totalEquipos: await Equipo.countDocuments({ estado: 'activo' }),
+     categorias: equiposPorCategoria.map(cat => ({
+       categoria: cat._id,
+       equipos: cat.total,
+       nombres: cat.equipos.map(eq => eq.nombre)
+     }))
+   };
+   
+   // Detectar posibles conflictos de nombres
+   const conflictosNombres = await Equipo.aggregate([
+     {
+       $match: { estado: 'activo' }
+     },
+     {
+       $group: {
+         _id: { 
+           nombre: { $toLower: { $trim: { input: '$nombre' } } }
+         },
+         equipos: {
+           $push: {
+             id: '$_id',
+             nombre: '$nombre',
+             categoria: '$categoria'
+           }
+         },
+         count: { $sum: 1 }
+       }
+     },
+     {
+       $match: { count: { $gt: 1 } }
+     },
+     {
+       $project: {
+         nombreComun: '$_id.nombre',
+         equipos: '$equipos',
+         conflictos: '$count'
+       }
+     }
+   ]);
+   
+   res.json({
+     mensaje: 'Información de equipos y categorías obtenida',
+     equiposPorCategoria,
+     estadisticas,
+     conflictosDetectados: conflictosNombres,
+     recomendaciones: {
+       incluirCategoria: conflictosNombres.length > 0,
+       razon: conflictosNombres.length > 0 
+         ? `Se detectaron ${conflictosNombres.length} nombres de equipos duplicados en diferentes categorías`
+         : 'No se detectaron conflictos de nombres, pero es recomendable incluir la categoría para mayor precisión',
+       ejemploCSV: 'equipo_local,equipo_visitante,torneo,categoria,fecha_hora'
+     }
+   });
+   
+ } catch (error) {
+   console.error('Error al obtener información de equipos:', error);
+   res.status(500).json({ 
+     mensaje: 'Error al obtener información de equipos', 
+     error: error.message 
+   });
+ }
 };
 
 // 📊 OBTENER PROGRESO DE IMPORTACIÓN (para futuro uso con WebSockets)
 exports.obtenerProgresoImportacion = async (req, res) => {
-  try {
-    const { procesoId } = req.params;
-    
-    // TODO: Implementar sistema de tracking de progreso
-    // Por ahora, respuesta mock
-    res.json({
-      procesoId,
-      estado: 'completado',
-      progreso: {
-        porcentaje: 100,
-        procesados: 100,
-        total: 100,
-        errores: 0,
-        tiempoRestante: 0
-      }
-    });
-    
-  } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener progreso', error: error.message });
-  }
+ try {
+   const { procesoId } = req.params;
+   
+   // TODO: Implementar sistema de tracking de progreso
+   // Por ahora, respuesta mock
+   res.json({
+     procesoId,
+     estado: 'completado',
+     progreso: {
+       porcentaje: 100,
+       procesados: 100,
+       total: 100,
+       errores: 0,
+       tiempoRestante: 0
+     }
+   });
+   
+ } catch (error) {
+   res.status(500).json({ mensaje: 'Error al obtener progreso', error: error.message });
+ }
 };
+
+// Exportar la función validarEquiposEnCSV para uso en rutas
+module.exports.validarEquiposEnCSV = validarEquiposEnCSV;

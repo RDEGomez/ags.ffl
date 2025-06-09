@@ -458,4 +458,187 @@ router.get('/plantillas/:tipo',
   importacionController.descargarPlantilla
 );
 
+// 📊 NUEVO: Obtener información de equipos y categorías para importación
+router.get('/equipos-info',
+  auth,
+  importacionController.obtenerInfoEquiposYCategorias
+);
+
+// 🔍 NUEVO: Validar conflictos de equipos antes de importar
+router.post('/validar-equipos',
+  [
+    uploadLimiter,
+    auth,
+    checkRole('admin', 'arbitro'),
+    upload.single('archivo'),
+    handleMulterError,
+    [
+      check('mostrarConflictos')
+        .optional()
+        .isBoolean()
+        .withMessage('mostrarConflictos debe ser un booleano')
+    ]
+  ],
+  async (req, res) => {
+    try {
+      console.log('\n🔍 VALIDANDO CONFLICTOS DE EQUIPOS - MODO PREVIEW');
+      
+      if (!req.file) {
+        return res.status(400).json({ mensaje: 'No se proporcionó archivo CSV' });
+      }
+
+      const Papa = require('papaparse');
+      const fileContent = req.file.buffer.toString('utf8');
+      
+      // Parsear CSV
+      const parseResult = Papa.parse(fileContent, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+        transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_')
+      });
+
+      const data = parseResult.data;
+      const headers = Object.keys(data[0] || {});
+
+      // Detectar mapeo automático
+      const detectarMapeoAutomatico = (headers) => {
+        const mappings = {};
+        
+        const camposEsperados = {
+          equipo_local: ['equipo_local', 'local', 'home', 'casa', 'equipo1'],
+          equipo_visitante: ['equipo_visitante', 'visitante', 'away', 'visita', 'equipo2'],
+          categoria: ['categoria', 'category', 'division', 'clase']
+        };
+        
+        Object.entries(camposEsperados).forEach(([campo, alternativas]) => {
+          const header = headers.find(h => {
+            const headerNormalizado = h.toLowerCase().replace(/[_\s-]/g, '');
+            return alternativas.some(alt => 
+              headerNormalizado === alt.replace(/[_\s-]/g, '') ||
+              headerNormalizado.includes(alt.replace(/[_\s-]/g, '')) ||
+              alt.replace(/[_\s-]/g, '').includes(headerNormalizado)
+            );
+          });
+          
+          if (header) {
+            mappings[campo] = header;
+          }
+        });
+        
+        return mappings;
+      };
+
+      const mappings = detectarMapeoAutomatico(headers);
+      
+      // Validar equipos y detectar conflictos
+      const { validarEquiposEnCSV } = require('../controllers/importacionController');
+      const conflictosPotenciales = await validarEquiposEnCSV(data, mappings);
+      
+      // Obtener estadísticas de equipos
+      const Equipo = require('../models/Equipo');
+      const equiposPorCategoria = await Equipo.aggregate([
+        {
+          $match: { estado: 'activo' }
+        },
+        {
+          $group: {
+            _id: '$categoria',
+            equipos: {
+              $push: {
+                nombre: '$nombre',
+                id: '$_id'
+              }
+            },
+            total: { $sum: 1 }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        }
+      ]);
+
+      // Análisis de datos del CSV
+      const equiposEnCSV = new Set();
+      data.forEach(fila => {
+        if (fila[mappings.equipo_local]) equiposEnCSV.add(fila[mappings.equipo_local]);
+        if (fila[mappings.equipo_visitante]) equiposEnCSV.add(fila[mappings.equipo_visitante]);
+      });
+
+      const analisis = {
+        archivo: {
+          nombre: req.file.originalname,
+          filas: data.length,
+          headers: headers
+        },
+        mapeo: mappings,
+        equipos: {
+          enCSV: Array.from(equiposEnCSV),
+          totalEnCSV: equiposEnCSV.size,
+          enSistema: equiposPorCategoria
+        },
+        conflictos: {
+          detectados: conflictosPotenciales.length,
+          detalles: conflictosPotenciales,
+          requiereCategoría: conflictosPotenciales.length > 0 && !mappings.categoria
+        },
+        recomendaciones: []
+      };
+
+      // Generar recomendaciones
+      if (conflictosPotenciales.length > 0) {
+        if (!mappings.categoria) {
+          analisis.recomendaciones.push({
+            tipo: 'error',
+            titulo: 'Agregar columna de categoría',
+            mensaje: `Se detectaron ${conflictosPotenciales.length} equipos con nombres ambiguos. Agrega una columna "categoria" a tu CSV.`,
+            accion: 'Incluir columna: categoria'
+          });
+        } else {
+          analisis.recomendaciones.push({
+            tipo: 'warning',
+            titulo: 'Verificar categorías',
+            mensaje: 'Se detectaron conflictos pero tienes columna de categoría. Verifica que las categorías sean correctas.',
+            accion: 'Revisar valores de categoría'
+          });
+        }
+      } else {
+        analisis.recomendaciones.push({
+          tipo: 'success',
+          titulo: 'Sin conflictos detectados',
+          mensaje: 'Los nombres de equipos en tu CSV son únicos o están bien categorizados.',
+          accion: 'Continuar con la importación'
+        });
+      }
+
+      if (!mappings.categoria) {
+        analisis.recomendaciones.push({
+          tipo: 'info',
+          titulo: 'Categoría recomendada',
+          mensaje: 'Aunque no se detectaron conflictos, es recomendable incluir la categoría para mayor precisión.',
+          accion: 'Opcional: agregar columna categoria'
+        });
+      }
+
+      console.log('✅ Validación de conflictos completada');
+      console.log(`  📊 Equipos en CSV: ${equiposEnCSV.size}`);
+      console.log(`  ⚠️ Conflictos: ${conflictosPotenciales.length}`);
+      console.log(`  📋 Categoría incluida: ${mappings.categoria ? 'SÍ' : 'NO'}`);
+
+      res.json({
+        mensaje: 'Validación de conflictos completada',
+        puedeImportar: conflictosPotenciales.length === 0 || mappings.categoria,
+        analisis
+      });
+
+    } catch (error) {
+      console.error('Error en validación de conflictos:', error);
+      res.status(500).json({
+        mensaje: 'Error al validar conflictos de equipos',
+        error: error.message
+      });
+    }
+  }
+);
+
 module.exports = router;

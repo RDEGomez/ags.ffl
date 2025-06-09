@@ -31,7 +31,6 @@ import {
   Add as AddIcon,
   SportsFootball as SportsFootballIcon,
   NavigateNext as NavigateNextIcon,
-  SportsSoccer as SportsSoccerIcon,
   FilterList as FilterListIcon,
   GridView as GridViewIcon,
   ViewStream as ViewStreamIcon,

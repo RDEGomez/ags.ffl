@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import axiosInstance from '../../config/axios';
@@ -9,9 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import {
   Box,
-  IconButton,
   Typography,
-  Fab,
   Alert,
   CircularProgress,
   Breadcrumbs,
@@ -22,7 +20,18 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
-  Grid
+  Grid,
+  Pagination,
+  TextField,
+  InputAdornment,
+  Skeleton,
+  IconButton,
+  Menu,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Paper
 } from '@mui/material';
 
 import {
@@ -34,58 +43,217 @@ import {
   PersonAdd as PersonAddIcon,
   FilterList as FilterListIcon,
   GridView as GridViewIcon,
-  ViewStream as ViewStreamIcon
+  ViewStream as ViewStreamIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Sort as SortIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 
 import { ListaUsuariosCompacta } from './ListaUsuariosCompacta';
 
+// 🔥 CONFIGURACIÓN DE PAGINACIÓN
+const ITEMS_PER_PAGE_OPTIONS = [10, 15, 20, 50];
+const DEFAULT_ITEMS_PER_PAGE = 15;
+
+// 🔥 OPCIONES DE ORDENAMIENTO
+const SORT_OPTIONS = [
+  { value: 'nombre_asc', label: 'Nombre A-Z', field: 'nombre', order: 'asc' },
+  { value: 'nombre_desc', label: 'Nombre Z-A', field: 'nombre', order: 'desc' },
+  { value: 'fecha_asc', label: 'Más antiguos', field: 'createdAt', order: 'asc' },
+  { value: 'fecha_desc', label: 'Más recientes', field: 'createdAt', order: 'desc' },
+  { value: 'equipos_asc', label: 'Menos equipos', field: 'equipos', order: 'asc' },
+  { value: 'equipos_desc', label: 'Más equipos', field: 'equipos', order: 'desc' },
+  { value: 'rol_asc', label: 'Rol A-Z', field: 'rol', order: 'asc' },
+  { value: 'rol_desc', label: 'Rol Z-A', field: 'rol', order: 'desc' }
+];
+
+// 🔥 SKELETON PARA CARGA
+const UsuarioCardSkeleton = () => (
+  <Card sx={{
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden'
+  }}>
+    <CardContent sx={{ p: 3, textAlign: 'center' }}>
+      <Skeleton variant="circular" width={80} height={80} sx={{ mx: 'auto', mb: 2 }} />
+      <Skeleton variant="text" width="80%" height={24} sx={{ mx: 'auto', mb: 1 }} />
+      <Skeleton variant="text" width="60%" height={20} sx={{ mx: 'auto', mb: 2 }} />
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+        <Skeleton variant="circular" width={40} height={40} />
+        <Skeleton variant="circular" width={40} height={40} />
+      </Box>
+    </CardContent>
+  </Card>
+);
+
 export const Usuarios = () => {
-  // 🔥 USAR: Nuevas funciones de permisos con validación por ID
   const { usuario, puedeGestionarUsuarios, puedeEditarUsuario } = useAuth();
   const navigate = useNavigate();
 
+  // Estados principales
   const [usuarios, setUsuarios] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
-  const [vistaCompacta, setVistaCompacta] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 🔥 AGREGADO: Función helper para imágenes (sin hook, evita error de hooks)
-  const getImageUrl = (imagen) => {
+  // Estados de UI
+  const [vistaCompacta, setVistaCompacta] = useState(false);
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE);
+
+  // Estados de búsqueda y filtrado
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('nombre_asc');
+  
+  // Estados de menús
+  const [sortMenuAnchor, setSortMenuAnchor] = useState(null);
+
+  // 🔥 Función helper para imágenes
+  const getImageUrl = useCallback((imagen) => {
     if (!imagen) return '';
     if (imagen.startsWith('http://') || imagen.startsWith('https://')) {
       return imagen;
     }
     return `${import.meta.env.VITE_BACKEND_URL || ''}/uploads/${imagen}`;
-  };
+  }, []);
 
-  // 🔥 NUEVA: Función para verificar si puede editar un usuario específico
-  const puedeEditarEsteUsuario = (usuarioObj) => {
+  // 🔥 Función para verificar permisos
+  const puedeEditarEsteUsuario = useCallback((usuarioObj) => {
     return puedeEditarUsuario(usuarioObj._id, usuarioObj);
-  };
+  }, [puedeEditarUsuario]);
 
-  const obtenerUsuarios = async () => {
+  // 🔥 Obtener usuarios de la API
+  const obtenerUsuarios = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      // 🔥 Por defecto la API ya excluye árbitros, pero podemos ser específicos
+      
       const { data } = await axiosInstance.get('/usuarios');
       setUsuarios(data);
       setFiltrados(data);
+      
+      // Reset página si es necesario
+      const totalPaginas = Math.ceil(data.length / itemsPerPage);
+      if (currentPage > totalPaginas && totalPaginas > 0) {
+        setCurrentPage(1);
+      }
     } catch (error) {
       console.error('Error al obtener usuarios:', error);
       setError('Hubo un problema al cargar los usuarios. Intenta nuevamente más tarde.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemsPerPage, currentPage]);
 
   useEffect(() => {
     obtenerUsuarios();
+  }, [obtenerUsuarios]);
+
+  // 🔥 Función de búsqueda optimizada
+  const usuariosFiltradosPorBusqueda = useMemo(() => {
+    if (!searchTerm.trim()) return filtrados;
+    
+    const term = searchTerm.toLowerCase().trim();
+    
+    return filtrados.filter(usuario => {
+      // Búsqueda por nombre
+      if (usuario.nombre?.toLowerCase().includes(term)) return true;
+      
+      // Búsqueda por documento
+      if (usuario.documento?.toLowerCase().includes(term)) return true;
+      
+      // Búsqueda por email
+      if (usuario.email?.toLowerCase().includes(term)) return true;
+      
+      // Búsqueda por rol
+      if (usuario.rol?.toLowerCase().includes(term)) return true;
+      
+      // Búsqueda por nombres de equipos
+      if (usuario.equipos?.some(equipoRelacion => 
+        equipoRelacion.equipo?.nombre?.toLowerCase().includes(term)
+      )) return true;
+      
+      return false;
+    });
+  }, [filtrados, searchTerm]);
+
+  // 🔥 Función de ordenamiento optimizada
+  const usuariosOrdenados = useMemo(() => {
+    const sortOption = SORT_OPTIONS.find(option => option.value === sortBy);
+    if (!sortOption) return usuariosFiltradosPorBusqueda;
+    
+    return [...usuariosFiltradosPorBusqueda].sort((a, b) => {
+      let valueA, valueB;
+      
+      switch (sortOption.field) {
+        case 'nombre':
+          valueA = a.nombre?.toLowerCase() || '';
+          valueB = b.nombre?.toLowerCase() || '';
+          break;
+        case 'createdAt':
+          valueA = new Date(a.createdAt || 0);
+          valueB = new Date(b.createdAt || 0);
+          break;
+        case 'equipos':
+          valueA = a.equipos?.length || 0;
+          valueB = b.equipos?.length || 0;
+          break;
+        case 'rol':
+          valueA = a.rol?.toLowerCase() || '';
+          valueB = b.rol?.toLowerCase() || '';
+          break;
+        default:
+          valueA = a[sortOption.field] || '';
+          valueB = b[sortOption.field] || '';
+      }
+      
+      if (valueA < valueB) {
+        return sortOption.order === 'asc' ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return sortOption.order === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [usuariosFiltradosPorBusqueda, sortBy]);
+
+  // 🔥 Paginación de resultados
+  const usuariosPaginados = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return usuariosOrdenados.slice(startIndex, startIndex + itemsPerPage);
+  }, [usuariosOrdenados, currentPage, itemsPerPage]);
+
+  // 🔥 Cálculos de paginación
+  const totalPages = Math.ceil(usuariosOrdenados.length / itemsPerPage);
+  const hasResults = usuariosOrdenados.length > 0;
+
+  // 🔥 Manejar cambio de página
+  const handlePageChange = useCallback((event, newPage) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const eliminarUsuario = async (usuarioId) => {
-    // 🔥 VALIDACIÓN: Solo mostrar si tiene permisos (doble validación)
+  // 🔥 Manejar cambio de items por página
+  const handleItemsPerPageChange = useCallback((event) => {
+    const newItemsPerPage = event.target.value;
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset a la primera página
+  }, []);
+
+  // 🔥 Limpiar búsqueda
+  const clearSearch = useCallback(() => {
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, []);
+
+  // 🔥 Eliminar usuario con confirmación
+  const eliminarUsuario = useCallback(async (usuarioId) => {
     if (!puedeGestionarUsuarios()) {
       Swal.fire({
         icon: 'error',
@@ -119,6 +287,12 @@ export const Usuarios = () => {
           logout();
         }
         
+        // Ajustar página si es necesario
+        const nuevoTotal = Math.ceil(actualizados.length / itemsPerPage);
+        if (currentPage > nuevoTotal && nuevoTotal > 0) {
+          setCurrentPage(nuevoTotal);
+        }
+        
         Swal.fire({
           icon: 'success',
           title: 'Eliminado!',
@@ -136,10 +310,10 @@ export const Usuarios = () => {
         text: error.response?.data?.mensaje || 'No se pudo eliminar el usuario. Intenta nuevamente.'
       });
     }
-  };
+  }, [usuarios, puedeGestionarUsuarios, usuario._id, itemsPerPage, currentPage]);
 
-  // Obtener estadísticas de usuarios
-  const obtenerEstadisticas = () => {
+  // 🔥 Obtener estadísticas
+  const obtenerEstadisticas = useCallback(() => {
     const totalUsuarios = usuarios.length;
     const jugadores = usuarios.filter(u => u.rol === 'jugador').length;
     const capitanes = usuarios.filter(u => u.rol === 'capitan').length;
@@ -153,9 +327,12 @@ export const Usuarios = () => {
       capitanes,
       administradores,
       arbitros,
-      conEquipos: usuariosConEquipos
+      conEquipos: usuariosConEquipos,
+      filtrados: usuariosOrdenados.length,
+      paginaActual: currentPage,
+      totalPaginas: totalPages
     };
-  };
+  }, [usuarios, usuariosOrdenados.length, currentPage, totalPages]);
 
   const stats = obtenerEstadisticas();
 
@@ -164,7 +341,7 @@ export const Usuarios = () => {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
-      transition: { staggerChildren: 0.1 } 
+      transition: { staggerChildren: 0.05 } 
     }
   };
 
@@ -173,7 +350,7 @@ export const Usuarios = () => {
     visible: { 
       y: 0, 
       opacity: 1,
-      transition: { duration: 0.6, ease: "easeOut" }
+      transition: { duration: 0.4, ease: "easeOut" }
     }
   };
 
@@ -232,11 +409,41 @@ export const Usuarios = () => {
               gap: 2
             }}>
               <PeopleIcon sx={{ color: '#64b5f6' }} />
-              Usuarios
+              Usuarios ({stats.filtrados})
             </Typography>
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <FiltrosJugadores jugadores={usuarios} setFiltrados={setFiltrados} />
+              <Tooltip title="Actualizar lista">
+                <IconButton
+                  onClick={obtenerUsuarios}
+                  disabled={loading}
+                  sx={{
+                    backgroundColor: 'rgba(100, 181, 246, 0.1)',
+                    color: '#64b5f6',
+                    '&:hover': {
+                      backgroundColor: 'rgba(100, 181, 246, 0.2)',
+                      transform: 'scale(1.1)'
+                    }
+                  }}
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+
+              {puedeGestionarUsuarios() && (
+                <Button
+                  component={Link}
+                  to="/usuarios/nuevo"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{
+                    background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                    boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                  }}
+                >
+                  Nuevo Usuario
+                </Button>
+              )}
             </Box>
           </Box>
         </motion.div>
@@ -316,33 +523,62 @@ export const Usuarios = () => {
           </Grid>
         </motion.div>
 
-        {/* Controles de vista y filtros */}
+        {/* Barra de búsqueda y controles */}
         <motion.div variants={itemVariants}>
           <Card sx={{ ...cardStyle, mb: 3 }}>
-            <CardContent sx={{ p: 2 }}>
+            <CardContent sx={{ p: 3 }}>
+              {/* Primera fila: Búsqueda y controles principales */}
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: 2
+                gap: 2,
+                mb: 2
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <FilterListIcon sx={{ color: '#64b5f6' }} />
-                  <Typography variant="body1" sx={{ color: 'white' }}>
-                    Mostrando {filtrados.length} de {usuarios.length} usuarios
-                  </Typography>
-                  
-                  {filtrados.length !== usuarios.length && (
-                    <Chip 
-                      label="Filtros aplicados" 
-                      color="primary" 
-                      size="small" 
-                      variant="outlined"
-                    />
-                  )}
-                </Box>
-                
+                {/* Búsqueda */}
+                <TextField
+                  placeholder="Buscar por nombre, documento, email o equipo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  size="small"
+                  sx={{
+                    minWidth: 300,
+                    flex: 1,
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#64b5f6',
+                      },
+                    }
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: '#64b5f6' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={clearSearch}
+                          size="small"
+                          sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+
+                {/* Controles de vista */}
                 <ToggleButtonGroup
                   value={vistaCompacta ? 'list' : 'grid'}
                   exclusive
@@ -379,6 +615,119 @@ export const Usuarios = () => {
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
+
+              {/* Segunda fila: Filtros y ordenamiento */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2
+              }}>
+                {/* Filtros */}
+                <FiltrosJugadores jugadores={usuarios} setFiltrados={setFiltrados} />
+
+                {/* Ordenamiento */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<SortIcon />}
+                    onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+                    sx={{
+                      color: 'white',
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      '&:hover': {
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                      }
+                    }}
+                  >
+                    {SORT_OPTIONS.find(opt => opt.value === sortBy)?.label || 'Ordenar'}
+                  </Button>
+
+                  <Menu
+                    anchorEl={sortMenuAnchor}
+                    open={Boolean(sortMenuAnchor)}
+                    onClose={() => setSortMenuAnchor(null)}
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <MenuItem
+                        key={option.value}
+                        selected={sortBy === option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setSortMenuAnchor(null);
+                        }}
+                      >
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Menu>
+
+                  {/* Items por página */}
+                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Por página
+                    </InputLabel>
+                    <Select
+                      value={itemsPerPage}
+                      label="Por página"
+                      onChange={handleItemsPerPageChange}
+                      sx={{
+                        color: 'white',
+                        '.MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.4)',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#64b5f6',
+                        },
+                      }}
+                    >
+                      {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+
+              {/* Información de resultados */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mt: 2,
+                pt: 2,
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="body2" sx={{ color: 'white' }}>
+                    Mostrando {usuariosPaginados.length} de {stats.filtrados} usuarios
+                    {searchTerm && (
+                      <Chip 
+                        label={`Búsqueda: "${searchTerm}"`} 
+                        color="primary" 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ ml: 1 }}
+                        onDelete={clearSearch}
+                      />
+                    )}
+                  </Typography>
+                </Box>
+
+                {/* Paginación info */}
+                {totalPages > 1 && (
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Página {currentPage} de {totalPages}
+                  </Typography>
+                )}
+              </Box>
             </CardContent>
           </Card>
         </motion.div>
@@ -388,11 +737,26 @@ export const Usuarios = () => {
           <motion.div variants={itemVariants}>
             <Box sx={{ 
               display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              minHeight: '300px'
+              flexWrap: 'wrap', 
+              gap: 3,
+              justifyContent: { xs: 'center', sm: 'flex-start' }
             }}>
-              <CircularProgress size={60} />
+              {Array.from({ length: itemsPerPage }).map((_, index) => (
+                <Box 
+                  key={index}
+                  sx={{ 
+                    flexBasis: { 
+                      xs: '100%',
+                      sm: 'calc(50% - 12px)',
+                      md: 'calc(33.333% - 16px)',
+                      lg: 'calc(25% - 18px)',
+                      xl: 'calc(20% - 19.2px)'
+                    }
+                  }}
+                >
+                  <UsuarioCardSkeleton />
+                </Box>
+              ))}
             </Box>
           </motion.div>
         ) : error ? (
@@ -409,7 +773,7 @@ export const Usuarios = () => {
               </Button>
             </Alert>
           </motion.div>
-        ) : filtrados.length === 0 ? (
+        ) : !hasResults ? (
           <motion.div variants={itemVariants}>
             <Card sx={cardStyle}>
               <CardContent sx={{ p: 4, textAlign: 'center' }}>
@@ -418,7 +782,12 @@ export const Usuarios = () => {
                   {usuarios.length === 0 ? 'No hay usuarios registrados' : 'No se encontraron usuarios con los filtros aplicados'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'gray', mb: 3 }}>
-                  {usuarios.length === 0 ? 'Crea el primer usuario para comenzar' : 'Intenta cambiar los filtros de búsqueda'}
+                  {usuarios.length === 0 
+                    ? 'Crea el primer usuario para comenzar' 
+                    : searchTerm 
+                      ? `No hay resultados para "${searchTerm}". Intenta con otros términos de búsqueda.`
+                      : 'Intenta cambiar los filtros de búsqueda'
+                  }
                 </Typography>
                 {usuarios.length === 0 && puedeGestionarUsuarios() && (
                   <Button 
@@ -432,6 +801,20 @@ export const Usuarios = () => {
                     }}
                   >
                     Crear Usuario
+                  </Button>
+                )}
+                {searchTerm && (
+                  <Button 
+                    onClick={clearSearch}
+                    variant="outlined"
+                    startIcon={<ClearIcon />}
+                    sx={{ 
+                      mt: 2,
+                      color: 'white',
+                      borderColor: 'rgba(255, 255, 255, 0.3)'
+                    }}
+                  >
+                    Limpiar búsqueda
                   </Button>
                 )}
               </CardContent>
@@ -453,7 +836,10 @@ export const Usuarios = () => {
                     Lista de Usuarios
                   </Typography>
                 </Box>
-                <ListaUsuariosCompacta usuarios={filtrados} eliminarUsuario={eliminarUsuario} />
+                <ListaUsuariosCompacta 
+                  usuarios={usuariosPaginados} 
+                  eliminarUsuario={eliminarUsuario} 
+                />
               </CardContent>
             </Card>
           </motion.div>
@@ -465,16 +851,16 @@ export const Usuarios = () => {
             justifyContent: { xs: 'center', sm: 'flex-start' }
           }}>
             <AnimatePresence>
-              {filtrados.map((usuarioItem, index) => (
+              {usuariosPaginados.map((usuarioItem, index) => (
                 <Box 
                   key={usuarioItem._id} 
                   sx={{ 
                     flexBasis: { 
-                      xs: '100%',                    // Mobile: 1 por fila
-                      sm: 'calc(50% - 12px)',       // Tablet: 2 por fila  
-                      md: 'calc(33.333% - 16px)',   // Tablet grande: 3 por fila
-                      lg: 'calc(25% - 18px)',       // Desktop: 4 por fila
-                      xl: 'calc(20% - 19.2px)'      // Desktop grande: 5 por fila
+                      xs: '100%',
+                      sm: 'calc(50% - 12px)',
+                      md: 'calc(33.333% - 16px)',
+                      lg: 'calc(25% - 18px)',
+                      xl: 'calc(20% - 19.2px)'
                     },
                     maxWidth: { 
                       xs: '100%', 
@@ -491,7 +877,7 @@ export const Usuarios = () => {
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.02 }}
                     style={{ height: '100%' }}
                   >
                     <Box sx={{ 
@@ -510,6 +896,127 @@ export const Usuarios = () => {
               ))}
             </AnimatePresence>
           </Box>
+        )}
+
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <motion.div variants={itemVariants}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center',
+              alignItems: 'center',
+              mt: 4,
+              gap: 2,
+              flexWrap: 'wrap'
+            }}>
+              <Paper
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: 2,
+                  p: 2
+                }}
+              >
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 3,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center'
+                }}>
+                  {/* Información de página */}
+                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 'medium' }}>
+                    {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, stats.filtrados)} de {stats.filtrados}
+                  </Typography>
+
+                  {/* Paginación */}
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="medium"
+                    showFirstButton
+                    showLastButton
+                    sx={{
+                      '& .MuiPagination-ul': {
+                        gap: 1
+                      },
+                      '& .MuiPaginationItem-root': {
+                        color: 'white',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderColor: 'rgba(255, 255, 255, 0.4)'
+                        },
+                        '&.Mui-selected': {
+                          backgroundColor: '#64b5f6',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          '&:hover': {
+                            backgroundColor: '#5a9fd8'
+                          }
+                        }
+                      }
+                    }}
+                  />
+
+                  {/* Navegación rápida */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Tooltip title="Primera página">
+                      <IconButton
+                        onClick={() => handlePageChange(null, 1)}
+                        disabled={currentPage === 1}
+                        size="small"
+                        sx={{
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                          }
+                        }}
+                      >
+                        <ArrowUpwardIcon sx={{ transform: 'rotate(-90deg)' }} />
+                      </IconButton>
+                    </Tooltip>
+                    
+                    <Tooltip title="Última página">
+                      <IconButton
+                        onClick={() => handlePageChange(null, totalPages)}
+                        disabled={currentPage === totalPages}
+                        size="small"
+                        sx={{
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                          }
+                        }}
+                      >
+                        <ArrowDownwardIcon sx={{ transform: 'rotate(-90deg)' }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              </Paper>
+            </Box>
+          </motion.div>
+        )}
+
+        {/* Información adicional */}
+        {!loading && (
+          <motion.div variants={itemVariants}>
+            <Box sx={{ 
+              mt: 4, 
+              p: 2, 
+              textAlign: 'center',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                Sistema optimizado con paginación • Mostrando resultados de forma eficiente
+                {searchTerm && ` • Filtrado por: "${searchTerm}"`}
+              </Typography>
+            </Box>
+          </motion.div>
         )}
       </motion.div>
     </Box>
