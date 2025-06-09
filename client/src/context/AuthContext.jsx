@@ -1,4 +1,4 @@
-// 📁 src/context/AuthContext.jsx - VERSIÓN CORREGIDA
+// 📁 src/context/AuthContext.jsx - VERSIÓN SIMPLE FINAL
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../config/axios';
@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 🔥 FUNCIÓN CORREGIDA - Cargar usuario desde localStorage al iniciar
+  // 🔥 FUNCIÓN DE VERIFICACIÓN AL INICIAR
   useEffect(() => {
     const checkAuth = async () => {
       console.log('\n🔍 === INICIO VERIFICACIÓN AUTH ===');
@@ -28,43 +28,36 @@ export const AuthProvider = ({ children }) => {
       if (storedToken && storedUser) {
         try {
           console.log('🔧 Configurando token en axios...');
-          // 🔥 CORREGIDO: Configurar el token ANTES de hacer la petición
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
           const parsedUser = JSON.parse(storedUser);
-          console.log('👤 Usuario parseado:', parsedUser);
+          console.log('👤 Usuario del localStorage:', parsedUser.email);
+          console.log('🏆 Equipos del localStorage:', parsedUser.equipos?.length || 0);
           
-          // 🔥 CORREGIDO: Verificar que el usuario tenga _id
-          if (!parsedUser._id && !parsedUser.id) {
-            console.log('❌ Usuario sin ID válido, reautenticando...');
-            throw new Error('Usuario sin ID válido');
-          }
+          // 🔥 VERIFICAR CON /auth/perfil PARA DATOS FRESCOS
+          console.log('🔍 Verificando con /auth/perfil...');
+          const { data } = await axiosInstance.get('/auth/perfil');
+          console.log('✅ Perfil verificado con equipos:', data.equipos?.length || 0);
 
-          const userId = parsedUser._id || parsedUser.id;
-          console.log(`🔍 Obteniendo datos actualizados del usuario: ${userId}`);
-          
-          const { data } = await axiosInstance.get(`/usuarios/${userId}`);
-          console.log('✅ Datos de usuario obtenidos de la API:', data);
-
-          // 🔥 IMPORTANTE: Establecer TANTO el usuario como el token
           setUsuario(data);
           setIsAuthenticated(true);
+          localStorage.setItem('usuario', JSON.stringify(data));
           
           console.log('✅ Usuario autenticado correctamente');
-          console.log('  📋 Equipos del usuario:', data.equipos?.length || 0);
           
         } catch (error) {
           console.log('❌ Error en verificación de auth:', error);
-          console.log('  🔍 Tipo de error:', error.response?.status || error.name);
-          console.log('  📋 Mensaje:', error.response?.data?.mensaje || error.message);
-          
-          // 🔥 CORREGIDO: Limpiar datos en caso de error
           console.log('🧹 Limpiando datos de autenticación...');
-          logout();
+          setUsuario(null);
+          setIsAuthenticated(false);
+          localStorage.removeItem('usuario');
+          localStorage.removeItem('token');
+          delete axiosInstance.defaults.headers.common['Authorization'];
         }
       } else {
         console.log('❌ No hay token o usuario en localStorage');
-        logout();
+        setUsuario(null);
+        setIsAuthenticated(false);
       }
       
       setLoading(false);
@@ -74,28 +67,35 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // 🔥 FUNCIÓN CORREGIDA - Login
+  // 🔥 FUNCIÓN DE LOGIN SIMPLE (el backend ya incluye equipos)
   const login = ({ usuario, token }) => {
     console.log('\n🚀 === EJECUTANDO LOGIN ===');
-    console.log('👤 Usuario recibido:', usuario);
-    console.log('🔑 Token recibido:', token ? 'Presente' : 'Ausente');
+    console.log('👤 Usuario recibido:', usuario.email);
+    console.log('🏆 Equipos incluidos en login:', usuario.equipos?.length || 0);
     
-    // 🔥 CORREGIDO: Establecer estado primero
+    if (usuario.equipos?.length > 0) {
+      console.log('📋 Equipos recibidos:');
+      usuario.equipos.forEach((eq, i) => {
+        console.log(`  ${i + 1}. ${eq.equipo?.nombre || 'Sin nombre'} - #${eq.numero}`);
+      });
+    }
+    
+    // Establecer estado
     setUsuario(usuario);
     setIsAuthenticated(true);
     
-    // 🔥 CORREGIDO: Guardar en localStorage
+    // Guardar en localStorage
     localStorage.setItem('usuario', JSON.stringify(usuario));
     localStorage.setItem('token', token);
     
-    // 🔥 CORREGIDO: Configurar token para todas las peticiones futuras
+    // Configurar token para futuras peticiones
     axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
-    console.log('✅ Login completado exitosamente');
+    console.log('✅ Login completado con', usuario.equipos?.length || 0, 'equipos');
     console.log('🔚 === FIN LOGIN ===\n');
   };
 
-  // 🔥 FUNCIÓN CORREGIDA - Logout
+  // 🔥 FUNCIÓN DE LOGOUT
   const logout = () => {
     console.log('\n🚪 === EJECUTANDO LOGOUT ===');
     
@@ -103,200 +103,166 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     localStorage.removeItem('usuario');
     localStorage.removeItem('token');
-    
-    // 🔥 CORREGIDO: Eliminar el token de los headers
     delete axiosInstance.defaults.headers.common['Authorization'];
 
     console.log('✅ Logout completado');
-    console.log('🔚 === FIN LOGOUT ===\n');
-    
     navigate('/auth/login');
   };
 
-  // Función para verificar si el usuario tiene un rol específico
-  const tieneRol = (roles) => {
-    if (!usuario || !usuario.rol) return false;
-    
-    if (Array.isArray(roles)) {
-      return roles.includes(usuario.rol);
-    }
-    
-    return usuario.rol === roles;
-  };
-
-  // 🔥 Función específica para verificar si es árbitro
-  const esArbitro = () => {
-    return usuario && usuario.rol === 'arbitro';
-  };
-
-  // 🔥 Función para verificar si puede gestionar equipos (admin y capitán)
-  const puedeGestionarEquipos = () => {
-    return usuario && ['admin', 'capitan'].includes(usuario.rol);
-  };
-
-  // 🔥 Función para verificar si puede gestionar árbitros (solo admin)
-  const puedeGestionarArbitros = () => {
-    return usuario && ['admin'].includes(usuario.rol);
-  };
-
-  // 🔥 Función para verificar si puede gestionar torneos (admin Y capitán)
-  const puedeGestionarTorneos = () => {
-    return usuario && ['admin'].includes(usuario.rol);
-  };
-
-  // 🔥 Función para verificar si puede gestionar usuarios (admin y capitán)
-  const puedeGestionarUsuarios = () => {
-    return usuario && ['admin', 'capitan'].includes(usuario.rol);
-  };
-
-  // 🔥 Validación por ID para edición de perfiles de usuarios
-  const puedeEditarUsuario = (usuarioId, usuarioObjetivo = null) => {
-    if (!usuario) return false;
-    
-    // Admin puede editar cualquier usuario
-    if (usuario.rol === 'admin') return true;
-    
-    // Capitán NO puede editar admin
-    if (usuario.rol === 'capitan') {
-      if (usuarioObjetivo && usuarioObjetivo.rol === 'admin') return false;
-      return true; // Puede editar otros usuarios
-    }
-    
-    // Jugador y árbitro solo pueden editar su propio perfil
-    return usuario._id === usuarioId;
-  };
-
-  // 🔥 Validación por ID para edición de perfiles de árbitros
-  const puedeEditarArbitro = (arbitroUserId) => {
-    if (!usuario) return false;
-    
-    // Admin puede editar cualquier árbitro
-    if (usuario.rol === 'admin') return true;
-    
-    // Árbitro solo puede editar su propio perfil
-    return usuario.rol === 'arbitro' && usuario._id === arbitroUserId;
-  };
-
-  // 🔥 Función para verificar si puede cambiar disponibilidad de árbitros
-  const puedeCambiarDisponibilidadArbitro = (arbitroUserId) => {
-    if (!usuario) return false;
-    
-    // Admin puede cambiar disponibilidad de cualquier árbitro
-    if (usuario.rol === 'admin') return true;
-    
-    // Capitán puede cambiar disponibilidad de árbitros
-    if (usuario.rol === 'capitan') return true;
-    
-    // Árbitro solo puede cambiar su propia disponibilidad
-    return usuario.rol === 'arbitro' && usuario._id === arbitroUserId;
-  };
-
-  // 🔥 Función para verificar si puede eliminar usuarios
-  const puedeEliminarUsuario = (usuarioObjetivo = null) => {
-    if (!usuario) return false;
-    
-    // Admin puede eliminar cualquier usuario (excepto él mismo podríamos agregar)
-    if (usuario.rol === 'admin') return true;
-    
-    // Capitán NO puede eliminar admin
-    if (usuario.rol === 'capitan') {
-      if (usuarioObjetivo && usuarioObjetivo.rol === 'admin') return false;
-      return true;
-    }
-    
-    return false; // Jugadores y árbitros no pueden eliminar usuarios
-  };
-
-  // 🔥 Función para verificar si puede eliminar árbitros
-  const puedeEliminarArbitro = () => {
-    return usuario && ['admin'].includes(usuario.rol);
-  };
-
-  const puedeInscribirseEquipo = (usuarioIdAInscribir = null) => {
-    if (!usuario) return false;
-    
-    // Admin y capitán pueden inscribir a cualquiera
-    if (['admin', 'capitan'].includes(usuario.rol)) return true;
-    
-    // Jugador solo puede inscribirse a sí mismo
-    if (usuario.rol === 'jugador') {
-      // Si no se especifica usuarioIdAInscribir, asumimos que es para sí mismo
-      if (!usuarioIdAInscribir) return true;
-      
-      // Verificar que sea el mismo usuario
-      return usuario._id === usuarioIdAInscribir || usuario.id === usuarioIdAInscribir;
-    }
-    
-    return false;
-  };
-
-  // 🔥 Función para verificar permisos de gestión de partidos
-  const puedeGestionarPartidos = () => {
-    return usuario && ['admin', 'capitan'].includes(usuario.rol);
-  };
-
-  // 🔥 Función para verificar si puede operar partidos en vivo (admin y árbitro)
-  const puedeOperarPartidosEnVivo = () => {
-    return usuario && ['admin', 'arbitro'].includes(usuario.rol);
-  };
-
-  // 🔥 NUEVA FUNCIÓN: Obtener token del localStorage
-  const getStoredToken = () => {
-    return localStorage.getItem('token');
-  };
-
-  // 🔥 NUEVA FUNCIÓN: Verificar si hay token válido
+  // 🔥 FUNCIONES DE UTILIDAD
+  const getStoredToken = () => localStorage.getItem('token');
+  
   const tieneTokenValido = () => {
-    const storedToken = getStoredToken();
-    return !!storedToken && !!usuario;
+    const token = getStoredToken();
+    return !!(token && usuario);
   };
 
-  // 🔥 Función para debugging - muestra información del usuario actual
-  const debugUsuario = () => {
-    const storedToken = getStoredToken();
+  // 🔥 FUNCIONES DE ROLES
+  const tieneRol = (rol) => usuario?.rol === rol;
+  const esArbitro = () => tieneRol('arbitro');
+  const puedeGestionarEquipos = () => ['admin', 'capitan'].includes(usuario?.rol);
+  const puedeGestionarArbitros = () => ['admin'].includes(usuario?.rol);
+  const puedeGestionarTorneos = () => ['admin'].includes(usuario?.rol);
+  const puedeGestionarUsuarios = () => ['admin','capitan'].includes(usuario?.rol);
+  const puedeGestionarPartidos = () => ['admin', 'arbitro'].includes(usuario?.rol);
+  const puedeOperarPartidosEnVivo = () => ['admin', 'arbitro'].includes(usuario?.rol);
+  const puedeEditarUsuario = (usuarioId) => {
+    if (!usuario) return false;
+    return usuario.rol === 'admin' || (usuario._id || usuario.id) === usuarioId;
+  };
+  const puedeEditarArbitro = (arbitroId) => {
+    if (!usuario) return false;
+    return usuario.rol === 'admin' || (usuario._id || usuario.id) === arbitroId;
+  };
+  const puedeCambiarDisponibilidadArbitro = (arbitroId) => {
+    if (!usuario) return false;
+    return usuario.rol === 'admin' || (usuario._id || usuario.id) === arbitroId;
+  };
+  const puedeEliminarUsuario = () => ['admin', 'capitan'].includes(usuario?.rol);
+  const puedeEliminarArbitro = () => usuario?.rol === 'admin';
+  const puedeInscribirseEquipo = () => ['jugador', 'capitan'].includes(usuario?.rol);
+
+  // 🔥 FUNCIONES DE EQUIPOS
+
+  // Obtener equipos del usuario (directo desde usuario.equipos)
+  const obtenerEquiposUsuario = () => {
+    console.log('\n🏆 === OBTENIENDO EQUIPOS DEL USUARIO ===');
+    console.log('👤 Usuario presente:', !!usuario);
+    console.log('📋 Usuario.equipos:', usuario?.equipos?.length || 0);
     
-    console.log('🔍 DEBUG AuthContext:');
-    console.log('  Usuario:', usuario);
-    console.log('  Rol:', usuario?.rol);
-    console.log('  isAuthenticated:', isAuthenticated);
-    console.log('  Token en localStorage:', storedToken ? 'Presente' : 'Ausente');
-    console.log('  Token en axios headers:', axiosInstance.defaults.headers.common['Authorization'] ? 'Configurado' : 'No configurado');
-    console.log('  puedeGestionarTorneos:', puedeGestionarTorneos());
-    console.log('  puedeGestionarPartidos:', puedeGestionarPartidos());
-    console.log('  puedeGestionarEquipos:', puedeGestionarEquipos());
-    console.log('  puedeGestionarArbitros:', puedeGestionarArbitros());
+    if (!usuario?.equipos || usuario.equipos.length === 0) {
+      console.log('❌ No hay equipos');
+      return [];
+    }
+    
+    const equipos = usuario.equipos.map((equipoUsuario, index) => {
+      console.log(`🔍 Equipo ${index + 1}:`, {
+        equipoId: equipoUsuario.equipo?._id,
+        nombre: equipoUsuario.equipo?.nombre,
+        numero: equipoUsuario.numero
+      });
+      
+      return {
+        equipoId: equipoUsuario.equipo?._id || equipoUsuario.equipo,
+        numero: equipoUsuario.numero,
+        equipoData: equipoUsuario.equipo // Ya viene populado desde el backend
+      };
+    });
+    
+    console.log('✅ Equipos procesados:', equipos.length);
+    return equipos;
+  };
+
+  // Verificar si está inscrito en un equipo específico
+  const estaInscritoEnEquipo = (equipoId) => {
+    if (!usuario?.equipos) return false;
+    return usuario.equipos.some(eq => 
+      (eq.equipo?._id || eq.equipo) === equipoId
+    );
+  };
+
+  // Obtener equipos disponibles para inscripción
+  const obtenerEquiposDisponibles = async () => {
+    console.log('\n📊 === OBTENIENDO EQUIPOS DISPONIBLES ===');
+    
+    try {
+      const { data } = await axiosInstance.get('/equipos?estado=activo');
+      const equiposDisponibles = data.equipos || data || [];
+      
+      // Filtrar equipos donde el usuario NO esté inscrito
+      const equiposFiltrados = equiposDisponibles.filter(equipo => {
+        return !estaInscritoEnEquipo(equipo._id);
+      });
+      
+      console.log('✅ Equipos disponibles:', equiposFiltrados.length);
+      return equiposFiltrados;
+    } catch (error) {
+      console.error('❌ Error obteniendo equipos disponibles:', error);
+      return [];
+    }
+  };
+
+  // Actualizar equipos del usuario (refrescar desde la API)
+  const actualizarEquiposUsuario = async () => {
+    console.log('\n🔄 === ACTUALIZANDO EQUIPOS USUARIO ===');
+    
+    try {
+      const { data } = await axiosInstance.get('/auth/perfil');
+      console.log('✅ Perfil actualizado con equipos:', data.equipos?.length || 0);
+      
+      // Actualizar estado y localStorage
+      setUsuario(data);
+      localStorage.setItem('usuario', JSON.stringify(data));
+      
+      console.log('✅ Equipos actualizados correctamente');
+      return true;
+    } catch (error) {
+      console.error('❌ Error actualizando equipos:', error);
+      if (error.response?.status === 401) {
+        logout();
+      }
+      return false;
+    }
+  };
+
+  // Función de debugging
+  const debugUsuario = () => {
+    console.log('\n🐛 === DEBUG USUARIO ===');
+    console.log('👤 Usuario:', !!usuario);
+    console.log('📧 Email:', usuario?.email);
+    console.log('🏆 Equipos:', usuario?.equipos?.length || 0);
+    console.log('🔑 Token válido:', tieneTokenValido());
+    console.log('🔐 Rol:', usuario?.rol);
+    
+    if (usuario?.equipos) {
+      usuario.equipos.forEach((eq, i) => {
+        console.log(`  Equipo ${i + 1}:`, {
+          nombre: eq.equipo?.nombre,
+          numero: eq.numero
+        });
+      });
+    }
     
     return {
-      usuario,
+      usuario: !!usuario,
+      email: usuario?.email,
+      equipos: usuario?.equipos?.length || 0,
       rol: usuario?.rol,
       isAuthenticated,
-      tokenEnLocalStorage: !!storedToken,
-      tokenEnAxios: !!axiosInstance.defaults.headers.common['Authorization'],
-      permisos: {
-        torneos: puedeGestionarTorneos(),
-        partidos: puedeGestionarPartidos(),
-        equipos: puedeGestionarEquipos(),
-        arbitros: puedeGestionarArbitros()
-      }
+      tokenValido: tieneTokenValido()
     };
   };
 
-  // 🔥 FUNCIÓN ADICIONAL: Refrescar datos del usuario
+  // 🔥 REFRESCAR USUARIO
   const refrescarUsuario = async () => {
-    if (!usuario || !tieneTokenValido()) {
-      console.log('❌ No se puede refrescar: usuario o token no válido');
-      return false;
-    }
-
     try {
-      console.log('🔄 Refrescando datos del usuario...');
-      const userId = usuario._id || usuario.id;
-      const { data } = await axiosInstance.get(`/usuarios/${userId}`);
+      console.log('🔄 Refrescando usuario...');
+      const { data } = await axiosInstance.get('/auth/perfil');
       
       setUsuario(data);
       localStorage.setItem('usuario', JSON.stringify(data));
       
-      console.log('✅ Datos del usuario refrescados');
+      console.log('✅ Usuario refrescado con equipos:', data.equipos?.length || 0);
       return true;
     } catch (error) {
       console.error('❌ Error al refrescar usuario:', error);
@@ -316,6 +282,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     tieneRol,
     esArbitro,
+    
     // Funciones de gestión general
     puedeGestionarEquipos,
     puedeGestionarArbitros,
@@ -323,18 +290,28 @@ export const AuthProvider = ({ children }) => {
     puedeGestionarUsuarios,
     puedeGestionarPartidos,
     puedeOperarPartidosEnVivo,
+    
     // Funciones de edición por ID
     puedeEditarUsuario,
     puedeEditarArbitro,
+    
     // Funciones específicas
     puedeCambiarDisponibilidadArbitro,
     puedeEliminarUsuario,
     puedeEliminarArbitro,
     puedeInscribirseEquipo,
-    // 🔥 NUEVAS FUNCIONES
+    
+    // 🔥 FUNCIONES DE EQUIPOS
+    obtenerEquiposUsuario,
+    estaInscritoEnEquipo,
+    obtenerEquiposDisponibles,
+    actualizarEquiposUsuario,
+    
+    // 🔥 FUNCIONES DE UTILIDAD
     getStoredToken,
     tieneTokenValido,
     refrescarUsuario,
+    
     // Función de debugging
     debugUsuario
   };

@@ -132,7 +132,7 @@ exports.registro = async (req, res) => {
   }
 };
 
-// 🔓 Login
+// 🔓 Login CORREGIDO - Incluye equipos populados
 exports.login = async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log(`\n🔑 [${timestamp}] INICIO - Login de usuario`);
@@ -146,7 +146,8 @@ exports.login = async (req, res) => {
     console.log(`  🔒 Password: ${password ? '***provisto***' : 'NO PROVISTO'}`);
 
     console.log('🔍 Buscando usuario en base de datos...');
-    const usuario = await Usuario.findOne({ email });
+    // 🔥 AGREGADO: populate para traer equipos completos
+    const usuario = await Usuario.findOne({ email }).populate('equipos.equipo', 'nombre categoria imagen');
     
     if (!usuario) {
       console.log('❌ ERROR: Usuario no encontrado');
@@ -154,6 +155,8 @@ exports.login = async (req, res) => {
     }
 
     console.log('✅ Usuario encontrado:', usuario.email);
+    console.log('🏆 Equipos del usuario:', usuario.equipos?.length || 0);
+    
     console.log('🔍 Verificando contraseña...');
     
     const passwordValido = await bcrypt.compare(password, usuario.password);
@@ -169,6 +172,24 @@ exports.login = async (req, res) => {
     const token = generarToken(usuario);
     console.log('✅ Token generado');
 
+    // 🔥 PROCESAMIENTO DE EQUIPOS CON URLs
+    let equiposConUrls = [];
+    if (usuario.equipos && usuario.equipos.length > 0) {
+      console.log('🔄 Procesando equipos del usuario...');
+      equiposConUrls = usuario.equipos.map(equipoUsuario => {
+        const equipoObj = {
+          equipo: equipoUsuario.equipo ? {
+            ...equipoUsuario.equipo.toObject(),
+            imagen: getImageUrlServer(equipoUsuario.equipo.imagen, req)
+          } : equipoUsuario.equipo,
+          numero: equipoUsuario.numero
+        };
+        
+        console.log(`  📋 Equipo procesado: ${equipoObj.equipo?.nombre || 'Sin nombre'} - #${equipoObj.numero}`);
+        return equipoObj;
+      });
+    }
+
     const respuesta = {
       usuario: {
         _id: usuario._id,
@@ -176,12 +197,14 @@ exports.login = async (req, res) => {
         email: usuario.email,
         documento: usuario.documento,
         imagen: getImageUrlServer(usuario.imagen, req),
-        rol: usuario.rol
+        rol: usuario.rol,
+        equipos: equiposConUrls // 🔥 AGREGADO: Incluir equipos completos
       },
       token
     };
 
     console.log('📤 Enviando respuesta exitosa');
+    console.log(`🏆 Respuesta incluye ${equiposConUrls.length} equipos`);
     console.log(`✅ [${new Date().toISOString()}] FIN - Login exitoso\n`);
 
     res.json(respuesta);
@@ -469,6 +492,7 @@ exports.eliminarUsuario = async (req, res) => {
   }
 }
 
+// 🔥 FUNCIÓN COMPLETA CON TODAS LAS VALIDACIONES
 exports.agregarJugadorAEquipo = async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log(`\n⚽ [${timestamp}] INICIO - Agregar jugador a equipo`);
@@ -498,8 +522,6 @@ exports.agregarJugadorAEquipo = async (req, res) => {
 
     console.log('✅ Permisos validados');
     console.log(`👤 Usuario logueado: ${usuarioLogueado.nombre} (${usuarioLogueado.rol})`);
-    console.log(`🎯 Usuario a agregar: ${usuarioId}`);
-    console.log(`🏈 Equipo: ${equipoId}`);
 
     console.log('🔍 Buscando jugador...');
     const jugador = await Usuario.findById(usuarioId);
@@ -516,8 +538,9 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       return res.status(404).json({ mensaje: 'Equipo no encontrado' });
     }
     console.log('✅ Equipo encontrado:', equipo.nombre);
+    console.log('📋 Categoría del equipo:', equipo.categoria);
 
-    // Resto de validaciones...
+    // 🔥 VALIDACIÓN 1: Verificar si jugador ya está inscrito
     console.log('🔍 Verificando si jugador ya está inscrito...');
     const yaInscrito = jugador.equipos.some(p => p.equipo.toString() === equipoId);
     if (yaInscrito) {
@@ -525,6 +548,7 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       return res.status(400).json({ mensaje: 'El jugador ya está inscrito en este equipo' });
     }
 
+    // 🔥 VALIDACIÓN 2: Verificar número disponible
     console.log('🔍 Verificando número disponible...');
     const numeroExistente = await Usuario.findOne({
       'equipos.equipo': equipoId,
@@ -535,7 +559,7 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       return res.status(400).json({ mensaje: 'El número ya está en uso por otro jugador en el equipo' });
     }
 
-    // Validaciones de categoría, edad, etc. (misma lógica con logs)
+    // 🔥 VALIDACIÓN 3: Verificar reglas de categoría
     console.log('🔍 Validando reglas de categoría...');
     const reglaNueva = reglasCategorias[equipo.categoria];
     if (!reglaNueva) {
@@ -543,17 +567,112 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       return res.status(400).json({ mensaje: 'Categoría no válida' });
     }
 
-    // ... resto de validaciones con logs similares
+    console.log('📋 Reglas de la categoría:', {
+      sexoPermitido: reglaNueva.sexoPermitido,
+      edadMin: reglaNueva.edadMin,
+      edadMax: reglaNueva.edadMax
+    });
 
+    // 🔥 VALIDACIÓN 4: Extraer datos del CURP
+    console.log('🔍 Extrayendo datos del CURP...');
+    const curp = jugador.documento;
+    
+    if (!curp || curp.length !== 18) {
+      console.log('❌ ERROR: CURP inválido');
+      return res.status(400).json({ mensaje: 'CURP inválido' });
+    }
+
+    const fechaNacimientoCurp = curp.substring(4, 10);
+    const siglo = fechaNacimientoCurp.substring(0, 2);
+    const año = parseInt(siglo) <= 22 ? `20${siglo}` : `19${siglo}`;
+    const mes = fechaNacimientoCurp.substring(2, 4);
+    const dia = fechaNacimientoCurp.substring(4, 6);
+    const fechaNacimiento = new Date(`${año}-${mes}-${dia}`);
+    
+    const sexoCurp = curp.charAt(10);
+    const sexoJugador = sexoCurp === 'H' ? 'M' : sexoCurp === 'M' ? 'F' : null;
+
+    if (!sexoJugador) {
+      console.log('❌ ERROR: No se pudo determinar el sexo del CURP');
+      return res.status(400).json({ mensaje: 'No se pudo determinar el sexo del CURP' });
+    }
+
+    const hoy = new Date();
+    const edadJugador = hoy.getFullYear() - fechaNacimiento.getFullYear() - 
+                      ((hoy.getMonth() < fechaNacimiento.getMonth() || 
+                        (hoy.getMonth() === fechaNacimiento.getMonth() && hoy.getDate() < fechaNacimiento.getDate())) ? 1 : 0);
+
+    console.log('📋 Datos extraídos del CURP:', {
+      fechaNacimiento: fechaNacimiento.toISOString().split('T')[0],
+      sexo: sexoJugador,
+      edad: edadJugador
+    });
+
+    // 🔥 VALIDACIÓN 5: Verificar sexo permitido
+    if (!reglaNueva.sexoPermitido.includes(sexoJugador)) {
+      console.log('❌ ERROR: Sexo no permitido para esta categoría');
+      return res.status(400).json({ 
+        mensaje: `No puede inscribirse a la categoría ${getCategoryName(equipo.categoria)} por restricción de sexo.` 
+      });
+    }
+
+    // 🔥 VALIDACIÓN 6: Verificar edad mínima
+    if (edadJugador < reglaNueva.edadMin) {
+      console.log('❌ ERROR: Edad menor a la mínima permitida');
+      return res.status(400).json({ 
+        mensaje: `Debe tener al menos ${reglaNueva.edadMin} años para inscribirse en la categoría ${getCategoryName(equipo.categoria)}.` 
+      });
+    }
+
+    // 🔥 VALIDACIÓN 7: Verificar edad máxima (si aplica)
+    if (reglaNueva.edadMax !== null && edadJugador > reglaNueva.edadMax) {
+      console.log('❌ ERROR: Edad mayor a la máxima permitida');
+      return res.status(400).json({ 
+        mensaje: `No puede inscribirse en la categoría ${getCategoryName(equipo.categoria)} por restricción de edad máxima.` 
+      });
+    }
+
+    // 🔥 VALIDACIÓN 8: Verificar que no esté en otro equipo de la misma categoría
+    console.log('🔍 Verificando conflictos de categoría...');
+    const equiposJugador = await Usuario.findById(usuarioId).populate('equipos.equipo', 'categoria nombre');
+    
+    if (equiposJugador && equiposJugador.equipos) {
+      const equipoMismaCategoria = equiposJugador.equipos.find(eq => 
+        eq.equipo && eq.equipo.categoria === equipo.categoria
+      );
+      
+      if (equipoMismaCategoria) {
+        console.log('❌ ERROR: Ya inscrito en equipo de la misma categoría');
+        return res.status(400).json({ 
+          mensaje: `Ya estás inscrito en el equipo "${equipoMismaCategoria.equipo.nombre}" de la categoría ${getCategoryName(equipo.categoria)}. No puedes estar en dos equipos de la misma categoría.` 
+        });
+      }
+    }
+
+    console.log('✅ Todas las validaciones pasaron');
+
+    // 🔥 AGREGAR JUGADOR AL EQUIPO
     console.log('💾 Agregando jugador al equipo...');
     jugador.equipos.push({ equipo: equipoId, numero });
     await jugador.save();
 
     console.log('✅ Jugador agregado exitosamente');
+    console.log(`🎉 ${jugador.nombre} agregado al equipo ${equipo.nombre} con número #${numero}`);
     console.log('📤 Enviando confirmación');
     console.log(`✅ [${new Date().toISOString()}] FIN - Jugador agregado\n`);
 
-    return res.status(200).json({ mensaje: 'Jugador agregado al equipo correctamente' });
+    return res.status(200).json({ 
+      mensaje: 'Jugador agregado al equipo correctamente',
+      jugador: {
+        nombre: jugador.nombre,
+        email: jugador.email,
+        numero: numero
+      },
+      equipo: {
+        nombre: equipo.nombre,
+        categoria: getCategoryName(equipo.categoria)
+      }
+    });
 
   } catch (error) {
     console.log(`❌ [${new Date().toISOString()}] ERROR al agregar jugador:`);
@@ -566,4 +685,4 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       error: error.message 
     });
   }
-}
+};
