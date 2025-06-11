@@ -16,46 +16,86 @@ const enriquecerArbitroConUrls = async (arbitro, req) => {
   return arbitroObj;
 };
 
-// 📋 Obtener todos los árbitros
+// 📋 Obtener todos los árbitros - VERSIÓN SÚPER SIMPLE
 exports.obtenerArbitros = async (req, res) => {
-  const timestamp = new Date().toISOString();
-  console.log(`\n👥 [${timestamp}] INICIO - Obtener árbitros`);
+  console.log('\n🔍 [SIMPLE] Obteniendo árbitros...');
 
   try {
-    const { disponible, posicion, ubicacion, estado } = req.query;
-    
-    // Construir filtro dinámico
-    const filtro = {};
-    if (disponible !== undefined) filtro.disponible = disponible === 'true';
-    if (posicion) filtro.posiciones = posicion;
-    if (ubicacion) filtro.ubicacion = new RegExp(ubicacion, 'i');
-    if (estado) filtro.estado = estado;
-
-    console.log('🔍 Filtros aplicados:', filtro);
-
-    const arbitros = await Arbitro.find(filtro)
-      .populate('usuario', 'nombre email imagen documento')
+    // 1. Obtener TODOS los árbitros sin filtros
+    console.log('📊 Paso 1: Obteniendo todos los árbitros de la BD...');
+    const todosLosArbitros = await Arbitro.find({})
+      .populate('usuario', 'nombre email imagen documento rol rolSecundario') // 🔥 ESPECIFICAR CAMPOS
       .sort({ createdAt: -1 });
+
+    console.log(`📦 Total árbitros en BD: ${todosLosArbitros.length}`);
+
+    // 2. Mostrar información detallada de cada uno
+    console.log('\n🧪 ANÁLISIS DETALLADO:');
+    todosLosArbitros.forEach((arbitro, index) => {
+      console.log(`\n  ${index + 1}. ==========================================`);
+      console.log(`     Nombre: ${arbitro.usuario?.nombre || 'SIN NOMBRE'}`);
+      console.log(`     Email: ${arbitro.usuario?.email || 'SIN EMAIL'}`);
+      console.log(`     Rol usuario: ${arbitro.usuario?.rol || 'UNDEFINED'}`);
+      console.log(`     Rol secundario: ${arbitro.usuario?.rolSecundario || 'UNDEFINED'}`);
+      console.log(`     Estado árbitro: ${arbitro.estado || 'UNDEFINED'}`);
+      console.log(`     Disponible: ${arbitro.disponible}`);
+      console.log(`     Nivel: ${arbitro.nivel || 'UNDEFINED'}`);
+      console.log(`     Posiciones: [${arbitro.posiciones?.join(', ') || 'NINGUNA'}]`);
+      console.log(`     Usuario existe: ${arbitro.usuario ? 'SÍ' : 'NO'}`);
+    });
+
+    // 3. FILTRAR POR ROLES CORRECTAMENTE
+    console.log('\n🔍 Aplicando filtros de roles...');
     
-    console.log(`✅ Encontrados ${arbitros.length} árbitros`);
-    
+    const arbitrosFiltrados = todosLosArbitros.filter((arbitro, index) => {
+      if (!arbitro.usuario) {
+        console.log(`  ${index + 1}. SIN USUARIO - EXCLUIDO`);
+        return false;
+      }
+
+      // 🔥 LÓGICA CORREGIDA PARA AMBOS ROLES
+      const esArbitroPrincipal = arbitro.usuario.rol === 'arbitro';
+      const esArbitroSecundario = arbitro.usuario.rolSecundario === 'arbitro';
+      const puedeArbitrar = esArbitroPrincipal || esArbitroSecundario;
+
+      const estaDisponible = arbitro.estado === 'activo' && arbitro.disponible === true;
+      
+      const esValido = puedeArbitrar && estaDisponible;
+      
+      console.log(`  ${index + 1}. ${arbitro.usuario.nombre}:`);
+      console.log(`     - Rol principal: ${arbitro.usuario.rol} (es arbitro: ${esArbitroPrincipal})`);
+      console.log(`     - Rol secundario: ${arbitro.usuario.rolSecundario} (es arbitro: ${esArbitroSecundario})`);
+      console.log(`     - Puede arbitrar: ${puedeArbitrar ? '✅' : '❌'}`);
+      console.log(`     - Está disponible: ${estaDisponible ? '✅' : '❌'}`);
+      console.log(`     - RESULTADO: ${esValido ? '✅ INCLUIDO' : '❌ EXCLUIDO'}`);
+      
+      return esValido;
+    });
+
+    console.log(`\n✅ Árbitros después del filtro: ${arbitrosFiltrados.length} de ${todosLosArbitros.length}`);
+
     // Enriquecer con URLs
     const arbitrosEnriquecidos = [];
-    for (let arbitro of arbitros) {
+    for (let arbitro of arbitrosFiltrados) {
       const arbitroEnriquecido = await enriquecerArbitroConUrls(arbitro, req);
       arbitrosEnriquecidos.push(arbitroEnriquecido);
     }
 
-    console.log('📤 Enviando lista de árbitros');
-    console.log(`✅ [${new Date().toISOString()}] FIN - Árbitros obtenidos\n`);
+    console.log(`📤 Enviando ${arbitrosEnriquecidos.length} árbitros al frontend`);
 
-    res.json({ arbitros: arbitrosEnriquecidos });
+    res.json({ 
+      arbitros: arbitrosEnriquecidos,
+      total: arbitrosEnriquecidos.length,
+      debug: {
+        mensaje: "FILTRADO POR ESTADO Y ROL FLEXIBLE",
+        totalEncontrados: todosLosArbitros.length,
+        filtrados: arbitrosFiltrados.length,
+        enviados: arbitrosEnriquecidos.length
+      }
+    });
 
   } catch (error) {
-    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener árbitros:`);
-    console.error('💥 Error completo:', error);
-    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener árbitros fallido\n`);
-    
+    console.error('❌ ERROR en obtenerArbitros:', error);
     res.status(500).json({ 
       mensaje: 'Error al obtener árbitros', 
       error: error.message 

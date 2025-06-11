@@ -1046,10 +1046,10 @@ exports.registrarJugada = async (req, res) => {
   }
 };
 
-// ⚖️ ASIGNAR ÁRBITROS
+// ⚖️ ASIGNAR/DESASIGNAR ÁRBITROS - ACTUALIZACIÓN DE TU FUNCIÓN EXISTENTE
 exports.asignarArbitros = async (req, res) => {
   const timestamp = new Date().toISOString();
-  console.log(`\n⚖️ [${timestamp}] INICIO - Asignar árbitros`);
+  console.log(`\n⚖️ [${timestamp}] INICIO - Asignar/Desasignar árbitros`);
   console.log('🆔 Partido ID:', req.params.id);
   console.log('📨 Árbitros:', JSON.stringify(req.body, null, 2));
 
@@ -1069,32 +1069,66 @@ exports.asignarArbitros = async (req, res) => {
       return res.status(404).json({ mensaje: 'Partido no encontrado' });
     }
 
-    // Validar que los árbitros existen y están disponibles
-    const arbitrosIds = [principal, backeador, estadistico].filter(Boolean);
+    // 🔥 NUEVA LÓGICA: Separar asignaciones de desasignaciones
+    const asignaciones = {};
+    const posiciones = { principal, backeador, estadistico };
     
-    if (arbitrosIds.length > 0) {
-      console.log('🔍 Validando árbitros...');
+    for (const [posicion, arbitroId] of Object.entries(posiciones)) {
+      if (arbitroId !== undefined) {
+        console.log(`🔄 Procesando posición: ${posicion} con valor: ${arbitroId}`);
+        
+        if (arbitroId === null || arbitroId === "" || arbitroId === "null") {
+          // 🔥 DESASIGNACIÓN
+          console.log(`🚫 Desasignando posición: ${posicion}`);
+          partido.arbitros[posicion] = null;
+        } else {
+          // 🔥 ASIGNACIÓN - guardar para validar después
+          console.log(`✅ Preparando asignación: ${arbitroId} → ${posicion}`);
+          asignaciones[posicion] = arbitroId;
+        }
+      }
+    }
+
+    // 🔥 VALIDAR SOLO LAS ASIGNACIONES (no las desasignaciones)
+    const arbitrosAValidar = Object.values(asignaciones);
+    
+    if (arbitrosAValidar.length > 0) {
+      console.log(`🔍 Validando ${arbitrosAValidar.length} árbitros a asignar...`);
+      
       const arbitrosValidos = await Arbitro.find({
-        _id: { $in: arbitrosIds },
+        _id: { $in: arbitrosAValidar },
         disponible: true,
         estado: 'activo'
-      });
+      }).populate('usuario');
 
-      if (arbitrosValidos.length !== arbitrosIds.length) {
+      if (arbitrosValidos.length !== arbitrosAValidar.length) {
         console.log('❌ ERROR: Uno o más árbitros no están disponibles');
         return res.status(400).json({ 
           mensaje: 'Uno o más árbitros no están disponibles o no existen' 
         });
       }
+
+      // 🔥 VALIDAR ROLES: Verificar que los árbitros pueden arbitrar
+      for (const arbitro of arbitrosValidos) {
+        const puedeArbitrar = arbitro.usuario.rol === 'arbitro' || arbitro.usuario.rolSecundario === 'arbitro';
+        if (!puedeArbitrar) {
+          console.log(`❌ ERROR: ${arbitro.usuario.nombre} no tiene rol de árbitro`);
+          return res.status(400).json({ 
+            mensaje: `${arbitro.usuario.nombre} no tiene permisos para arbitrar` 
+          });
+        }
+      }
+
+      // Realizar las asignaciones después de validar
+      for (const [posicion, arbitroId] of Object.entries(asignaciones)) {
+        console.log(`✅ Asignando ${arbitroId} a posición ${posicion}`);
+        partido.arbitros[posicion] = arbitroId;
+      }
+
+      console.log('✅ Todos los árbitros son válidos y asignados');
     }
 
-    console.log('⚖️ Asignando árbitros...');
-    
-    // Actualizar árbitros del partido
-    if (principal) partido.arbitros.principal = principal;
-    if (backeador) partido.arbitros.backeador = backeador;
-    if (estadistico) partido.arbitros.estadistico = estadistico;
-
+    // Actualizar metadatos
     partido.ultimaActualizacion = {
       fecha: new Date(),
       por: req.usuario._id
@@ -1107,29 +1141,47 @@ exports.asignarArbitros = async (req, res) => {
       path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
       populate: {
         path: 'usuario',
-        select: 'nombre imagen'
+        select: 'nombre imagen email rol rolSecundario'
       }
     });
 
-    console.log('✅ Árbitros asignados exitosamente');
+    console.log('✅ Árbitros actualizados exitosamente');
+    console.log(`  📋 Principal: ${partido.arbitros.principal?.usuario?.nombre || 'No asignado'}`);
+    console.log(`  📋 Backeador: ${partido.arbitros.backeador?.usuario?.nombre || 'No asignado'}`);
+    console.log(`  📋 Estadístico: ${partido.arbitros.estadistico?.usuario?.nombre || 'No asignado'}`);
 
     const partidoEnriquecido = await enriquecerPartidoConUrls(partido, req);
 
     console.log('📤 Enviando respuesta exitosa');
-    console.log(`✅ [${new Date().toISOString()}] FIN - Árbitros asignados\n`);
+    console.log(`✅ [${new Date().toISOString()}] FIN - Árbitros actualizados\n`);
 
     res.json({ 
-      mensaje: 'Árbitros asignados exitosamente', 
-      partido: partidoEnriquecido 
+      mensaje: 'Árbitros actualizados exitosamente', 
+      partido: partidoEnriquecido,
+      arbitrosAsignados: {
+        principal: partido.arbitros.principal?.usuario?.nombre || null,
+        backeador: partido.arbitros.backeador?.usuario?.nombre || null,
+        estadistico: partido.arbitros.estadistico?.usuario?.nombre || null
+      }
     });
 
   } catch (error) {
-    console.log(`❌ [${new Date().toISOString()}] ERROR al asignar árbitros:`);
+    console.log(`❌ [${new Date().toISOString()}] ERROR al asignar/desasignar árbitros:`);
     console.error('💥 Error completo:', error);
+    
+    // 🔥 MEJOR MANEJO DE ERRORES
+    if (error.name === 'CastError' || error.kind === 'ObjectId') {
+      return res.status(400).json({ mensaje: 'ID de árbitro o partido no válido' });
+    }
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ mensaje: 'Datos de validación incorrectos', detalles: error.message });
+    }
+    
     console.log(`❌ [${new Date().toISOString()}] FIN - Asignar árbitros fallido\n`);
     
     res.status(500).json({ 
-      mensaje: 'Error al asignar árbitros', 
+      mensaje: 'Error al asignar/desasignar árbitros', 
       error: error.message 
     });
   }

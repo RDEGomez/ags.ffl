@@ -457,7 +457,7 @@ router.patch('/:id/estado',
   partidoController.cambiarEstado
 );
 
-// ⚖️ ASIGNAR ÁRBITROS
+// ⚖️ ASIGNAR ÁRBITROS - VALIDACIONES CORREGIDAS
 router.post('/:id/arbitros', 
   [
     auth,
@@ -465,24 +465,50 @@ router.post('/:id/arbitros',
     [
       param('id', 'ID de partido debe ser válido').isMongoId(),
       
-      check('principal')
-        .optional()
-        .isMongoId()
-        .withMessage('ID de árbitro principal debe ser válido'),
+      // 🔥 VALIDACIONES CORREGIDAS: Permitir null para desasignar
+      body('principal')
+        .optional({ nullable: true })
+        .custom((value) => {
+          // Permitir null, string vacío para desasignación
+          if (value === null || value === "" || value === "null") {
+            return true;
+          }
+          // Si no es desasignación, debe ser ObjectId válido
+          if (typeof value === 'string' && value.match(/^[0-9a-fA-F]{24}$/)) {
+            return true;
+          }
+          throw new Error('ID de árbitro principal debe ser válido o null para desasignar');
+        }),
       
-      check('backeador')
-        .optional()
-        .isMongoId()
-        .withMessage('ID de árbitro backeador debe ser válido'),
+      body('backeador')
+        .optional({ nullable: true })
+        .custom((value) => {
+          if (value === null || value === "" || value === "null") {
+            return true;
+          }
+          if (typeof value === 'string' && value.match(/^[0-9a-fA-F]{24}$/)) {
+            return true;
+          }
+          throw new Error('ID de árbitro backeador debe ser válido o null para desasignar');
+        }),
       
-      check('estadistico')
-        .optional()
-        .isMongoId()
-        .withMessage('ID de árbitro estadístico debe ser válido'),
+      body('estadistico')
+        .optional({ nullable: true })
+        .custom((value) => {
+          if (value === null || value === "" || value === "null") {
+            return true;
+          }
+          if (typeof value === 'string' && value.match(/^[0-9a-fA-F]{24}$/)) {
+            return true;
+          }
+          throw new Error('ID de árbitro estadístico debe ser válido o null para desasignar');
+        }),
       
-      // Validación personalizada: árbitros diferentes
+      // Validación personalizada: árbitros diferentes (solo válidos, no nulls)
       body(['principal', 'backeador', 'estadistico']).custom((value, { req }) => {
-        const arbitros = [req.body.principal, req.body.backeador, req.body.estadistico].filter(Boolean);
+        const arbitros = [req.body.principal, req.body.backeador, req.body.estadistico]
+          .filter(id => id && id !== null && id !== "" && id !== "null");
+        
         const arbitrosUnicos = new Set(arbitros);
         
         if (arbitros.length !== arbitrosUnicos.size) {

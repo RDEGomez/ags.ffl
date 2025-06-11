@@ -210,11 +210,10 @@ ArbitroSchema.pre('save', function(next) {
   next();
 });
 
-// 🔄 Middleware para popular usuario automáticamente en consultas
 ArbitroSchema.pre(/^find/, function(next) {
   this.populate({
     path: 'usuario',
-    select: 'nombre email imagen documento'
+    select: 'nombre email imagen documento rol rolSecundario'  // ✅ INCLUIR ROLES
   });
   next();
 });
