@@ -9,12 +9,184 @@ import {
   TableContainer, 
   TableHead, 
   TableRow,
-  LinearProgress 
+  LinearProgress,
+  useTheme
 } from '@mui/material';
 import { Assessment as AssessmentIcon } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
 
 const EstadisticasPanel = ({ partido }) => {
-  const estadisticas = partido?.estadisticas || {};
+  const theme = useTheme();
+  const [estadisticas, setEstadisticas] = useState({});
+
+  // 🔄 Calcular estadísticas directamente desde las jugadas
+  useEffect(() => {
+    if (!partido?.jugadas || partido.jugadas.length === 0) {
+      setEstadisticas({
+        equipoLocal: {
+          pases: { intentos: 0, completados: 0, touchdowns: 0 },
+          corridas: { intentos: 0, touchdowns: 0 },
+          defensiva: { tackleos: 0, intercepciones: 0, sacks: 0 },
+          especiales: { conversiones1Pto: 0, conversiones2Pts: 0, safeties: 0 }
+        },
+        equipoVisitante: {
+          pases: { intentos: 0, completados: 0, touchdowns: 0 },
+          corridas: { intentos: 0, touchdowns: 0 },
+          defensiva: { tackleos: 0, intercepciones: 0, sacks: 0 },
+          especiales: { conversiones1Pto: 0, conversiones2Pts: 0, safeties: 0 }
+        }
+      });
+      return;
+    }
+
+    // Inicializar contadores
+    const statsLocal = {
+      pases: { intentos: 0, completados: 0, touchdowns: 0 },
+      corridas: { intentos: 0, touchdowns: 0 },
+      defensiva: { tackleos: 0, intercepciones: 0, sacks: 0 },
+      especiales: { conversiones1Pto: 0, conversiones2Pts: 0, safeties: 0 }
+    };
+    
+    const statsVisitante = {
+      pases: { intentos: 0, completados: 0, touchdowns: 0 },
+      corridas: { intentos: 0, touchdowns: 0 },
+      defensiva: { tackleos: 0, intercepciones: 0, sacks: 0 },
+      especiales: { conversiones1Pto: 0, conversiones2Pts: 0, safeties: 0 }
+    };
+
+    // Procesar cada jugada
+    partido.jugadas.forEach(jugada => {
+      // Determinar si el equipo en posesión es local
+      const equipoEnPosesionId = jugada.equipoEnPosesion?._id || jugada.equipoEnPosesion;
+      const equipoLocalId = partido.equipoLocal?._id || partido.equipoLocal;
+      const esLocal = equipoEnPosesionId?.toString() === equipoLocalId?.toString();
+      
+      console.log('🔍 Procesando jugada:', {
+        tipo: jugada.tipoJugada,
+        equipoEnPosesion: equipoEnPosesionId,
+        equipoLocal: equipoLocalId,
+        esLocal,
+        resultado: jugada.resultado
+      });
+      
+      // Estadísticas según tipo de jugada
+      switch(jugada.tipoJugada) {
+        case 'pase_completo':
+          if (esLocal) {
+            statsLocal.pases.intentos++;
+            statsLocal.pases.completados++;
+            if (jugada.resultado?.touchdown) statsLocal.pases.touchdowns++;
+          } else {
+            statsVisitante.pases.intentos++;
+            statsVisitante.pases.completados++;
+            if (jugada.resultado?.touchdown) statsVisitante.pases.touchdowns++;
+          }
+          break;
+          
+        case 'pase_incompleto':
+          if (esLocal) {
+            statsLocal.pases.intentos++;
+          } else {
+            statsVisitante.pases.intentos++;
+          }
+          break;
+          
+        case 'corrida':
+          if (esLocal) {
+            statsLocal.corridas.intentos++;
+            if (jugada.resultado?.touchdown) statsLocal.corridas.touchdowns++;
+          } else {
+            statsVisitante.corridas.intentos++;
+            if (jugada.resultado?.touchdown) statsVisitante.corridas.touchdowns++;
+          }
+          break;
+          
+        case 'intercepcion':
+          // ⚠️ CLAVE: La intercepción se anota al equipo DEFENSOR (el que NO tenía posesión)
+          if (esLocal) {
+            // Si el local tenía posesión, el visitante hace la intercepción
+            statsVisitante.defensiva.intercepciones++;
+            if (jugada.resultado?.touchdown) statsVisitante.pases.touchdowns++;
+          } else {
+            // Si el visitante tenía posesión, el local hace la intercepción
+            statsLocal.defensiva.intercepciones++;
+            if (jugada.resultado?.touchdown) statsLocal.pases.touchdowns++;
+          }
+          break;
+          
+        case 'sack':
+          // ⚠️ CLAVE: El sack se anota al equipo DEFENSOR
+          if (esLocal) {
+            statsVisitante.defensiva.sacks++;
+          } else {
+            statsLocal.defensiva.sacks++;
+          }
+          break;
+          
+        case 'tackleo':
+          // ⚠️ CLAVE: El tackleo se anota al equipo DEFENSOR
+          if (esLocal) {
+            statsVisitante.defensiva.tackleos++;
+          } else {
+            statsLocal.defensiva.tackleos++;
+          }
+          break;
+          
+        case 'touchdown':
+          // Para touchdowns directos
+          if (esLocal) {
+            if (jugada.descripcion?.toLowerCase().includes('pase')) {
+              statsLocal.pases.touchdowns++;
+            } else {
+              statsLocal.corridas.touchdowns++;
+            }
+          } else {
+            if (jugada.descripcion?.toLowerCase().includes('pase')) {
+              statsVisitante.pases.touchdowns++;
+            } else {
+              statsVisitante.corridas.touchdowns++;
+            }
+          }
+          break;
+          
+        case 'conversion_1pt':
+          if (esLocal) {
+            statsLocal.especiales.conversiones1Pto++;
+          } else {
+            statsVisitante.especiales.conversiones1Pto++;
+          }
+          break;
+          
+        case 'conversion_2pt':
+          if (esLocal) {
+            statsLocal.especiales.conversiones2Pts++;
+          } else {
+            statsVisitante.especiales.conversiones2Pts++;
+          }
+          break;
+          
+        case 'safety':
+          if (esLocal) {
+            statsLocal.especiales.safeties++;
+          } else {
+            statsVisitante.especiales.safeties++;
+          }
+          break;
+      }
+    });
+    
+    console.log('📊 Estadísticas calculadas:', {
+      local: statsLocal,
+      visitante: statsVisitante
+    });
+    
+    setEstadisticas({
+      equipoLocal: statsLocal,
+      equipoVisitante: statsVisitante
+    });
+
+  }, [partido?.jugadas, partido?.equipoLocal, partido?.equipoVisitante]);
+
   const equipoLocal = estadisticas.equipoLocal || {};
   const equipoVisitante = estadisticas.equipoVisitante || {};
 
@@ -48,25 +220,25 @@ const EstadisticasPanel = ({ partido }) => {
               {tipo === 'porcentaje' ? `${localValue}%` : localValue}
             </Typography>
           </Box>
-
-          {/* Barra de progreso */}
+          
+          {/* Barra de progreso comparativa */}
           <Box sx={{ flex: 1, position: 'relative' }}>
-            <LinearProgress
-              variant="determinate"
-              value={localPorcentaje}
+            <LinearProgress 
+              variant="determinate" 
+              value={localPorcentaje} 
               sx={{
                 height: 8,
                 borderRadius: 4,
                 backgroundColor: 'rgba(156, 39, 176, 0.3)',
                 '& .MuiLinearProgress-bar': {
-                  borderRadius: 4,
-                  backgroundColor: '#2196f3'
+                  backgroundColor: '#2196f3',
+                  borderRadius: 4
                 }
               }}
             />
-            <LinearProgress
-              variant="determinate"
-              value={visitantePorcentaje}
+            <LinearProgress 
+              variant="determinate" 
+              value={visitantePorcentaje} 
               sx={{
                 height: 8,
                 borderRadius: 4,
@@ -76,13 +248,13 @@ const EstadisticasPanel = ({ partido }) => {
                 left: `${localPorcentaje}%`,
                 backgroundColor: 'transparent',
                 '& .MuiLinearProgress-bar': {
-                  borderRadius: 4,
-                  backgroundColor: '#9c27b0'
+                  backgroundColor: '#9c27b0',
+                  borderRadius: 4
                 }
               }}
             />
           </Box>
-
+          
           {/* Valor Visitante */}
           <Box sx={{ width: 60, textAlign: 'left' }}>
             <Typography variant="h6" sx={{ color: '#9c27b0', fontWeight: 'bold' }}>
@@ -94,84 +266,59 @@ const EstadisticasPanel = ({ partido }) => {
     );
   };
 
-  return (
-    <Box>
-      <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
-        Estadísticas del Partido
-      </Typography>
-
-      {/* Marcador Principal */}
-      <Paper sx={{
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 2,
-        p: 3,
-        textAlign: 'center',
-        mb: 4
-      }}>
-        <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-          Marcador Final
+  // Si no hay jugadas registradas
+  if (!partido?.jugadas || partido.jugadas.length === 0) {
+    return (
+      <Box sx={{ py: 4, textAlign: 'center' }}>
+        <AssessmentIcon sx={{ fontSize: 60, color: 'rgba(255,255,255,0.3)', mb: 2 }} />
+        <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+          No hay estadísticas disponibles
         </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
-          <Box>
-            <Typography variant="h3" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
-              {partido?.marcador?.local || 0}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'white' }}>
-              {partido?.equipoLocal?.nombre}
-            </Typography>
-          </Box>
-          <Typography variant="h3" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-            -
-          </Typography>
-          <Box>
-            <Typography variant="h3" sx={{ color: '#9c27b0', fontWeight: 'bold' }}>
-              {partido?.marcador?.visitante || 0}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'white' }}>
-              {partido?.equipoVisitante?.nombre}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+          Las estadísticas se generarán automáticamente cuando se registren jugadas en el partido.
+        </Typography>
+      </Box>
+    );
+  }
 
-      {/* Comparación Visual */}
+  return (
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ mb: 3, textAlign: 'center' }}>
+        <Typography variant="h5" sx={{ color: 'white', mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <AssessmentIcon />
+          Estadísticas del Partido
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          Basado en {partido.jugadas.length} jugada{partido.jugadas.length !== 1 ? 's' : ''} registrada{partido.jugadas.length !== 1 ? 's' : ''}
+        </Typography>
+      </Box>
+
+      {/* Panel de Comparación Visual */}
       <Paper sx={{
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: 2,
         p: 3,
-        mb: 4
+        mb: 3
       }}>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 2, 
-          mb: 3,
-          justifyContent: 'center'
-        }}>
-          <AssessmentIcon sx={{ color: '#64b5f6' }} />
-          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-            Comparación de Rendimiento
-          </Typography>
-        </Box>
-
+        {/* Nombres de equipos */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={5} sx={{ textAlign: 'center' }}>
             <Typography variant="h6" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
-              {partido?.equipoLocal?.nombre}
+              {partido?.equipoLocal?.nombre || 'Equipo Local'}
             </Typography>
           </Grid>
           <Grid item xs={2}></Grid>
           <Grid item xs={5} sx={{ textAlign: 'center' }}>
             <Typography variant="h6" sx={{ color: '#9c27b0', fontWeight: 'bold' }}>
-              {partido?.equipoVisitante?.nombre}
+              {partido?.equipoVisitante?.nombre || 'Equipo Visitante'}
             </Typography>
           </Grid>
         </Grid>
 
         <ComparacionStat
-          label="Touchdowns"
+          label="Touchdowns Totales"
           localValue={getTotalTouchdowns(equipoLocal)}
           visitanteValue={getTotalTouchdowns(equipoVisitante)}
         />
@@ -190,9 +337,9 @@ const EstadisticasPanel = ({ partido }) => {
         />
 
         <ComparacionStat
-          label="Intercepciones"
-          localValue={equipoLocal.pases?.intercepciones || 0}
-          visitanteValue={equipoVisitante.pases?.intercepciones || 0}
+          label="Intercepciones (Defensiva)"
+          localValue={equipoLocal.defensiva?.intercepciones || 0}
+          visitanteValue={equipoVisitante.defensiva?.intercepciones || 0}
         />
 
         <ComparacionStat
@@ -219,7 +366,7 @@ const EstadisticasPanel = ({ partido }) => {
             p: 3
           }}>
             <Typography variant="h6" sx={{ color: '#2196f3', mb: 2, textAlign: 'center' }}>
-              {partido?.equipoLocal?.nombre}
+              📊 {partido?.equipoLocal?.nombre || 'Equipo Local'}
             </Typography>
 
             <TableContainer>
@@ -277,10 +424,10 @@ const EstadisticasPanel = ({ partido }) => {
                   </TableRow>
                   <TableRow>
                     <TableCell sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}>
-                      Intercepciones
+                      Intercepciones (Def)
                     </TableCell>
                     <TableCell sx={{ color: '#f44336', borderColor: 'rgba(255,255,255,0.1)', fontWeight: 'bold' }}>
-                      {equipoLocal.pases?.intercepciones || 0}
+                      {equipoLocal.defensiva?.intercepciones || 0}
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -314,7 +461,7 @@ const EstadisticasPanel = ({ partido }) => {
             p: 3
           }}>
             <Typography variant="h6" sx={{ color: '#9c27b0', mb: 2, textAlign: 'center' }}>
-              {partido?.equipoVisitante?.nombre}
+              📊 {partido?.equipoVisitante?.nombre || 'Equipo Visitante'}
             </Typography>
 
             <TableContainer>
@@ -372,10 +519,10 @@ const EstadisticasPanel = ({ partido }) => {
                   </TableRow>
                   <TableRow>
                     <TableCell sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}>
-                      Intercepciones
+                      Intercepciones (Def)
                     </TableCell>
                     <TableCell sx={{ color: '#f44336', borderColor: 'rgba(255,255,255,0.1)', fontWeight: 'bold' }}>
-                      {equipoVisitante.pases?.intercepciones || 0}
+                      {equipoVisitante.defensiva?.intercepciones || 0}
                     </TableCell>
                   </TableRow>
                   <TableRow>

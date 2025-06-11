@@ -6,6 +6,9 @@ const { check } = require('express-validator');
 const importacionController = require('../controllers/importacionController');
 const { auth, checkRole } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
+const Papa = require('papaparse');
+const Equipo = require('../models/Equipo');
+const Partido = require('../models/Partido');
 
 const uploadLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 60 * 60 * 1000, // 1 hora
@@ -147,11 +150,9 @@ router.post('/jugadas',
 // 📋 DESCARGAR PLANTILLAS CSV
 router.get('/plantillas/:tipo',
   [
-    [
-      check('tipo')
-        .isIn(['partidos', 'jugadas'])
-        .withMessage('Tipo debe ser "partidos" o "jugadas"')
-    ]
+    check('tipo')
+      .isIn(['partidos', 'jugadas'])
+      .withMessage('Tipo debe ser "partidos" o "jugadas"')
   ],
   importacionController.descargarPlantilla
 );
@@ -160,11 +161,9 @@ router.get('/plantillas/:tipo',
 router.get('/progreso/:procesoId',
   [
     auth,
-    [
-      check('procesoId')
-        .isMongoId()
-        .withMessage('ID de proceso debe ser válido')
-    ]
+    check('procesoId')
+      .isMongoId()
+      .withMessage('ID de proceso debe ser válido')
   ],
   importacionController.obtenerProgresoImportacion
 );
@@ -185,53 +184,60 @@ router.post('/validar',
   ],
   async (req, res) => {
     try {
-      console.log('\n🔍 VALIDANDO ARCHIVO CSV - MODO PREVIEW');
+      const { tipo } = req.body;
       
       if (!req.file) {
         return res.status(400).json({ mensaje: 'No se proporcionó archivo CSV' });
       }
 
-      const Papa = require('papaparse');
-      const fileContent = req.file.buffer.toString('utf8');
+      console.log(`🔍 Validando archivo CSV de tipo: ${tipo}`);
       
-      // Parsear CSV
-      const parseResult = Papa.parse(fileContent, {
+      const csvString = req.file.buffer.toString('utf8');
+      const parseResult = Papa.parse(csvString, {
         header: true,
         skipEmptyLines: true,
-        dynamicTyping: true,
+        dynamicTyping: false,
+        delimitersToGuess: [',', '\t', '|', ';'],
         transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_')
       });
 
       const data = parseResult.data;
-      const headers = Object.keys(data[0] || {});
+      
+      if (!data || data.length === 0) {
+        return res.status(400).json({ 
+          mensaje: 'El archivo CSV está vacío o no tiene datos válidos',
+          valido: false
+        });
+      }
 
-      // 🔥 MODIFICADO: Campos esperados según el tipo - AHORA USA NÚMEROS
+      const headers = Object.keys(data[0] || {});
+      
+      // 🔥 MODIFICADO: Campos esperados para jugadas ahora incluyen números en lugar de nombres
       const camposEsperados = {
         partidos: [
           { key: 'equipo_local', required: true, description: 'Nombre del equipo local' },
           { key: 'equipo_visitante', required: true, description: 'Nombre del equipo visitante' },
           { key: 'torneo', required: true, description: 'Nombre del torneo' },
-          { key: 'fecha_hora', required: true, description: 'Fecha y hora (YYYY-MM-DD HH:MM)' },
-          { key: 'categoria', required: false, description: 'Categoría del partido' },
+          { key: 'fecha_hora', required: true, description: 'Fecha y hora del partido' },
+          { key: 'categoria', required: false, description: 'Categoría de los equipos' },
           { key: 'sede_nombre', required: false, description: 'Nombre de la sede' },
           { key: 'sede_direccion', required: false, description: 'Dirección de la sede' },
           { key: 'arbitro_principal', required: false, description: 'Nombre del árbitro principal' },
-          { key: 'estado', required: false, description: 'Estado del partido (programado, finalizado, etc.)' },
-          { key: 'marcador_local', required: false, description: 'Puntos del equipo local' },
-          { key: 'marcador_visitante', required: false, description: 'Puntos del equipo visitante' },
-          { key: 'observaciones', required: false, description: 'Comentarios adicionales' },
-          { key: 'duracion_minutos', required: false, description: 'Duración en minutos (default: 50)' }
+          { key: 'estado', required: false, description: 'Estado del partido' },
+          { key: 'marcador_local', required: false, description: 'Marcador del equipo local' },
+          { key: 'marcador_visitante', required: false, description: 'Marcador del equipo visitante' },
+          { key: 'observaciones', required: false, description: 'Observaciones del partido' },
+          { key: 'duracion_minutos', required: false, description: 'Duración en minutos' }
         ],
         jugadas: [
-          { key: 'partido_id', required: true, description: 'ID del partido (ObjectId)' },
+          { key: 'partido_id', required: true, description: 'ID del partido' },
           { key: 'minuto', required: false, description: 'Minuto de la jugada' },
           { key: 'segundo', required: false, description: 'Segundo de la jugada' },
-          { key: 'periodo', required: false, description: 'Período del partido (1 o 2)' },
-          { key: 'equipo_posesion', required: true, description: 'Nombre del equipo en posesión' },
-          { key: 'tipo_jugada', required: true, description: 'Tipo de jugada (pase_completo, touchdown, etc.)' },
-          // 🔥 CAMBIADO: De nombres a números de jugadores
-          { key: 'numero_jugador_principal', required: true, description: 'Número del jugador principal (ej: 12)' },
-          { key: 'numero_jugador_secundario', required: false, description: 'Número del jugador secundario (ej: 25)' },
+          { key: 'periodo', required: false, description: 'Período del juego' },
+          { key: 'equipo_posesion', required: true, description: 'Equipo en posesión' },
+          { key: 'tipo_jugada', required: true, description: 'Tipo de jugada' },
+          { key: 'numero_jugador_principal', required: true, description: 'Número del jugador principal' },
+          { key: 'numero_jugador_secundario', required: false, description: 'Número del jugador secundario' },
           { key: 'descripcion', required: false, description: 'Descripción de la jugada' },
           { key: 'puntos', required: false, description: 'Puntos obtenidos' },
           { key: 'touchdown', required: false, description: 'Es touchdown (true/false)' },
@@ -240,31 +246,30 @@ router.post('/validar',
         ]
       };
 
-      const campos = camposEsperados[req.body.tipo] || camposEsperados.partidos;
+      const campos = camposEsperados[tipo] || camposEsperados.partidos;
 
       // Validar estructura
       const camposRequeridos = campos.filter(c => c.required).map(c => c.key);
       const camposFaltantes = camposRequeridos.filter(campo => !headers.includes(campo));
       const camposExtra = headers.filter(header => !campos.find(c => c.key === header));
 
-      // 🔥 NUEVA VALIDACIÓN: Verificar si se están usando nombres en lugar de números
+      // 🔥 NUEVO: Detectar campos obsoletos (para jugadas)
       const camposObsoletos = [];
-      if (req.body.tipo === 'jugadas') {
-        // Verificar si están usando los campos antiguos (nombres)
-        if (headers.includes('jugador_principal')) {
-          camposObsoletos.push({
-            campoEncontrado: 'jugador_principal',
-            campoNuevo: 'numero_jugador_principal',
-            mensaje: 'Ahora se debe usar el número del jugador en lugar del nombre'
-          });
-        }
-        if (headers.includes('jugador_secundario')) {
-          camposObsoletos.push({
-            campoEncontrado: 'jugador_secundario',
-            campoNuevo: 'numero_jugador_secundario',
-            mensaje: 'Ahora se debe usar el número del jugador en lugar del nombre'
-          });
-        }
+      if (tipo === 'jugadas') {
+        const obsoletos = [
+          { campo: 'jugador_principal', nuevo: 'numero_jugador_principal' },
+          { campo: 'jugador_secundario', nuevo: 'numero_jugador_secundario' }
+        ];
+        
+        obsoletos.forEach(({ campo, nuevo }) => {
+          if (headers.includes(campo)) {
+            camposObsoletos.push({
+              campoEncontrado: campo,
+              campoNuevo: nuevo,
+              mensaje: `El campo "${campo}" está obsoleto. Usa "${nuevo}" con números enteros`
+            });
+          }
+        });
       }
 
       // Análisis de datos
@@ -302,7 +307,7 @@ router.post('/validar',
         camposObsoletos.forEach(obsoleto => {
           analisis.validacion.erroresEstructura.push({
             tipo: 'error',
-            mensaje: `Campo obsoleto encontrado: "${obsoleto.campoEncontrado}". ${obsoleto.mensaje}. Use "${obsoleto.campoNuevo}" en su lugar.`
+            mensaje: `Campo obsoleto encontrado: "${obsoleto.campoEncontrado}". ${obsoleto.mensaje}.`
           });
         });
       }
@@ -321,45 +326,23 @@ router.post('/validar',
         });
       }
 
-      // 🔥 VALIDACIÓN ADICIONAL: Verificar formato de números de jugadores
-      if (req.body.tipo === 'jugadas' && data.length > 0) {
-        let erroresNumeros = 0;
-        const primerasFilas = data.slice(0, 3); // Verificar solo las primeras 3 filas para el preview
-        
-        primerasFilas.forEach((fila, index) => {
-          // Verificar jugador principal
-          if (fila.numero_jugador_principal) {
-            const numero = parseInt(fila.numero_jugador_principal);
+      // 🔥 MODIFICADO: Validación adicional para números de jugadores
+      if (tipo === 'jugadas' && data.length > 0) {
+        const erroresNumeros = [];
+        data.slice(0, 10).forEach((fila, index) => { // Validar primeras 10 filas
+          const numeroJugadorPrincipal = fila.numero_jugador_principal;
+          if (numeroJugadorPrincipal) {
+            const numero = parseInt(numeroJugadorPrincipal);
             if (isNaN(numero) || numero <= 0) {
-              erroresNumeros++;
-              if (erroresNumeros <= 2) { // Solo mostrar los primeros 2 errores
-                analisis.validacion.erroresEstructura.push({
-                  tipo: 'error',
-                  mensaje: `Fila ${index + 2}: "numero_jugador_principal" debe ser un número positivo, encontrado: "${fila.numero_jugador_principal}"`
-                });
-              }
-            }
-          }
-          
-          // Verificar jugador secundario (si existe)
-          if (fila.numero_jugador_secundario) {
-            const numero = parseInt(fila.numero_jugador_secundario);
-            if (isNaN(numero) || numero <= 0) {
-              erroresNumeros++;
-              if (erroresNumeros <= 2) { // Solo mostrar los primeros 2 errores
-                analisis.validacion.erroresEstructura.push({
-                  tipo: 'error',
-                  mensaje: `Fila ${index + 2}: "numero_jugador_secundario" debe ser un número positivo, encontrado: "${fila.numero_jugador_secundario}"`
-                });
-              }
+              erroresNumeros.push(`Fila ${index + 2}: "${numeroJugadorPrincipal}" no es un número válido`);
             }
           }
         });
-        
-        if (erroresNumeros > 2) {
+
+        if (erroresNumeros.length > 0) {
           analisis.validacion.erroresEstructura.push({
-            tipo: 'warning',
-            mensaje: `Se encontraron ${erroresNumeros} errores de formato en números de jugadores. Revisa todos los valores.`
+            tipo: 'error',
+            mensaje: `Números de jugador inválidos detectados: ${erroresNumeros.slice(0, 3).join(', ')}${erroresNumeros.length > 3 ? '...' : ''}. Revisa todos los valores.`
           });
         }
       }
@@ -411,8 +394,6 @@ router.get('/estadisticas',
     try {
       console.log('📊 Obteniendo estadísticas de importación...');
       
-      const Partido = require('../models/Partido');
-      
       // Estadísticas de partidos
       const totalPartidos = await Partido.countDocuments();
       const partidosConJugadas = await Partido.countDocuments({ 
@@ -451,10 +432,9 @@ router.get('/estadisticas',
           },
           rendimiento: {
             cobertura: partidosConJugadas > 0 ? Math.round((partidosConJugadas / totalPartidos) * 100) : 0,
-            actividad: partidosRecientes
+            partidosRecientes: partidosRecientes
           }
-        },
-        timestamp: new Date().toISOString()
+        }
       });
 
     } catch (error) {
@@ -467,131 +447,140 @@ router.get('/estadisticas',
   }
 );
 
-// 📊 OBTENER INFORMACIÓN DE EQUIPOS Y CATEGORÍAS
-router.get('/equipos-info',
-  auth,
-  importacionController.obtenerInfoEquiposYCategorias
+// 🔍 OBTENER INFORMACIÓN DE EQUIPOS Y CATEGORÍAS
+router.get('/equipos',
+  [auth],
+  importacionController.obtenerInformacionEquipos
 );
 
-// 🔍 VALIDAR CONFLICTOS DE EQUIPOS ANTES DE IMPORTAR
-router.post('/validar-equipos',
+// 🔥 NUEVA FUNCIÓN: VALIDAR CONFLICTOS DE EQUIPOS
+router.post('/validar-conflictos',
   [
     uploadLimiter,
     auth,
     checkRole('admin', 'arbitro'),
     upload.single('archivo'),
-    handleMulterError,
-    [
-      check('mostrarConflictos')
-        .optional()
-        .isBoolean()
-        .withMessage('mostrarConflictos debe ser un booleano')
-    ]
+    handleMulterError
   ],
   async (req, res) => {
     try {
-      console.log('\n🔍 VALIDANDO CONFLICTOS DE EQUIPOS - MODO PREVIEW');
-      
       if (!req.file) {
         return res.status(400).json({ mensaje: 'No se proporcionó archivo CSV' });
       }
 
-      const Papa = require('papaparse');
-      const fileContent = req.file.buffer.toString('utf8');
+      console.log('🔍 Validando conflictos de equipos...');
       
-      // Parsear CSV
-      const parseResult = Papa.parse(fileContent, {
+      const csvString = req.file.buffer.toString('utf8');
+      const parseResult = Papa.parse(csvString, {
         header: true,
         skipEmptyLines: true,
-        dynamicTyping: true,
         transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_')
       });
 
       const data = parseResult.data;
-      const headers = Object.keys(data[0] || {});
+      
+      if (!data || data.length === 0) {
+        return res.status(400).json({ 
+          mensaje: 'El archivo CSV está vacío',
+          valido: false
+        });
+      }
 
-      // Detectar mapeo automático
-      const detectarMapeoAutomatico = (headers) => {
-        const mappings = {};
-        
-        const camposEsperados = {
-          equipo_local: ['equipo_local', 'local', 'home', 'casa', 'equipo1'],
-          equipo_visitante: ['equipo_visitante', 'visitante', 'away', 'visita', 'equipo2'],
-          categoria: ['categoria', 'category', 'division', 'clase']
-        };
-        
-        Object.entries(camposEsperados).forEach(([campo, alternativas]) => {
-          const header = headers.find(h => {
-            const headerNormalizado = h.toLowerCase().replace(/[_\s-]/g, '');
-            return alternativas.some(alt => 
-              headerNormalizado === alt.replace(/[_\s-]/g, '') ||
-              headerNormalizado.includes(alt.replace(/[_\s-]/g, '')) ||
-              alt.replace(/[_\s-]/g, '').includes(headerNormalizado)
-            );
-          });
-          
-          if (header) {
-            mappings[campo] = header;
-          }
+      // Detectar mappings automáticamente
+      const headers = Object.keys(data[0] || {});
+      const mappings = {};
+      
+      // Mapeo automático de campos de equipos
+      const camposEquipos = {
+        equipo_local: ['equipo_local', 'local', 'home_team', 'equipo_casa', 'team_home'],
+        equipo_visitante: ['equipo_visitante', 'visitante', 'away_team', 'equipo_visita', 'team_away'],
+        categoria: ['categoria', 'category', 'division', 'league']
+      };
+      
+      Object.entries(camposEquipos).forEach(([campo, alternativas]) => {
+        const header = headers.find(h => {
+          const headerNormalizado = h.toLowerCase().replace(/[_\s-]/g, '');
+          return alternativas.some(alt => 
+            headerNormalizado === alt.replace(/[_\s-]/g, '') ||
+            headerNormalizado.includes(alt.replace(/[_\s-]/g, '')) ||
+            alt.replace(/[_\s-]/g, '').includes(headerNormalizado)
+          );
         });
         
-        return mappings;
-      };
+        if (header) {
+          mappings[campo] = header;
+        }
+      });
 
-      const mappings = detectarMapeoAutomatico(headers);
-      
-      // Validar equipos y detectar conflictos
-      const { validarEquiposEnCSV } = require('../controllers/importacionController');
-      const conflictosPotenciales = await validarEquiposEnCSV(data, mappings);
-      
-      // Obtener estadísticas de equipos
-      const Equipo = require('../models/Equipo');
-      const equiposActivos = await Equipo.countDocuments({ estado: 'activo' });
-      
       // Extraer equipos únicos del CSV
       const equiposEnCSV = new Set();
       data.forEach(fila => {
-        if (fila[mappings.equipo_local]) equiposEnCSV.add(fila[mappings.equipo_local]);
-        if (fila[mappings.equipo_visitante]) equiposEnCSV.add(fila[mappings.equipo_visitante]);
+        if (mappings.equipo_local && fila[mappings.equipo_local]) {
+          equiposEnCSV.add(fila[mappings.equipo_local].trim());
+        }
+        if (mappings.equipo_visitante && fila[mappings.equipo_visitante]) {
+          equiposEnCSV.add(fila[mappings.equipo_visitante].trim());
+        }
+      });
+
+      // Obtener equipos de la base de datos
+      const equiposDB = await Equipo.find({ estado: 'activo' });
+      
+      // Analizar conflictos potenciales
+      const conflictosPotenciales = [];
+      const equiposCoincidentes = [];
+      
+      Array.from(equiposEnCSV).forEach(equipoCSV => {
+        const coincidencias = equiposDB.filter(equipoDB => 
+          equipoDB.nombre.toLowerCase().includes(equipoCSV.toLowerCase()) ||
+          equipoCSV.toLowerCase().includes(equipoDB.nombre.toLowerCase())
+        );
+        
+        if (coincidencias.length === 0) {
+          conflictosPotenciales.push({
+            equipoCSV,
+            problema: 'No encontrado',
+            sugerencias: equiposDB
+              .filter(e => e.nombre.toLowerCase().charAt(0) === equipoCSV.toLowerCase().charAt(0))
+              .slice(0, 3)
+              .map(e => ({ nombre: e.nombre, categoria: e.categoria }))
+          });
+        } else if (coincidencias.length > 1) {
+          conflictosPotenciales.push({
+            equipoCSV,
+            problema: 'Múltiples coincidencias',
+            sugerencias: coincidencias.map(e => ({ nombre: e.nombre, categoria: e.categoria }))
+          });
+        } else {
+          equiposCoincidentes.push({
+            equipoCSV,
+            equipoDB: coincidencias[0].nombre,
+            categoria: coincidencias[0].categoria
+          });
+        }
       });
 
       const analisis = {
         archivo: {
           nombre: req.file.originalname,
-          filas: data.length,
-          equiposUnicos: equiposEnCSV.size
+          equiposUnicos: equiposEnCSV.size,
+          partidos: data.length
         },
-        sistema: {
-          equiposActivos: equiposActivos,
-          categoriaIncluida: !!mappings.categoria
+        mappings: mappings,
+        equipos: {
+          coincidentes: equiposCoincidentes.length,
+          conflictivos: conflictosPotenciales.length,
+          porcentajeCoincidencia: Math.round((equiposCoincidentes.length / equiposEnCSV.size) * 100)
         },
-        conflictos: {
-          detectados: conflictosPotenciales.length,
-          detalles: conflictosPotenciales
-        },
-        recomendaciones: []
+        conflictos: conflictosPotenciales,
+        coincidencias: equiposCoincidentes
       };
 
-      if (conflictosPotenciales.length > 0 && !mappings.categoria) {
-        analisis.recomendaciones.push({
-          tipo: 'warning',
-          mensaje: 'Se detectaron equipos con nombres similares',
-          accion: 'Agregar columna "categoria" al CSV para resolver ambigüedades'
-        });
-      }
-
-      if (!mappings.categoria) {
-        analisis.recomendaciones.push({
-          tipo: 'info',
-          mensaje: 'Columna "categoria" no encontrada',
-          accion: 'Opcional: agregar columna categoria'
-        });
-      }
-
-      console.log('✅ Validación de conflictos completada');
-      console.log(`  📊 Equipos en CSV: ${equiposEnCSV.size}`);
-      console.log(`  ⚠️ Conflictos: ${conflictosPotenciales.length}`);
-      console.log(`  📋 Categoría incluida: ${mappings.categoria ? 'SÍ' : 'NO'}`);
+      console.log(`✅ Validación de conflictos completada:`);
+      console.log(`  📊 Equipos únicos en CSV: ${equiposEnCSV.size}`);
+      console.log(`  ✅ Coincidencias: ${equiposCoincidentes.length}`);
+      console.log(`  ❌ Conflictos: ${conflictosPotenciales.length}`);
+      console.log(`  📋 Campo categoría detectado: ${mappings.categoria ? 'SÍ' : 'NO'}`);
 
       res.json({
         mensaje: 'Validación de conflictos completada',

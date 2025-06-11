@@ -46,7 +46,7 @@ const obtenerNumeroJugador = async (jugadorId, equipoId) => {
   }
 };
 
-// 🔥 FUNCIÓN PARA ENRIQUECER JUGADAS CON NÚMEROS
+// 🔥 FUNCIÓN PARA ENRIQUECER JUGADAS CON NÚMEROS - CORREGIDA PARA JUGADAS DEFENSIVAS
 const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitanteId) => {
   console.log('🔄 Enriqueciendo jugadas con números de jugador...');
   console.log(`📊 Total jugadas a procesar: ${jugadas.length}`);
@@ -61,29 +61,47 @@ const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitan
       console.log(`  - Tipo: ${jugadaObj.tipoJugada}`);
       
       // 🔥 CORREGIR: Extraer el ID del objeto equipoEnPosesion
-      let equipoId;
+      let equipoEnPosesionId;
       if (jugadaObj.equipoEnPosesion) {
         // Si es un objeto, extraer el _id
         if (typeof jugadaObj.equipoEnPosesion === 'object' && jugadaObj.equipoEnPosesion._id) {
-          equipoId = jugadaObj.equipoEnPosesion._id.toString();
+          equipoEnPosesionId = jugadaObj.equipoEnPosesion._id.toString();
         } 
         // Si ya es un string (ObjectId), usarlo directamente
         else if (typeof jugadaObj.equipoEnPosesion === 'string') {
-          equipoId = jugadaObj.equipoEnPosesion;
+          equipoEnPosesionId = jugadaObj.equipoEnPosesion;
         }
         // Si no tiene _id pero es un objeto, intentar toString()
         else {
-          equipoId = jugadaObj.equipoEnPosesion.toString();
+          equipoEnPosesionId = jugadaObj.equipoEnPosesion.toString();
         }
       }
       
-      console.log(`  - Equipo en posesión ID: ${equipoId}`);
+      console.log(`  - Equipo en posesión ID: ${equipoEnPosesionId}`);
       console.log(`  - Equipo en posesión objeto:`, jugadaObj.equipoEnPosesion?.nombre || 'Sin nombre');
       
+      // 🔥 NUEVO: Determinar en qué equipo buscar los jugadores según el tipo de jugada
+      let equipoDelJugadorPrincipal = equipoEnPosesionId;
+      let equipoDelJugadorSecundario = equipoEnPosesionId;
+
+      // Para jugadas defensivas, el jugador principal está en el equipo DEFENSOR
+      const jugadasDefensivas = ['intercepcion', 'sack', 'tackleo'];
+      if (jugadasDefensivas.includes(jugadaObj.tipoJugada)) {
+        // El equipo defensor es el CONTRARIO al que tiene posesión
+        equipoDelJugadorPrincipal = equipoEnPosesionId === equipoLocalId.toString() 
+          ? equipoVisitanteId.toString() 
+          : equipoLocalId.toString();
+        
+        console.log(`  🛡️ Jugada defensiva "${jugadaObj.tipoJugada}" - Buscando jugador en equipo defensor`);
+        console.log(`  - Equipo defensor ID: ${equipoDelJugadorPrincipal}`);
+      }
+
       // Enriquecer jugador principal
       if (jugadaObj.jugadorPrincipal && jugadaObj.jugadorPrincipal._id) {
         console.log(`  - Jugador Principal: ${jugadaObj.jugadorPrincipal.nombre} (${jugadaObj.jugadorPrincipal._id})`);
-        const numeroP = await obtenerNumeroJugador(jugadaObj.jugadorPrincipal._id, equipoId);
+        console.log(`  - Buscando en equipo: ${equipoDelJugadorPrincipal}`);
+        
+        const numeroP = await obtenerNumeroJugador(jugadaObj.jugadorPrincipal._id, equipoDelJugadorPrincipal);
         jugadaObj.jugadorPrincipal.numero = numeroP;
         console.log(`  - Número asignado: #${numeroP}`);
       }
@@ -91,7 +109,19 @@ const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitan
       // Enriquecer jugador secundario (si existe)
       if (jugadaObj.jugadorSecundario && jugadaObj.jugadorSecundario._id) {
         console.log(`  - Jugador Secundario: ${jugadaObj.jugadorSecundario.nombre} (${jugadaObj.jugadorSecundario._id})`);
-        const numeroS = await obtenerNumeroJugador(jugadaObj.jugadorSecundario._id, equipoId);
+        
+        // Para jugador secundario, considerar tipo de jugada
+        let equipoBusquedaSecundario = equipoDelJugadorPrincipal;
+        
+        // Si es intercepción, el jugador secundario (QB que lanzó) está en el equipo ofensivo
+        if (jugadaObj.tipoJugada === 'intercepcion') {
+          equipoBusquedaSecundario = equipoEnPosesionId;
+          console.log(`  - Intercepción: Jugador secundario (QB) buscado en equipo ofensivo: ${equipoBusquedaSecundario}`);
+        }
+        
+        console.log(`  - Buscando jugador secundario en equipo: ${equipoBusquedaSecundario}`);
+        
+        const numeroS = await obtenerNumeroJugador(jugadaObj.jugadorSecundario._id, equipoBusquedaSecundario);
         jugadaObj.jugadorSecundario.numero = numeroS;
         console.log(`  - Número secundario asignado: #${numeroS}`);
       }
