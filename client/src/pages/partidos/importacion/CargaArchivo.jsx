@@ -409,7 +409,7 @@ export const CargaArchivo = ({ wizardData, updateWizardData, setLoading, setErro
             <Button
               variant="outlined"
               startIcon={<FileDownloadIcon />}
-              href={`${API_BASE_URL}/api/importacion/plantillas/${wizardData.tipo}`}
+              href={`/api/importacion/plantillas/${wizardData.tipo}`}
               download
               sx={{
                 borderColor: 'rgba(76, 175, 80, 0.3)',

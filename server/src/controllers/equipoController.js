@@ -220,9 +220,14 @@ exports.registrarJugadores = async (req, res) => {
 
         // Validación: número duplicado en el equipo
         const numeroExistente = await Usuario.findOne({
-          'equipos.equipo': equipoId,
-          'equipos.numero': numero
+          equipos: {
+            $elemMatch: {
+              equipo: equipoId,
+              numero: numero
+            }
+          }
         });
+        
         if (numeroExistente) {
           errores.push(`Jugador #${index + 1} (${jugador.nombre}): El número ${numero} ya está en uso por otro jugador en el equipo`);
           continue;

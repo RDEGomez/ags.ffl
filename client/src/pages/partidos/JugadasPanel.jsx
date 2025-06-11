@@ -1,3 +1,4 @@
+// 📁 client/src/pages/partidos/JugadasPanel.jsx - MEJORADO CON AVATARES
 import { 
   Box, 
   Typography, 
@@ -9,7 +10,9 @@ import {
   Chip,
   Divider,
   Avatar,
-  Badge
+  Badge,
+  AvatarGroup,
+  Tooltip
 } from '@mui/material';
 import {
   SportsFootball as SportsFootballIcon,
@@ -18,8 +21,10 @@ import {
   Speed as SpeedIcon,
   Security as SecurityIcon,
   Timer as TimerIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  Group as GroupIcon
 } from '@mui/icons-material';
+import { useImage } from '../../hooks/useImage';
 
 // Componente Timeline personalizado simple
 const TimelineContainer = ({ children }) => (
@@ -59,6 +64,131 @@ const TimelineItem = ({ children, isLast = false }) => (
     {children}
   </Box>
 );
+
+// 🔥 NUEVO: Componente para mostrar información de jugador con avatar
+const JugadorInfo = ({ jugador, tipo = 'principal', colorJugada = '#64b5f6' }) => {
+  const jugadorImageUrl = useImage(jugador?.imagen, '');
+  
+  if (!jugador) return null;
+
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 1.5,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 2,
+      p: 1.5,
+      border: `1px solid ${colorJugada}40`,
+      minWidth: 0 // Para permitir text overflow
+    }}>
+      {/* Avatar del jugador */}
+      <Avatar
+        src={jugadorImageUrl}
+        alt={`Foto de ${jugador.nombre}`}
+        sx={{ 
+          width: 32, 
+          height: 32,
+          border: `2px solid ${colorJugada}`,
+          backgroundColor: `${colorJugada}20`
+        }}
+      >
+        <PersonIcon sx={{ fontSize: 16 }} />
+      </Avatar>
+      
+      {/* Información del jugador */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+          {/* Número de camiseta */}
+          <Chip
+            label={`#${jugador.numero || '?'}`}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              backgroundColor: colorJugada,
+              color: 'white',
+              minWidth: 32
+            }}
+          />
+          
+          {/* Tipo de jugador */}
+          <Chip
+            label={tipo === 'principal' ? 'Principal' : 'Secundario'}
+            size="small"
+            variant="outlined"
+            sx={{
+              height: 18,
+              fontSize: '0.7rem',
+              borderColor: colorJugada,
+              color: colorJugada,
+              backgroundColor: `${colorJugada}10`
+            }}
+          />
+        </Box>
+        
+        {/* Nombre del jugador */}
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '0.875rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {jugador.nombre || 'Jugador'}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+// 🔥 NUEVO: Componente para mostrar equipo en posesión
+const EquipoPosesion = ({ equipo, colorJugada = '#64b5f6' }) => {
+  const equipoImageUrl = useImage(equipo?.imagen, '');
+  
+  if (!equipo) return null;
+
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 1,
+      backgroundColor: `${colorJugada}15`,
+      borderRadius: 1.5,
+      px: 2,
+      py: 0.5,
+      border: `1px solid ${colorJugada}40`
+    }}>
+      <Avatar
+        src={equipoImageUrl}
+        alt={`Logo de ${equipo.nombre}`}
+        sx={{ 
+          width: 20, 
+          height: 20,
+          backgroundColor: `${colorJugada}30`
+        }}
+      >
+        <GroupIcon sx={{ fontSize: 12 }} />
+      </Avatar>
+      
+      <Typography 
+        variant="caption" 
+        sx={{ 
+          color: 'white',
+          fontWeight: 'bold',
+          fontSize: '0.75rem'
+        }}
+      >
+        {equipo.nombre}
+      </Typography>
+    </Box>
+  );
+};
 
 const JugadasPanel = ({ partido }) => {
   const jugadas = partido?.jugadas || [];
@@ -140,24 +270,14 @@ const JugadasPanel = ({ partido }) => {
     }
   };
 
-  // Obtener nombre del equipo
-  const getNombreEquipo = (equipoId) => {
+  // Helper para obtener equipo por ID
+  const getEquipoById = (equipoId) => {
     if (equipoId === partido?.equipoLocal?._id) {
-      return partido.equipoLocal.nombre;
+      return partido.equipoLocal;
     } else if (equipoId === partido?.equipoVisitante?._id) {
-      return partido.equipoVisitante.nombre;
+      return partido.equipoVisitante;
     }
-    return 'Equipo';
-  };
-
-  // Obtener color del equipo
-  const getColorEquipo = (equipoId) => {
-    if (equipoId === partido?.equipoLocal?._id) {
-      return '#2196f3';
-    } else if (equipoId === partido?.equipoVisitante?._id) {
-      return '#9c27b0';
-    }
-    return '#9e9e9e';
+    return null;
   };
 
   if (jugadas.length === 0) {
@@ -183,7 +303,7 @@ const JugadasPanel = ({ partido }) => {
   return (
     <Box>
       <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
-        Registro de Jugadas
+        📋 Registro de Jugadas ({jugadas.length})
       </Typography>
 
       <Paper sx={{
@@ -207,33 +327,37 @@ const JugadasPanel = ({ partido }) => {
             .reverse() // Mostrar jugadas más recientes primero
             .map((jugada, index) => {
               const isLast = index === jugadas.length - 1;
+              const colorJugada = getJugadaColor(jugada.tipoJugada);
+              const equipoEnPosesion = getEquipoById(jugada.equipoEnPosesion);
               
               return (
                 <TimelineItem key={jugada.numero || index} isLast={isLast}>
                   <Paper
                     sx={{
                       backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${getJugadaColor(jugada.tipoJugada)}40`,
+                      border: `1px solid ${colorJugada}40`,
                       borderRadius: 2,
-                      p: 2,
+                      p: 2.5,
                       ml: 2,
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        transform: 'translateX(5px)'
+                        transform: 'translateX(5px)',
+                        border: `1px solid ${colorJugada}60`
                       }
                     }}
                   >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    {/* Header de la jugada */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       {/* Información principal */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
                         {/* Icono de la jugada */}
                         <Avatar
                           sx={{
-                            width: 40,
-                            height: 40,
-                            backgroundColor: `${getJugadaColor(jugada.tipoJugada)}20`,
-                            border: `2px solid ${getJugadaColor(jugada.tipoJugada)}`
+                            width: 44,
+                            height: 44,
+                            backgroundColor: `${colorJugada}20`,
+                            border: `2px solid ${colorJugada}`
                           }}
                         >
                           {getJugadaIcon(jugada.tipoJugada)}
@@ -241,110 +365,128 @@ const JugadasPanel = ({ partido }) => {
 
                         {/* Detalles de la jugada */}
                         <Box sx={{ flex: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
                             <Chip
                               label={getJugadaLabel(jugada.tipoJugada)}
-                              size="small"
                               sx={{
-                                backgroundColor: getJugadaColor(jugada.tipoJugada),
+                                backgroundColor: colorJugada,
                                 color: 'white',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                fontSize: '0.875rem'
                               }}
                             />
                             
-                            {jugada.resultado?.puntos > 0 && (
-                              <Chip
-                                label={`+${jugada.resultado.puntos} pts`}
-                                size="small"
-                                sx={{
-                                  backgroundColor: '#4caf50',
-                                  color: 'white',
-                                  fontWeight: 'bold'
-                                }}
-                              />
-                            )}
+                            {/* Equipo en posesión */}
+                            <EquipoPosesion 
+                              equipo={equipoEnPosesion} 
+                              colorJugada={colorJugada}
+                            />
                           </Box>
 
-                          {/* Equipo */}
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              color: getColorEquipo(jugada.equipoEnPosesion),
-                              fontWeight: 'bold',
-                              mb: 0.5
-                            }}
-                          >
-                            {getNombreEquipo(jugada.equipoEnPosesion)}
-                          </Typography>
-
-                          {/* Descripción */}
+                          {/* Descripción de la jugada */}
                           {jugada.descripcion && (
                             <Typography 
-                              variant="caption" 
+                              variant="body2" 
                               sx={{ 
-                                color: 'rgba(255, 255, 255, 0.7)',
-                                display: 'block'
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                fontStyle: 'italic',
+                                mt: 0.5
                               }}
                             >
-                              {jugada.descripcion}
+                              "{jugada.descripcion}"
                             </Typography>
                           )}
                         </Box>
                       </Box>
 
-                      {/* Tiempo y número de jugada */}
+                      {/* Información de tiempo y número de jugada */}
                       <Box sx={{ textAlign: 'right', ml: 2 }}>
                         <Typography 
                           variant="caption" 
                           sx={{ 
                             color: 'white',
                             fontWeight: 'bold',
-                            display: 'block'
+                            display: 'block',
+                            fontSize: '0.9rem'
                           }}
                         >
                           #{jugada.numero}
                         </Typography>
                         
                         {jugada.tiempo && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
-                            <TimerIcon sx={{ fontSize: 12, color: '#64b5f6' }} />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end', mt: 0.5 }}>
+                            <TimerIcon sx={{ fontSize: 14, color: '#64b5f6' }} />
                             <Typography 
                               variant="caption" 
-                              sx={{ color: '#64b5f6' }}
+                              sx={{ color: '#64b5f6', fontWeight: 'bold' }}
                             >
                               {jugada.tiempo.minuto}:{jugada.tiempo.segundo?.toString().padStart(2, '0')}
                             </Typography>
                           </Box>
                         )}
+                        
+                        {/* Mostrar puntos si los hay */}
+                        {jugada.resultado?.puntos > 0 && (
+                          <Chip
+                            label={`+${jugada.resultado.puntos} pts`}
+                            size="small"
+                            sx={{
+                              backgroundColor: '#4caf50',
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              mt: 0.5
+                            }}
+                          />
+                        )}
                       </Box>
                     </Box>
 
-                    {/* Jugadores involucrados */}
+                    {/* 🔥 NUEVA SECCIÓN: Jugadores involucrados con avatares */}
                     {(jugada.jugadorPrincipal || jugada.jugadorSecundario) && (
                       <Box sx={{ 
-                        display: 'flex', 
-                        gap: 2, 
                         mt: 2,
-                        pt: 1,
+                        pt: 2,
                         borderTop: '1px solid rgba(255, 255, 255, 0.1)'
                       }}>
-                        {jugada.jugadorPrincipal && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <PersonIcon sx={{ fontSize: 16, color: '#64b5f6' }} />
-                            <Typography variant="caption" sx={{ color: 'white' }}>
-                              {jugada.jugadorPrincipal.nombre || 'Jugador Principal'}
-                            </Typography>
-                          </Box>
-                        )}
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            fontWeight: 'bold',
+                            display: 'block',
+                            mb: 1.5,
+                            fontSize: '0.75rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          👥 Jugadores Involucrados
+                        </Typography>
                         
-                        {jugada.jugadorSecundario && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <PersonIcon sx={{ fontSize: 16, color: '#ff9800' }} />
-                            <Typography variant="caption" sx={{ color: 'white' }}>
-                              {jugada.jugadorSecundario.nombre || 'Jugador Secundario'}
-                            </Typography>
-                          </Box>
-                        )}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          flexDirection: 'column',
+                          gap: 1.5
+                        }}>
+                          {/* Jugador Principal */}
+                          {jugada.jugadorPrincipal && (
+                            <JugadorInfo 
+                              jugador={jugada.jugadorPrincipal}
+                              tipo="principal"
+                              colorJugada={colorJugada}
+                            />
+                          )}
+                          
+                          {/* Jugador Secundario */}
+                          {jugada.jugadorSecundario && (
+                            <JugadorInfo 
+                              jugador={jugada.jugadorSecundario}
+                              tipo="secundario"
+                              colorJugada={colorJugada}
+                            />
+                          )}
+                        </Box>
                       </Box>
                     )}
 
@@ -353,28 +495,42 @@ const JugadasPanel = ({ partido }) => {
                       <Box sx={{ 
                         display: 'flex', 
                         gap: 1, 
-                        mt: 1,
+                        mt: 2,
+                        pt: 1.5,
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
                         flexWrap: 'wrap'
                       }}>
                         {jugada.resultado.touchdown && (
                           <Chip 
-                            label="Touchdown" 
+                            label="🏈 Touchdown" 
                             size="small" 
-                            sx={{ backgroundColor: '#4caf50', color: 'white' }} 
+                            sx={{ 
+                              backgroundColor: '#4caf50', 
+                              color: 'white',
+                              fontWeight: 'bold'
+                            }} 
                           />
                         )}
                         {jugada.resultado.intercepcion && (
                           <Chip 
-                            label="Intercepción" 
+                            label="🛡️ Intercepción" 
                             size="small" 
-                            sx={{ backgroundColor: '#f44336', color: 'white' }} 
+                            sx={{ 
+                              backgroundColor: '#f44336', 
+                              color: 'white',
+                              fontWeight: 'bold'
+                            }} 
                           />
                         )}
                         {jugada.resultado.sack && (
                           <Chip 
-                            label="Sack" 
+                            label="💥 Sack" 
                             size="small" 
-                            sx={{ backgroundColor: '#9c27b0', color: 'white' }} 
+                            sx={{ 
+                              backgroundColor: '#9c27b0', 
+                              color: 'white',
+                              fontWeight: 'bold'
+                            }} 
                           />
                         )}
                       </Box>

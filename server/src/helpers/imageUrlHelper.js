@@ -39,7 +39,7 @@ const getImageUrlServer = (imagen, req = null) => {
   if (req) {
     baseUrl = `${req.protocol}://${req.get('host')}`;
   } else {
-    baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
   }
   
   return `${baseUrl}/uploads/${imagen}`;

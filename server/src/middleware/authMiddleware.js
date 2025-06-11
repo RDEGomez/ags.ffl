@@ -71,13 +71,16 @@ exports.checkRole = (...roles) => {
       });
     }
 
-    // Verificar si el rol del usuario está entre los permitidos
-    if (!roles.includes(req.usuario.rol)) {
+    const usuario = req.usuario;
+    
+    // Verificar rol principal Y rol secundario
+    const tieneRol = roles.includes(usuario.rol) || 
+                    (usuario.rolSecundario && roles.includes(usuario.rolSecundario));
+    
+    if (!tieneRol) {
       return res.status(403).json({ 
         estado: false, 
-        mensaje: 'Acceso denegado. No tienes permisos suficientes.',
-        rolRequerido: roles,
-        rolActual: req.usuario.rol
+        mensaje: 'Acceso denegado. No tienes permisos suficientes.'
       });
     }
 

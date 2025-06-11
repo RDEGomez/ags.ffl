@@ -1,4 +1,4 @@
-// 📁 client/src/pages/partidos/importacion/ProcesoImportacion.jsx
+// 📁 client/src/pages/partidos/importacion/ProcesoImportacion.jsx - MODIFICADO PARA NÚMEROS
 import { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -43,7 +43,8 @@ import {
   ExpandLess as ExpandLessIcon,
   FileDownload as FileDownloadIcon,
   Share as ShareIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
+  Tag as TagIcon // 🔥 NUEVO: Icono para números
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -68,15 +69,15 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
   const hasExecutedRef = useRef(false);
 
   useEffect(() => {
-  if (
-    wizardData.validationResults?.puedeImportar && 
-    !hasExecutedRef.current &&
-    importacionStatus === 'idle'
-  ) {
-    hasExecutedRef.current = true;
-    iniciarImportacion();
-  }
-}, [wizardData.validationResults?.puedeImportar, importacionStatus]);
+    if (
+      wizardData.validationResults?.puedeImportar && 
+      !hasExecutedRef.current &&
+      importacionStatus === 'idle'
+    ) {
+      hasExecutedRef.current = true;
+      iniciarImportacion();
+    }
+  }, [wizardData.validationResults?.puedeImportar, importacionStatus]);
 
   // 🔥 Función principal de importación
   const iniciarImportacion = async () => {
@@ -86,6 +87,7 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
       setLoading(true);
 
       console.log('🚀 Iniciando importación masiva...');
+      console.log('📋 Tipo de importación:', wizardData.tipo);
 
       // Preparar archivo para envío
       const archivo = prepararArchivoCSV();
@@ -103,6 +105,16 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
       if (wizardData.configuraciones) {
         Object.entries(wizardData.configuraciones).forEach(([key, value]) => {
           formData.append(key, value);
+        });
+      }
+
+      // 🔥 NUEVO: Log específico para importación de jugadas con números
+      if (wizardData.tipo === 'jugadas') {
+        console.log('🏈 Importando jugadas con números de jugadores...');
+        console.log('📊 Validaciones previas:', {
+          puedeImportar: wizardData.validationResults?.puedeImportar,
+          errores: wizardData.validationResults?.analisis?.validacion?.erroresEstructura?.filter(e => e.tipo === 'error').length || 0,
+          warnings: wizardData.validationResults?.analisis?.validacion?.erroresEstructura?.filter(e => e.tipo === 'warning').length || 0
         });
       }
 
@@ -126,6 +138,13 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // 🔥 NUEVO: Manejo específico de errores de números de jugadores
+        if (errorData.mensaje && errorData.mensaje.includes('numero_jugador_principal')) {
+          throw new Error('Error en números de jugadores: ' + errorData.mensaje + 
+            '\n\nAsegúrate de usar números enteros positivos en lugar de nombres.');
+        }
+        
         throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
       }
 
@@ -136,6 +155,15 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
       setTiempoFin(new Date());
       setResultados(resultadosImportacion.resultados);
       setImportacionStatus('completed');
+
+      // 🔥 NUEVO: Log específico para resultados de jugadas
+      if (wizardData.tipo === 'jugadas') {
+        console.log('🎯 Resultados de importación de jugadas:', {
+          exitosos: resultadosImportacion.resultados?.estadisticas?.creados || 0,
+          errores: resultadosImportacion.resultados?.estadisticas?.errores || 0,
+          warnings: resultadosImportacion.resultados?.warnings?.length || 0
+        });
+      }
 
       // Actualizar wizard data
       updateWizardData(prev => ({
@@ -154,7 +182,17 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
       console.error('❌ Error en importación:', error);
       setImportacionStatus('error');
       setEtapaActual('Error en importación');
-      setError(`Error al importar ${wizardData.tipo}: ${error.message}`);
+      
+      // 🔥 NUEVO: Manejo mejorado de errores específicos de números
+      let errorMessage = error.message;
+      if (errorMessage.includes('numero_jugador_principal') || errorMessage.includes('numero_jugador_secundario')) {
+        errorMessage += '\n\n💡 Sugerencias:\n' +
+          '• Verifica que uses números enteros positivos (ej: 12, 25, 8)\n' +
+          '• No uses nombres de jugadores en los campos numero_jugador_*\n' +
+          '• Descarga la plantilla actualizada si tienes dudas';
+      }
+      
+      setError(`Error al importar ${wizardData.tipo}: ${errorMessage}`);
       setTiempoFin(new Date());
     } finally {
       setLoading(false);
@@ -171,22 +209,29 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
 
   // 📝 Preparar archivo CSV con mapeo aplicado
   const prepararArchivoCSV = () => {
-  const { archivo } = wizardData;
-  
-  if (!archivo) {
-    throw new Error('No hay archivo para procesar');
-  }
-  
-  return archivo;
-};
+    const { archivo } = wizardData;
+    
+    if (!archivo) {
+      throw new Error('No hay archivo para procesar');
+    }
+    
+    return archivo;
+  };
 
   // ⏱️ Simular progreso por etapas
   const simularProgresoEtapas = async () => {
-    const etapas = [
+    const etapas = wizardData.tipo === 'jugadas' ? [
+      // 🔥 MODIFICADO: Etapas específicas para jugadas con números
+      { texto: 'Preparando datos de jugadas...', progreso: 10, tiempo: 800 },
+      { texto: 'Validando números de jugadores...', progreso: 25, tiempo: 600 },
+      { texto: 'Mapeando equipos y jugadores...', progreso: 40, tiempo: 500 },
+      { texto: 'Verificando números únicos por equipo...', progreso: 55, tiempo: 400 }
+    ] : [
+      // Etapas para partidos (sin cambios)
       { texto: 'Preparando datos...', progreso: 10, tiempo: 800 },
       { texto: 'Validando formato...', progreso: 25, tiempo: 600 },
       { texto: 'Mapeando columnas...', progreso: 40, tiempo: 500 },
-      { texto: 'Verificando consistencia...', progreso: 55, tiempo: 700 }
+      { texto: 'Verificando equipos...', progreso: 55, tiempo: 400 }
     ];
 
     for (const etapa of etapas) {
@@ -194,6 +239,21 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
       setProgreso(etapa.progreso);
       await new Promise(resolve => setTimeout(resolve, etapa.tiempo));
     }
+  };
+
+  // 🎨 Alternar sección expandida
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // 📊 Calcular tiempo transcurrido
+  const calcularTiempoTranscurrido = () => {
+    if (!tiempoInicio) return 0;
+    const fin = tiempoFin || new Date();
+    return Math.round((fin.getTime() - tiempoInicio.getTime()) / 1000);
   };
 
   // 🔄 Reiniciar importación
@@ -204,817 +264,515 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
     setResultados(null);
     setTiempoInicio(null);
     setTiempoFin(null);
-    hasExecutedRef.current = false; // ← Resetear para permitir nueva ejecución
-    setTimeout(() => iniciarImportacion(), 500);
+    hasExecutedRef.current = false;
+    setError('');
   };
 
-  // 📊 Calcular estadísticas de tiempo
-  const calcularTiempoTranscurrido = () => {
-    if (!tiempoInicio) return '0s';
-    const tiempoFinal = tiempoFin || new Date();
-    const diferencia = Math.round((tiempoFinal - tiempoInicio) / 1000);
-    
-    if (diferencia < 60) return `${diferencia}s`;
-    const minutos = Math.floor(diferencia / 60);
-    const segundos = diferencia % 60;
-    return `${minutos}m ${segundos}s`;
+  // 🏠 Volver al inicio
+  const volverAlInicio = () => {
+    navigate('/partidos');
   };
 
-  // 🎨 Toggle secciones
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+  // 🔥 NUEVA FUNCIÓN: Renderizar información específica de jugadas con números
+  const renderInfoJugadas = () => {
+    if (wizardData.tipo !== 'jugadas') return null;
+
+    return (
+      <Alert 
+        severity="info" 
+        icon={<TagIcon />}
+        sx={{ 
+          mb: 2, 
+          backgroundColor: 'rgba(2, 136, 209, 0.1)', 
+          border: '1px solid rgba(2, 136, 209, 0.3)' 
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          🏈 Importación de Jugadas con Números
+        </Typography>
+        <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+          • Los jugadores se identifican por su <strong>número de camiseta</strong> dentro del equipo
+          <br />
+          • Campo principal: <code>numero_jugador_principal</code> (ej: 12, 25, 8)
+          <br />
+          • Campo secundario: <code>numero_jugador_secundario</code> (opcional)
+          <br />
+          • Los números deben coincidir con los registrados en el sistema
+        </Typography>
+      </Alert>
+    );
   };
 
-  // 📊 Componente de tarjeta estadística
-  const StatCard = ({ title, value, color, icon, subtitle, onClick }) => (
+  // 🎨 Componente de estado de progreso
+  const EstadoProgreso = () => (
     <Card 
-      sx={{
-        backgroundColor: `rgba(${
-          color === 'success' ? '76, 175, 80' :
-          color === 'error' ? '244, 67, 54' :
-          color === 'warning' ? '255, 152, 0' :
-          '33, 150, 243'
-        }, 0.1)`,
-        border: `1px solid rgba(${
-          color === 'success' ? '76, 175, 80' :
-          color === 'error' ? '244, 67, 54' :
-          color === 'warning' ? '255, 152, 0' :
-          '33, 150, 243'
-        }, 0.3)`,
+      sx={{ 
+        mb: 3, 
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', 
         borderRadius: 2,
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 0.2s',
-        '&:hover': onClick ? { transform: 'scale(1.02)' } : {}
+        border: '1px solid rgba(255, 255, 255, 0.1)'
       }}
-      onClick={onClick}
     >
-      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-          {icon}
-          <Typography variant="h4" sx={{ 
-            ml: 1,
-            color: color === 'success' ? '#4caf50' :
-                   color === 'error' ? '#f44336' :
-                   color === 'warning' ? '#ff9800' :
-                   '#2196f3',
-            fontWeight: 'bold'
-          }}>
-            {value}
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          {importacionStatus === 'processing' && (
+            <CircularProgress size={24} sx={{ mr: 2, color: '#4fc3f7' }} />
+          )}
+          {importacionStatus === 'completed' && (
+            <CheckCircleIcon sx={{ mr: 2, color: '#66bb6a' }} />
+          )}
+          {importacionStatus === 'error' && (
+            <ErrorIcon sx={{ mr: 2, color: '#f44336' }} />
+          )}
+          
+          <Typography variant="h6" sx={{ color: 'white' }}>
+            {importacionStatus === 'idle' && 'Preparando importación...'}
+            {importacionStatus === 'processing' && 'Importando datos...'}
+            {importacionStatus === 'completed' && 'Importación completada'}
+            {importacionStatus === 'error' && 'Error en importación'}
           </Typography>
         </Box>
-        <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            {subtitle}
+
+        {etapaActual && (
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+            {etapaActual}
           </Typography>
         )}
+
+        <LinearProgress 
+          variant="determinate" 
+          value={progreso} 
+          sx={{ 
+            height: 8, 
+            borderRadius: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: importacionStatus === 'error' ? '#f44336' : '#4fc3f7'
+            }
+          }} 
+        />
+        
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            {progreso}% completado
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            {calcularTiempoTranscurrido()}s transcurridos
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   );
 
-  // 📋 Renderizar tabla de resultados
-  const renderTablaResultados = (datos, tipo, color) => {
-    if (!datos || datos.length === 0) return null;
+  // 📊 Componente de resumen de resultados
+  const ResumenResultados = () => {
+    if (!resultados) return null;
+
+    const { estadisticas, exitosos, errores, warnings } = resultados;
 
     return (
-      <TableContainer sx={{ maxHeight: 300 }}>
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ backgroundColor: `rgba(${color}, 0.1)`, color: `rgb(${color})`, fontWeight: 'bold' }}>
-                Fila
-              </TableCell>
-              {tipo === 'exitosos' && (
-                <>
-                  <TableCell sx={{ backgroundColor: `rgba(${color}, 0.1)`, color: `rgb(${color})`, fontWeight: 'bold' }}>
-                    ID Creado
-                  </TableCell>
-                  <TableCell sx={{ backgroundColor: `rgba(${color}, 0.1)`, color: `rgb(${color})`, fontWeight: 'bold' }}>
-                    Descripción
-                  </TableCell>
-                  <TableCell sx={{ backgroundColor: `rgba(${color}, 0.1)`, color: `rgb(${color})`, fontWeight: 'bold' }}>
-                    Estado
-                  </TableCell>
-                </>
-              )}
-              {tipo === 'errores' && (
-                <>
-                  <TableCell sx={{ backgroundColor: `rgba(${color}, 0.1)`, color: `rgb(${color})`, fontWeight: 'bold' }}>
-                    Error
-                  </TableCell>
-                  <TableCell sx={{ backgroundColor: `rgba(${color}, 0.1)`, color: `rgb(${color})`, fontWeight: 'bold' }}>
-                    Datos
-                  </TableCell>
-                </>
-              )}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {datos.slice(0, 10).map((item, index) => (
-              <TableRow key={index}>
-                <TableCell sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                  {item.fila}
-                </TableCell>
-                {tipo === 'exitosos' && (
-                  <>
-                    <TableCell sx={{ 
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      fontFamily: 'monospace',
-                      fontSize: '0.8rem'
-                    }}>
-                      {item.partidoId || item.jugadaId || item.id || '—'}
-                    </TableCell>
-                    <TableCell sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                      {item.equipos || item.jugada || item.descripcion || '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label="Creado" 
-                        color="success" 
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                  </>
-                )}
-                {tipo === 'errores' && (
-                  <>
-                    <TableCell sx={{ 
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      maxWidth: 300,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {item.error}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      maxWidth: 200,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {JSON.stringify(item.datos).substring(0, 50)}...
-                    </TableCell>
-                  </>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {datos.length > 10 && (
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-              Mostrando 10 de {datos.length} registros
-            </Typography>
-          </Box>
-        )}
-      </TableContainer>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={3}>
+          <Card sx={{ backgroundColor: 'rgba(76, 175, 80, 0.1)', border: '1px solid rgba(76, 175, 80, 0.3)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <CheckCircleIcon sx={{ fontSize: 40, color: '#66bb6a', mb: 1 }} />
+              <Typography variant="h4" sx={{ color: '#66bb6a', fontWeight: 'bold' }}>
+                {estadisticas?.creados || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                {wizardData.tipo === 'jugadas' ? 'Jugadas' : 'Partidos'} Exitosos
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={3}>
+          <Card sx={{ backgroundColor: 'rgba(244, 67, 54, 0.1)', border: '1px solid rgba(244, 67, 54, 0.3)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <ErrorIcon sx={{ fontSize: 40, color: '#f44336', mb: 1 }} />
+              <Typography variant="h4" sx={{ color: '#f44336', fontWeight: 'bold' }}>
+                {estadisticas?.errores || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                Errores
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={3}>
+          <Card sx={{ backgroundColor: 'rgba(255, 152, 0, 0.1)', border: '1px solid rgba(255, 152, 0, 0.3)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <WarningIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
+              <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                {warnings?.length || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                Advertencias
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={3}>
+          <Card sx={{ backgroundColor: 'rgba(96, 125, 139, 0.1)', border: '1px solid rgba(96, 125, 139, 0.3)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <AssessmentIcon sx={{ fontSize: 40, color: '#90a4ae', mb: 1 }} />
+              <Typography variant="h4" sx={{ color: '#90a4ae', fontWeight: 'bold' }}>
+                {estadisticas?.total || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                Total Procesados
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     );
   };
 
-  // 📊 Función para descargar reporte
-  const descargarReporte = () => {
-    if (!resultados) return;
+  // 📝 Componente de detalles expandibles
+  const DetallesResultados = () => {
+    if (!resultados) return null;
 
-    const reporte = {
-      fecha: new Date().toISOString(),
-      tipo: wizardData.tipo,
-      duracion: calcularTiempoTranscurrido(),
-      estadisticas: {
-        total: resultados.estadisticas?.total || 0,
-        procesados: resultados.estadisticas?.procesados || 0,
-        creados: resultados.estadisticas?.creados || 0,
-        errores: resultados.errores?.length || 0,
-        warnings: resultados.warnings?.length || 0,
-        tasaExito: Math.round(((resultados.exitosos?.length || 0) / Math.max(1, resultados.estadisticas?.procesados || 1)) * 100)
-      },
-      detalles: {
-        exitosos: resultados.exitosos || [],
-        errores: resultados.errores || [],
-        warnings: resultados.warnings || []
-      }
-    };
+    const { exitosos, errores, warnings } = resultados;
 
-    const blob = new Blob([JSON.stringify(reporte, null, 2)], { 
-      type: 'application/json' 
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `reporte_importacion_${wizardData.tipo}_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return (
+      <Grid container spacing={2}>
+        {/* Resultados Exitosos */}
+        {exitosos && exitosos.length > 0 && (
+          <Grid item xs={12}>
+            <Card sx={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <CardContent>
+                <Box 
+                  sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                  onClick={() => toggleSection('exitosos')}
+                >
+                  <CheckCircleIcon sx={{ mr: 2, color: '#66bb6a' }} />
+                  <Typography variant="h6" sx={{ color: 'white', flex: 1 }}>
+                    Registros Exitosos ({exitosos.length})
+                  </Typography>
+                  {expandedSections.exitosos ? <ExpandLessIcon sx={{ color: 'white' }} /> : <ExpandMoreIcon sx={{ color: 'white' }} />}
+                </Box>
+                
+                <Collapse in={expandedSections.exitosos}>
+                  <TableContainer sx={{ mt: 2, maxHeight: 300 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            Fila
+                          </TableCell>
+                          <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            {wizardData.tipo === 'jugadas' ? 'Jugada' : 'Descripción'}
+                          </TableCell>
+                          {wizardData.tipo === 'jugadas' && (
+                            <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                              Puntos
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {exitosos.slice(0, 10).map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                              {item.fila}
+                            </TableCell>
+                            <TableCell sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                              {wizardData.tipo === 'jugadas' ? item.jugada : (item.partido || item.descripcion)}
+                            </TableCell>
+                            {wizardData.tipo === 'jugadas' && (
+                              <TableCell sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                                <Chip 
+                                  label={item.puntos || 0} 
+                                  size="small" 
+                                  sx={{ backgroundColor: 'rgba(76, 175, 80, 0.2)', color: '#66bb6a' }}
+                                />
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {exitosos.length > 10 && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
+                      Mostrando los primeros 10 de {exitosos.length} registros exitosos
+                    </Typography>
+                  )}
+                </Collapse>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Errores */}
+        {errores && errores.length > 0 && (
+          <Grid item xs={12}>
+            <Card sx={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', border: '1px solid rgba(244, 67, 54, 0.3)' }}>
+              <CardContent>
+                <Box 
+                  sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                  onClick={() => toggleSection('errores')}
+                >
+                  <ErrorIcon sx={{ mr: 2, color: '#f44336' }} />
+                  <Typography variant="h6" sx={{ color: 'white', flex: 1 }}>
+                    Errores ({errores.length})
+                  </Typography>
+                  {expandedSections.errores ? <ExpandLessIcon sx={{ color: 'white' }} /> : <ExpandMoreIcon sx={{ color: 'white' }} />}
+                </Box>
+                
+                <Collapse in={expandedSections.errores}>
+                  <List sx={{ mt: 1 }}>
+                    {errores.slice(0, 10).map((error, index) => (
+                      <ListItem key={index} sx={{ py: 1, px: 0 }}>
+                        <ListItemIcon>
+                          <ErrorIcon sx={{ color: '#f44336', fontSize: 20 }} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Fila {error.fila}: {error.error}
+                            </Typography>
+                          }
+                          secondary={
+                            error.datos && (
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {/* 🔥 MODIFICADO: Mostrar números de jugadores cuando corresponda */}
+                                {wizardData.tipo === 'jugadas' && error.datos.numero_jugador_principal && 
+                                  `Jugador Principal: #${error.datos.numero_jugador_principal} | `
+                                }
+                                {wizardData.tipo === 'jugadas' && error.datos.numero_jugador_secundario && 
+                                  `Jugador Secundario: #${error.datos.numero_jugador_secundario} | `
+                                }
+                                {JSON.stringify(error.datos).slice(0, 100)}...
+                              </Typography>
+                            )
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                  {errores.length > 10 && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 1, display: 'block' }}>
+                      Mostrando los primeros 10 de {errores.length} errores
+                    </Typography>
+                  )}
+                </Collapse>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Advertencias */}
+        {warnings && warnings.length > 0 && (
+          <Grid item xs={12}>
+            <Card sx={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', border: '1px solid rgba(255, 152, 0, 0.3)' }}>
+              <CardContent>
+                <Box 
+                  sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                  onClick={() => toggleSection('warnings')}
+                >
+                  <WarningIcon sx={{ mr: 2, color: '#ff9800' }} />
+                  <Typography variant="h6" sx={{ color: 'white', flex: 1 }}>
+                    Advertencias ({warnings.length})
+                  </Typography>
+                  {expandedSections.warnings ? <ExpandLessIcon sx={{ color: 'white' }} /> : <ExpandMoreIcon sx={{ color: 'white' }} />}
+                </Box>
+                
+                <Collapse in={expandedSections.warnings}>
+                  <List sx={{ mt: 1 }}>
+                    {warnings.slice(0, 10).map((warning, index) => (
+                      <ListItem key={index} sx={{ py: 1, px: 0 }}>
+                        <ListItemIcon>
+                          <WarningIcon sx={{ color: '#ff9800', fontSize: 20 }} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography variant="body2" sx={{ color: 'white' }}>
+                              Fila {warning.fila}: {warning.mensaje}
+                            </Typography>
+                          }
+                          secondary={
+                            warning.datos && (
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {JSON.stringify(warning.datos).slice(0, 100)}...
+                              </Typography>
+                            )
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
+    );
   };
 
-  // 📤 Función para compartir resultados
-  const compartirResultados = () => {
-    if (!resultados) return;
-
-    const resumen = `🏈 Importación ${wizardData.tipo} completada
-✅ ${resultados.exitosos?.length || 0} exitosos
-❌ ${resultados.errores?.length || 0} errores  
-⚠️ ${resultados.warnings?.length || 0} advertencias
-⏱️ Tiempo: ${calcularTiempoTranscurrido()}
-📊 Tasa de éxito: ${Math.round(((resultados.exitosos?.length || 0) / Math.max(1, resultados.estadisticas?.procesados || 1)) * 100)}%`;
-
-    if (navigator.share) {
-      navigator.share({
-        title: 'Resultados de Importación AGS FFL',
-        text: resumen
-      });
-    } else {
-      navigator.clipboard.writeText(resumen).then(() => {
-        console.log('Resultados copiados al portapapeles');
-      });
-    }
-  };
-
-  return (
-    <Box>
-      {/* Estado de importación */}
-      {importacionStatus === 'processing' && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Paper sx={{
-            backgroundColor: 'rgba(33, 150, 243, 0.1)',
-            border: '1px solid rgba(33, 150, 243, 0.3)',
-            borderRadius: 3,
-            p: 4,
-            mb: 4,
-            textAlign: 'center'
-          }}>
-            <CircularProgress 
-              size={80} 
-              thickness={4}
-              sx={{ 
-                color: '#64b5f6',
-                mb: 3
-              }}
-            />
-            
-            <Typography variant="h5" sx={{ 
-              color: 'white', 
-              fontWeight: 'bold',
-              mb: 2
-            }}>
-              Importando {wizardData.tipo}...
-            </Typography>
-            
-            <Typography variant="body1" sx={{ 
-              color: 'rgba(255, 255, 255, 0.8)',
-              mb: 3
-            }}>
-              {etapaActual}
-            </Typography>
-
-            <Box sx={{ width: '100%', mb: 2 }}>
-              <LinearProgress
-                variant="determinate"
-                value={progreso}
-                sx={{
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  '& .MuiLinearProgress-bar': {
-                    borderRadius: 6,
-                    background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
-                  }
-                }}
-              />
-            </Box>
-
-            <Typography variant="body2" sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)'
-            }}>
-              {progreso}% completado • Tiempo transcurrido: {calcularTiempoTranscurrido()}
-            </Typography>
-
-            <Button
-              variant="outlined"
-              startIcon={<StopIcon />}
-              onClick={() => setImportacionStatus('idle')}
-              sx={{
-                mt: 3,
-                borderColor: 'rgba(244, 67, 54, 0.3)',
-                color: '#f44336',
-                '&:hover': {
-                  borderColor: 'rgba(244, 67, 54, 0.5)',
-                  backgroundColor: 'rgba(244, 67, 54, 0.05)'
-                }
-              }}
-            >
-              Cancelar
-            </Button>
-          </Paper>
-        </motion.div>
-      )}
-
-      {/* Resultados de importación */}
-      {importacionStatus === 'completed' && resultados && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-        >
-          {/* Header de éxito */}
-          <Alert 
-            severity="success" 
+  // 🎯 Botones de acción
+  const BotonesAccion = () => (
+    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 3 }}>
+      {importacionStatus === 'completed' && (
+        <>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={reiniciarImportacion}
             sx={{ 
-              mb: 4,
-              fontSize: '1.1rem',
-              '& .MuiAlert-icon': {
-                fontSize: '2rem'
-              }
+              backgroundColor: '#4fc3f7', 
+              '&:hover': { backgroundColor: '#29b6f6' } 
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              🎉 ¡Importación completada exitosamente!
-            </Typography>
-            <Typography variant="body2">
-              Se procesaron {resultados.estadisticas?.procesados || 0} registros en {calcularTiempoTranscurrido()}.
-              {resultados.estadisticas?.creados > 0 && ` ${resultados.estadisticas.creados} ${wizardData.tipo} fueron creados.`}
-            </Typography>
-          </Alert>
+            Nueva Importación
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<HomeIcon />}
+            onClick={volverAlInicio}
+            sx={{ 
+              borderColor: 'rgba(255, 255, 255, 0.3)', 
+              color: 'white',
+              '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255, 255, 255, 0.1)' }
+            }}
+          >
+            Volver al Inicio
+          </Button>
+        </>
+      )}
 
-          {/* Resumen estadístico */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={6} md={3}>
-              <StatCard
-                title="Exitosos"
-                value={resultados.exitosos?.length || 0}
-                color="success"
-                icon={<CheckCircleIcon />}
-                subtitle="Registros creados"
-                onClick={() => toggleSection('exitosos')}
-              />
-            </Grid>
-            
-            <Grid item xs={6} md={3}>
-              <StatCard
-                title="Errores"
-                value={resultados.errores?.length || 0}
-                color="error"
-                icon={<ErrorIcon />}
-                subtitle="No procesados"
-                onClick={() => toggleSection('errores')}
-              />
-            </Grid>
-            
-            <Grid item xs={6} md={3}>
-              <StatCard
-                title="Advertencias"
-                value={resultados.warnings?.length || 0}
-                color="warning"
-                icon={<WarningIcon />}
-                subtitle="Revisar"
-                onClick={() => toggleSection('warnings')}
-              />
-            </Grid>
-            
-            <Grid item xs={6} md={3}>
-              <StatCard
-                title="Tiempo"
-                value={calcularTiempoTranscurrido()}
-                color="info"
-                icon={<SpeedIcon />}
-                subtitle="Duración total"
-              />
-            </Grid>
-          </Grid>
+      {importacionStatus === 'error' && (
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
+          onClick={reiniciarImportacion}
+          sx={{ 
+            backgroundColor: '#f44336', 
+            '&:hover': { backgroundColor: '#d32f2f' } 
+          }}
+        >
+          Reintentar
+        </Button>
+      )}
+    </Box>
+  );
 
-          {/* Detalles de registros exitosos */}
-          {resultados.exitosos && resultados.exitosos.length > 0 && (
-            <Paper sx={{
-              backgroundColor: 'rgba(76, 175, 80, 0.1)',
-              border: '1px solid rgba(76, 175, 80, 0.3)',
-              borderRadius: 2,
-              mb: 3
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                p: 2,
-                borderBottom: '1px solid rgba(76, 175, 80, 0.2)'
-              }}>
-                <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
-                  ✅ Registros Creados Exitosamente ({resultados.exitosos.length})
-                </Typography>
-                <IconButton
-                  onClick={() => toggleSection('exitosos')}
-                  sx={{ color: '#4caf50' }}
-                >
-                  {expandedSections.exitosos ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              </Box>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+        {/* 🔥 NUEVO: Información específica para jugadas */}
+        {renderInfoJugadas()}
 
-              <Collapse in={expandedSections.exitosos}>
-                {renderTablaResultados(resultados.exitosos, 'exitosos', '76, 175, 80')}
-              </Collapse>
-            </Paper>
-          )}
+        {/* Estado de Progreso */}
+        <EstadoProgreso />
 
-          {/* Detalles de errores */}
-          {resultados.errores && resultados.errores.length > 0 && (
-            <Paper sx={{
-              backgroundColor: 'rgba(244, 67, 54, 0.1)',
-              border: '1px solid rgba(244, 67, 54, 0.3)',
-              borderRadius: 2,
-              mb: 3
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                p: 2,
-                borderBottom: '1px solid rgba(244, 67, 54, 0.2)'
-              }}>
-                <Typography variant="h6" sx={{ color: '#f44336', fontWeight: 'bold' }}>
-                  ❌ Registros con Errores ({resultados.errores.length})
-                </Typography>
-                <IconButton
-                  onClick={() => toggleSection('errores')}
-                  sx={{ color: '#f44336' }}
-                >
-                  {expandedSections.errores ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              </Box>
+        {/* Resumen de Resultados */}
+        {importacionStatus === 'completed' && <ResumenResultados />}
 
-              <Collapse in={expandedSections.errores}>
-                {renderTablaResultados(resultados.errores, 'errores', '244, 67, 54')}
-              </Collapse>
-            </Paper>
-          )}
+        {/* Detalles de Resultados */}
+        {importacionStatus === 'completed' && <DetallesResultados />}
 
-          {/* Detalles de advertencias */}
-          {resultados.warnings && resultados.warnings.length > 0 && (
-            <Paper sx={{
-              backgroundColor: 'rgba(255, 152, 0, 0.1)',
-              border: '1px solid rgba(255, 152, 0, 0.3)',
-              borderRadius: 2,
-              mb: 3
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                p: 2,
-                borderBottom: '1px solid rgba(255, 152, 0, 0.2)'
-              }}>
-                <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                  ⚠️ Advertencias ({resultados.warnings.length})
-                </Typography>
-                <IconButton
-                  onClick={() => toggleSection('warnings')}
-                  sx={{ color: '#ff9800' }}
-                >
-                  {expandedSections.warnings ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              </Box>
+        {/* Botones de Acción */}
+        <BotonesAccion />
 
-              <Collapse in={expandedSections.warnings}>
-                <List>
-                  {resultados.warnings.slice(0, 5).map((warning, index) => (
-                    <ListItem key={index}>
-                      <ListItemIcon>
-                        <WarningIcon sx={{ color: '#ff9800' }} />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={`Fila ${warning.fila}: ${warning.mensaje}`}
-                        secondary={warning.datos ? JSON.stringify(warning.datos).substring(0, 100) + '...' : ''}
-                        primaryTypographyProps={{
-                          sx: { color: 'rgba(255, 255, 255, 0.9)' }
-                        }}
-                        secondaryTypographyProps={{
-                          sx: { color: 'rgba(255, 255, 255, 0.6)', fontFamily: 'monospace' }
-                        }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </Collapse>
-            </Paper>
-          )}
-
-          {/* Resumen detallado */}
-          <Paper sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: 2,
-            mb: 4
+        {/* Información adicional para jugadas */}
+        {importacionStatus === 'completed' && wizardData.tipo === 'jugadas' && (
+          <Card sx={{ 
+            mt: 3, 
+            backgroundColor: 'rgba(0, 0, 0, 0.7)', 
+            border: '1px solid rgba(255, 255, 255, 0.1)' 
           }}>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              p: 2,
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                📊 Resumen Detallado
+            <CardContent>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center' }}>
+                <TagIcon sx={{ mr: 1 }} />
+                Información sobre Números de Jugadores
               </Typography>
-              <IconButton
-                onClick={() => toggleSection('resumen')}
-                sx={{ color: 'white' }}
-              >
-                {expandedSections.resumen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-            </Box>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+                La importación ha sido completada usando el nuevo sistema de números de jugadores:
+              </Typography>
+              <Box component="ul" sx={{ color: 'rgba(255, 255, 255, 0.7)', pl: 2 }}>
+                <li>Se identificaron jugadores por su <strong>número de camiseta</strong> en lugar de nombres</li>
+                <li>Los números deben ser únicos dentro de cada equipo</li>
+                <li>Este sistema mejora la precisión y velocidad de las estadísticas</li>
+                <li>Los datos se validan automáticamente contra el registro de jugadores</li>
+              </Box>
+              
+              {resultados?.errores?.length > 0 && (
+                <Alert severity="warning" sx={{ mt: 2, backgroundColor: 'rgba(255, 152, 0, 0.1)' }}>
+                  <Typography variant="body2">
+                    <strong>Errores comunes con números de jugadores:</strong>
+                  </Typography>
+                  <Box component="ul" sx={{ mt: 1, mb: 0 }}>
+                    <li>Número de jugador no registrado en el equipo</li>
+                    <li>Usar nombres en lugar de números</li>
+                    <li>Números con formato incorrecto (debe ser entero positivo)</li>
+                    <li>Jugador no activo en el equipo especificado</li>
+                  </Box>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-            <Collapse in={expandedSections.resumen}>
-              <Box sx={{ p: 3 }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', mb: 2 }}>
-                      Información del Proceso
+        {/* Información de tiempo y rendimiento */}
+        {(importacionStatus === 'completed' || importacionStatus === 'error') && (
+          <Card sx={{ 
+            mt: 2, 
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+            border: '1px solid rgba(255, 255, 255, 0.1)' 
+          }}>
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <TimelineIcon sx={{ fontSize: 30, color: '#90a4ae', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Tiempo Total
                     </Typography>
-                    <List dense>
-                      <ListItem>
-                        <ListItemIcon>
-                          <AssessmentIcon sx={{ color: '#64b5f6' }} />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Tipo de importación"
-                          secondary={wizardData.tipo === 'partidos' ? 'Partidos' : 'Jugadas'}
-                          primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                          secondaryTypographyProps={{ sx: { color: 'white', fontWeight: 'bold' } }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <TimelineIcon sx={{ color: '#64b5f6' }} />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Tiempo de procesamiento"
-                          secondary={calcularTiempoTranscurrido()}
-                          primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                          secondaryTypographyProps={{ sx: { color: 'white', fontWeight: 'bold' } }}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <SpeedIcon sx={{ color: '#64b5f6' }} />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary="Velocidad de procesamiento"
-                          secondary={`${Math.round((resultados.estadisticas?.procesados || 0) / Math.max(1, (tiempoFin - tiempoInicio) / 1000))} registros/seg`}
-                          primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                         secondaryTypographyProps={{ sx: { color: 'white', fontWeight: 'bold' } }}
-                       />
-                     </ListItem>
-                   </List>
-                 </Grid>
-
-                 <Grid item xs={12} md={6}>
-                   <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', mb: 2 }}>
-                     Estadísticas
-                   </Typography>
-                   <List dense>
-                     <ListItem>
-                       <ListItemText
-                         primary="Tasa de éxito"
-                         secondary={`${Math.round(((resultados.exitosos?.length || 0) / Math.max(1, resultados.estadisticas?.procesados || 1)) * 100)}%`}
-                         primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                         secondaryTypographyProps={{ sx: { color: '#4caf50', fontWeight: 'bold', fontSize: '1.2rem' } }}
-                       />
-                     </ListItem>
-                     <ListItem>
-                       <ListItemText
-                         primary="Registros procesados"
-                         secondary={`${resultados.estadisticas?.procesados || 0} de ${resultados.estadisticas?.total || 0}`}
-                         primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                         secondaryTypographyProps={{ sx: { color: 'white', fontWeight: 'bold' } }}
-                       />
-                     </ListItem>
-                     <ListItem>
-                       <ListItemText
-                         primary="Eficiencia"
-                         secondary={resultados.errores?.length === 0 ? 'Perfecta' : 'Con errores menores'}
-                         primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.7)' } }}
-                         secondaryTypographyProps={{ 
-                           sx: { 
-                             color: resultados.errores?.length === 0 ? '#4caf50' : '#ff9800', 
-                             fontWeight: 'bold' 
-                           } 
-                         }}
-                       />
-                     </ListItem>
-                   </List>
-                 </Grid>
-               </Grid>
-             </Box>
-           </Collapse>
-         </Paper>
-
-         {/* Acciones post-importación */}
-         <Paper sx={{
-           backgroundColor: 'rgba(33, 150, 243, 0.1)',
-           border: '1px solid rgba(33, 150, 243, 0.2)',
-           borderRadius: 2,
-           p: 3,
-           mb: 4
-         }}>
-           <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', mb: 3 }}>
-             🎯 ¿Qué hacer ahora?
-           </Typography>
-
-           <Grid container spacing={2}>
-             <Grid item xs={12} md={3}>
-               <Button
-                 variant="contained"
-                 fullWidth
-                 startIcon={<HomeIcon />}
-                 onClick={() => navigate('/partidos')}
-                 sx={{
-                   background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                   boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                   py: 1.5
-                 }}
-               >
-                 Ver Partidos
-               </Button>
-             </Grid>
-
-             <Grid item xs={12} md={3}>
-               <Button
-                 variant="outlined"
-                 fullWidth
-                 startIcon={<FileDownloadIcon />}
-                 onClick={descargarReporte}
-                 sx={{
-                   borderColor: 'rgba(76, 175, 80, 0.3)',
-                   color: '#4caf50',
-                   '&:hover': {
-                     borderColor: 'rgba(76, 175, 80, 0.5)',
-                     backgroundColor: 'rgba(76, 175, 80, 0.05)'
-                   },
-                   py: 1.5
-                 }}
-               >
-                 Descargar Reporte
-               </Button>
-             </Grid>
-
-             <Grid item xs={12} md={3}>
-               <Button
-                 variant="outlined"
-                 fullWidth
-                 startIcon={<RefreshIcon />}
-                 onClick={reiniciarImportacion}
-                 sx={{
-                   borderColor: 'rgba(255, 152, 0, 0.3)',
-                   color: '#ff9800',
-                   '&:hover': {
-                     borderColor: 'rgba(255, 152, 0, 0.5)',
-                     backgroundColor: 'rgba(255, 152, 0, 0.05)'
-                   },
-                   py: 1.5
-                 }}
-               >
-                 Nueva Importación
-               </Button>
-             </Grid>
-
-             <Grid item xs={12} md={3}>
-               <Button
-                 variant="outlined"
-                 fullWidth
-                 startIcon={<ShareIcon />}
-                 onClick={compartirResultados}
-                 sx={{
-                   borderColor: 'rgba(156, 39, 176, 0.3)',
-                   color: '#9c27b0',
-                   '&:hover': {
-                     borderColor: 'rgba(156, 39, 176, 0.5)',
-                     backgroundColor: 'rgba(156, 39, 176, 0.05)'
-                   },
-                   py: 1.5
-                 }}
-               >
-                 Compartir
-               </Button>
-             </Grid>
-           </Grid>
-         </Paper>
-       </motion.div>
-     )}
-
-     {/* Estado de error */}
-     {importacionStatus === 'error' && (
-       <motion.div
-         initial={{ opacity: 0, y: 20 }}
-         animate={{ opacity: 1, y: 0 }}
-         transition={{ duration: 0.5 }}
-       >
-         <Alert 
-           severity="error" 
-           sx={{ 
-             mb: 4,
-             fontSize: '1.1rem'
-           }}
-         >
-           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-             ❌ Error en la importación
-           </Typography>
-           <Typography variant="body2">
-             Ocurrió un problema durante el proceso. Revisa los datos y vuelve a intentar.
-           </Typography>
-         </Alert>
-
-         <Box sx={{ textAlign: 'center', py: 4 }}>
-           <ErrorIcon sx={{ fontSize: 100, color: '#f44336', mb: 3 }} />
-           
-           <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-             No se pudo completar la importación
-           </Typography>
-           
-           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 4 }}>
-             Tiempo transcurrido: {calcularTiempoTranscurrido()}
-           </Typography>
-
-           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-             <Button
-               variant="contained"
-               startIcon={<RefreshIcon />}
-               onClick={reiniciarImportacion}
-               sx={{
-                 background: 'linear-gradient(45deg, #f44336 30%, #f66 90%)',
-                 boxShadow: '0 3px 5px 2px rgba(244, 67, 54, .3)'
-               }}
-             >
-               Reintentar
-             </Button>
-             
-             <Button
-               variant="outlined"
-               startIcon={<HomeIcon />}
-               onClick={() => navigate('/partidos')}
-               sx={{
-                 borderColor: 'rgba(255, 255, 255, 0.3)',
-                 color: 'rgba(255, 255, 255, 0.7)',
-                 '&:hover': {
-                   borderColor: 'rgba(255, 255, 255, 0.5)',
-                   backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                 }
-               }}
-             >
-               Volver al Inicio
-             </Button>
-           </Box>
-         </Box>
-       </motion.div>
-     )}
-
-     {/* Estado inicial - Esperando */}
-     {importacionStatus === 'idle' && (
-       <motion.div
-         initial={{ opacity: 0 }}
-         animate={{ opacity: 1 }}
-         transition={{ duration: 0.5 }}
-       >
-         <Box sx={{ textAlign: 'center', py: 8 }}>
-           <CloudUploadIcon sx={{ fontSize: 100, color: 'rgba(255, 255, 255, 0.3)', mb: 3 }} />
-           
-           <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-             Listo para importar
-           </Typography>
-           
-           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 4 }}>
-             {wizardData.validationResults?.resumen?.validos || 0} registros válidos están listos para ser procesados
-           </Typography>
-
-           <Button
-             variant="contained"
-             size="large"
-             startIcon={<PlayArrowIcon />}
-             onClick={iniciarImportacion}
-             sx={{
-               background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
-               boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
-               px: 6,
-               py: 2,
-               fontSize: '1.1rem',
-               fontWeight: 'bold'
-             }}
-           >
-             Iniciar Importación
-           </Button>
-         </Box>
-       </motion.div>
-     )}
-   </Box>
- );
+                    <Typography variant="h6" sx={{ color: 'white' }}>
+                      {calcularTiempoTranscurrido()}s
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <SpeedIcon sx={{ fontSize: 30, color: '#90a4ae', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Velocidad
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white' }}>
+                      {resultados?.estadisticas?.total && calcularTiempoTranscurrido() > 0 
+                        ? Math.round(resultados.estadisticas.total / calcularTiempoTranscurrido()) 
+                        : 0} reg/s
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <AssessmentIcon sx={{ fontSize: 30, color: '#90a4ae', mb: 1 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Eficiencia
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white' }}>
+                      {resultados?.estadisticas?.total > 0 
+                        ? Math.round(((resultados.estadisticas.creados || 0) / resultados.estadisticas.total) * 100)
+                        : 0}%
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
+      </Box>
+    </motion.div>
+  );
 };

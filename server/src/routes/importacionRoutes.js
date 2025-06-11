@@ -1,4 +1,4 @@
-// 📁 server/src/routes/importacionRoutes.js
+// 📁 server/src/routes/importacionRoutes.js - MODIFICADO PARA NÚMEROS DE JUGADORES
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -98,7 +98,7 @@ const handleMulterError = (error, req, res, next) => {
   next();
 };
 
-// 🏈 IMPORTAR PARTIDOS MASIVAMENTE
+// 🏈 IMPORTAR PARTIDOS MASIVAMENTE (sin cambios - mantiene nombres de equipos)
 router.post('/partidos', 
   [
     uploadLimiter,
@@ -107,7 +107,6 @@ router.post('/partidos',
     upload.single('archivo'),
     handleMulterError,
     [
-      // Validaciones adicionales si es necesario
       check('crearEntidadesFaltantes')
         .optional()
         .isBoolean()
@@ -122,7 +121,7 @@ router.post('/partidos',
   importacionController.importarPartidos
 );
 
-// 🎮 IMPORTAR JUGADAS MASIVAMENTE
+// 🎮 FUNCIÓN MODIFICADA: IMPORTAR JUGADAS MASIVAMENTE - AHORA USA NÚMEROS
 router.post('/jugadas',
   [
     uploadLimiter,
@@ -170,7 +169,7 @@ router.get('/progreso/:procesoId',
   importacionController.obtenerProgresoImportacion
 );
 
-// 🔍 VALIDAR ARCHIVO CSV SIN IMPORTAR (preview)
+// 🔍 FUNCIÓN MODIFICADA: VALIDAR ARCHIVO CSV SIN IMPORTAR (preview) - AHORA RECONOCE NÚMEROS
 router.post('/validar',
   [
     uploadLimiter,
@@ -206,7 +205,7 @@ router.post('/validar',
       const data = parseResult.data;
       const headers = Object.keys(data[0] || {});
 
-      // Campos esperados según el tipo
+      // 🔥 MODIFICADO: Campos esperados según el tipo - AHORA USA NÚMEROS
       const camposEsperados = {
         partidos: [
           { key: 'equipo_local', required: true, description: 'Nombre del equipo local' },
@@ -230,8 +229,9 @@ router.post('/validar',
           { key: 'periodo', required: false, description: 'Período del partido (1 o 2)' },
           { key: 'equipo_posesion', required: true, description: 'Nombre del equipo en posesión' },
           { key: 'tipo_jugada', required: true, description: 'Tipo de jugada (pase_completo, touchdown, etc.)' },
-          { key: 'jugador_principal', required: true, description: 'Nombre del jugador principal' },
-          { key: 'jugador_secundario', required: false, description: 'Nombre del jugador secundario' },
+          // 🔥 CAMBIADO: De nombres a números de jugadores
+          { key: 'numero_jugador_principal', required: true, description: 'Número del jugador principal (ej: 12)' },
+          { key: 'numero_jugador_secundario', required: false, description: 'Número del jugador secundario (ej: 25)' },
           { key: 'descripcion', required: false, description: 'Descripción de la jugada' },
           { key: 'puntos', required: false, description: 'Puntos obtenidos' },
           { key: 'touchdown', required: false, description: 'Es touchdown (true/false)' },
@@ -246,6 +246,26 @@ router.post('/validar',
       const camposRequeridos = campos.filter(c => c.required).map(c => c.key);
       const camposFaltantes = camposRequeridos.filter(campo => !headers.includes(campo));
       const camposExtra = headers.filter(header => !campos.find(c => c.key === header));
+
+      // 🔥 NUEVA VALIDACIÓN: Verificar si se están usando nombres en lugar de números
+      const camposObsoletos = [];
+      if (req.body.tipo === 'jugadas') {
+        // Verificar si están usando los campos antiguos (nombres)
+        if (headers.includes('jugador_principal')) {
+          camposObsoletos.push({
+            campoEncontrado: 'jugador_principal',
+            campoNuevo: 'numero_jugador_principal',
+            mensaje: 'Ahora se debe usar el número del jugador en lugar del nombre'
+          });
+        }
+        if (headers.includes('jugador_secundario')) {
+          camposObsoletos.push({
+            campoEncontrado: 'jugador_secundario',
+            campoNuevo: 'numero_jugador_secundario',
+            mensaje: 'Ahora se debe usar el número del jugador en lugar del nombre'
+          });
+        }
+      }
 
       // Análisis de datos
       const analisis = {
@@ -262,6 +282,7 @@ router.post('/validar',
         validacion: {
           camposFaltantes: camposFaltantes,
           camposExtra: camposExtra,
+          camposObsoletos: camposObsoletos, // 🔥 NUEVO
           erroresEstructura: []
         },
         preview: data.slice(0, 5), // Primeras 5 filas como preview
@@ -273,6 +294,16 @@ router.post('/validar',
         analisis.validacion.erroresEstructura.push({
           tipo: 'error',
           mensaje: `Campos requeridos faltantes: ${camposFaltantes.join(', ')}`
+        });
+      }
+
+      // 🔥 NUEVO: Errores por campos obsoletos
+      if (camposObsoletos.length > 0) {
+        camposObsoletos.forEach(obsoleto => {
+          analisis.validacion.erroresEstructura.push({
+            tipo: 'error',
+            mensaje: `Campo obsoleto encontrado: "${obsoleto.campoEncontrado}". ${obsoleto.mensaje}. Use "${obsoleto.campoNuevo}" en su lugar.`
+          });
         });
       }
 
@@ -290,19 +321,77 @@ router.post('/validar',
         });
       }
 
+      // 🔥 VALIDACIÓN ADICIONAL: Verificar formato de números de jugadores
+      if (req.body.tipo === 'jugadas' && data.length > 0) {
+        let erroresNumeros = 0;
+        const primerasFilas = data.slice(0, 3); // Verificar solo las primeras 3 filas para el preview
+        
+        primerasFilas.forEach((fila, index) => {
+          // Verificar jugador principal
+          if (fila.numero_jugador_principal) {
+            const numero = parseInt(fila.numero_jugador_principal);
+            if (isNaN(numero) || numero <= 0) {
+              erroresNumeros++;
+              if (erroresNumeros <= 2) { // Solo mostrar los primeros 2 errores
+                analisis.validacion.erroresEstructura.push({
+                  tipo: 'error',
+                  mensaje: `Fila ${index + 2}: "numero_jugador_principal" debe ser un número positivo, encontrado: "${fila.numero_jugador_principal}"`
+                });
+              }
+            }
+          }
+          
+          // Verificar jugador secundario (si existe)
+          if (fila.numero_jugador_secundario) {
+            const numero = parseInt(fila.numero_jugador_secundario);
+            if (isNaN(numero) || numero <= 0) {
+              erroresNumeros++;
+              if (erroresNumeros <= 2) { // Solo mostrar los primeros 2 errores
+                analisis.validacion.erroresEstructura.push({
+                  tipo: 'error',
+                  mensaje: `Fila ${index + 2}: "numero_jugador_secundario" debe ser un número positivo, encontrado: "${fila.numero_jugador_secundario}"`
+                });
+              }
+            }
+          }
+        });
+        
+        if (erroresNumeros > 2) {
+          analisis.validacion.erroresEstructura.push({
+            tipo: 'warning',
+            mensaje: `Se encontraron ${erroresNumeros} errores de formato en números de jugadores. Revisa todos los valores.`
+          });
+        }
+      }
+
       // Determinar si se puede procesar
-      const puedeImportar = camposFaltantes.length === 0 && data.length > 0;
+      const puedeImportar = camposFaltantes.length === 0 && 
+                           camposObsoletos.length === 0 && 
+                           data.length > 0 &&
+                           analisis.validacion.erroresEstructura.filter(e => e.tipo === 'error').length === 0;
 
       console.log('✅ Validación completada');
       console.log(`  📊 Filas: ${data.length}`);
       console.log(`  📋 Columnas: ${headers.length}`);
       console.log(`  ❌ Errores estructura: ${analisis.validacion.erroresEstructura.filter(e => e.tipo === 'error').length}`);
       console.log(`  ⚠️ Warnings: ${analisis.validacion.erroresEstructura.filter(e => e.tipo === 'warning').length}`);
+      console.log(`  🔄 Campos obsoletos: ${camposObsoletos.length}`);
 
       res.json({
         mensaje: 'Validación completada',
         puedeImportar,
-        analisis
+        analisis,
+        // 🔥 NUEVO: Sugerencias específicas para el cambio a números
+        sugerencias: puedeImportar ? [] : [
+          ...(camposFaltantes.length > 0 ? [`Agrega los campos requeridos: ${camposFaltantes.join(', ')}`] : []),
+          ...(camposObsoletos.length > 0 ? [
+            'IMPORTANTE: El sistema ahora usa números de jugadores en lugar de nombres',
+            'Cambia "jugador_principal" por "numero_jugador_principal"',
+            'Cambia "jugador_secundario" por "numero_jugador_secundario"',
+            'Los valores deben ser números enteros positivos (ej: 12, 25, 8)'
+          ] : []),
+          'Descarga la plantilla actualizada si tienes dudas'
+        ]
       });
 
     } catch (error) {
@@ -315,114 +404,46 @@ router.post('/validar',
   }
 );
 
-// 🗑️ LIMPIAR IMPORTACIONES (para testing y desarrollo)
-router.delete('/limpiar/:tipo',
-  [
-    auth,
-    checkRole('admin'), // Solo admin puede limpiar
-    [
-      check('tipo')
-        .isIn(['partidos', 'jugadas', 'todo'])
-        .withMessage('Tipo debe ser "partidos", "jugadas" o "todo"'),
-        
-      check('confirmar')
-        .equals('SI_ESTOY_SEGURO')
-        .withMessage('Debe confirmar con "SI_ESTOY_SEGURO"')
-    ]
-  ],
-  async (req, res) => {
-    try {
-      const { tipo } = req.params;
-      const { limite } = req.body; // Opcional: límite de registros a eliminar
-      
-      console.log(`\n🗑️ LIMPIEZA DE DATOS - Tipo: ${tipo}`);
-      
-      let resultados = {
-        partidosEliminados: 0,
-        jugadasEliminadas: 0
-      };
-
-      if (tipo === 'partidos' || tipo === 'todo') {
-        const filtro = limite ? {} : { creadoPor: req.usuario._id }; // Si hay límite, eliminar todos, sino solo los del usuario
-        const partidos = await require('../models/Partido').find(filtro).limit(limite || 0);
-        
-        // Contar jugadas antes de eliminar partidos
-        const totalJugadas = partidos.reduce((sum, partido) => sum + partido.jugadas.length, 0);
-        
-        const deleteResult = await require('../models/Partido').deleteMany(filtro);
-        resultados.partidosEliminados = deleteResult.deletedCount;
-        resultados.jugadasEliminadas += totalJugadas;
-      }
-
-      if (tipo === 'jugadas' && tipo !== 'todo') {
-        // Limpiar solo jugadas, mantener partidos
-        const partidos = await require('../models/Partido').find({ creadoPor: req.usuario._id });
-        
-        for (const partido of partidos) {
-          resultados.jugadasEliminadas += partido.jugadas.length;
-          partido.jugadas = [];
-          partido.marcador = { local: 0, visitante: 0 };
-          await partido.save();
-        }
-      }
-
-      console.log('✅ Limpieza completada:', resultados);
-
-      res.json({
-        mensaje: `Limpieza de ${tipo} completada`,
-        resultados,
-        advertencia: 'Esta acción no se puede deshacer'
-      });
-
-    } catch (error) {
-      console.error('Error en limpieza:', error);
-      res.status(500).json({
-        mensaje: 'Error al limpiar datos',
-        error: error.message
-      });
-    }
-  }
-);
-
-// 📊 ESTADÍSTICAS DE IMPORTACIÓN
+// 📊 OBTENER ESTADÍSTICAS DE IMPORTACIÓN
 router.get('/estadisticas',
-  auth,
+  [auth],
   async (req, res) => {
     try {
+      console.log('📊 Obteniendo estadísticas de importación...');
+      
       const Partido = require('../models/Partido');
       
-      const estadisticas = await Promise.all([
-        // Total de partidos
-        Partido.countDocuments(),
-        
-        // Partidos creados por importación (últimos 30 días)
-        Partido.countDocuments({
-          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-        }),
-        
-        // Partidos con jugadas
-        Partido.countDocuments({
-          'jugadas.0': { $exists: true }
-        }),
-        
-        // Total de jugadas
-        Partido.aggregate([
-          { $project: { jugadasCount: { $size: '$jugadas' } } },
-          { $group: { _id: null, total: { $sum: '$jugadasCount' } } }
-        ])
+      // Estadísticas de partidos
+      const totalPartidos = await Partido.countDocuments();
+      const partidosConJugadas = await Partido.countDocuments({ 
+        'jugadas.0': { $exists: true } 
+      });
+      
+      // Partidos recientes (últimos 30 días)
+      const fechaLimite = new Date();
+      fechaLimite.setDate(fechaLimite.getDate() - 30);
+      
+      const partidosRecientes = await Partido.countDocuments({
+        fechaHora: { $gte: fechaLimite }
+      });
+      
+      // Promedio de jugadas por partido
+      const resultadosJugadas = await Partido.aggregate([
+        { $match: { 'jugadas.0': { $exists: true } } },
+        { $project: { cantidadJugadas: { $size: '$jugadas' } } },
+        { $group: { _id: null, totalJugadas: { $sum: '$cantidadJugadas' } } }
       ]);
-
-      const [totalPartidos, partidosRecientes, partidosConJugadas, totalJugadasResult] = estadisticas;
-      const totalJugadas = totalJugadasResult[0]?.total || 0;
+      
+      const totalJugadas = resultadosJugadas[0]?.totalJugadas || 0;
 
       res.json({
-        mensaje: 'Estadísticas de importación',
+        mensaje: 'Estadísticas obtenidas correctamente',
         estadisticas: {
           partidos: {
             total: totalPartidos,
-            recientes: partidosRecientes,
             conJugadas: partidosConJugadas,
-            sinJugadas: totalPartidos - partidosConJugadas
+            sinJugadas: totalPartidos - partidosConJugadas,
+            porcentajeConJugadas: totalPartidos > 0 ? Math.round((partidosConJugadas / totalPartidos) * 100) : 0
           },
           jugadas: {
             total: totalJugadas,
@@ -446,25 +467,13 @@ router.get('/estadisticas',
   }
 );
 
-// 📋 DESCARGAR PLANTILLAS CSV
-router.get('/plantillas/:tipo',
-  [
-    [
-      check('tipo')
-        .isIn(['partidos', 'jugadas'])
-        .withMessage('Tipo debe ser "partidos" o "jugadas"')
-    ]
-  ],
-  importacionController.descargarPlantilla
-);
-
-// 📊 NUEVO: Obtener información de equipos y categorías para importación
+// 📊 OBTENER INFORMACIÓN DE EQUIPOS Y CATEGORÍAS
 router.get('/equipos-info',
   auth,
   importacionController.obtenerInfoEquiposYCategorias
 );
 
-// 🔍 NUEVO: Validar conflictos de equipos antes de importar
+// 🔍 VALIDAR CONFLICTOS DE EQUIPOS ANTES DE IMPORTAR
 router.post('/validar-equipos',
   [
     uploadLimiter,
@@ -537,28 +546,9 @@ router.post('/validar-equipos',
       
       // Obtener estadísticas de equipos
       const Equipo = require('../models/Equipo');
-      const equiposPorCategoria = await Equipo.aggregate([
-        {
-          $match: { estado: 'activo' }
-        },
-        {
-          $group: {
-            _id: '$categoria',
-            equipos: {
-              $push: {
-                nombre: '$nombre',
-                id: '$_id'
-              }
-            },
-            total: { $sum: 1 }
-          }
-        },
-        {
-          $sort: { _id: 1 }
-        }
-      ]);
-
-      // Análisis de datos del CSV
+      const equiposActivos = await Equipo.countDocuments({ estado: 'activo' });
+      
+      // Extraer equipos únicos del CSV
       const equiposEnCSV = new Set();
       data.forEach(fila => {
         if (fila[mappings.equipo_local]) equiposEnCSV.add(fila[mappings.equipo_local]);
@@ -569,53 +559,31 @@ router.post('/validar-equipos',
         archivo: {
           nombre: req.file.originalname,
           filas: data.length,
-          headers: headers
+          equiposUnicos: equiposEnCSV.size
         },
-        mapeo: mappings,
-        equipos: {
-          enCSV: Array.from(equiposEnCSV),
-          totalEnCSV: equiposEnCSV.size,
-          enSistema: equiposPorCategoria
+        sistema: {
+          equiposActivos: equiposActivos,
+          categoriaIncluida: !!mappings.categoria
         },
         conflictos: {
           detectados: conflictosPotenciales.length,
-          detalles: conflictosPotenciales,
-          requiereCategoría: conflictosPotenciales.length > 0 && !mappings.categoria
+          detalles: conflictosPotenciales
         },
         recomendaciones: []
       };
 
-      // Generar recomendaciones
-      if (conflictosPotenciales.length > 0) {
-        if (!mappings.categoria) {
-          analisis.recomendaciones.push({
-            tipo: 'error',
-            titulo: 'Agregar columna de categoría',
-            mensaje: `Se detectaron ${conflictosPotenciales.length} equipos con nombres ambiguos. Agrega una columna "categoria" a tu CSV.`,
-            accion: 'Incluir columna: categoria'
-          });
-        } else {
-          analisis.recomendaciones.push({
-            tipo: 'warning',
-            titulo: 'Verificar categorías',
-            mensaje: 'Se detectaron conflictos pero tienes columna de categoría. Verifica que las categorías sean correctas.',
-            accion: 'Revisar valores de categoría'
-          });
-        }
-      } else {
+      if (conflictosPotenciales.length > 0 && !mappings.categoria) {
         analisis.recomendaciones.push({
-          tipo: 'success',
-          titulo: 'Sin conflictos detectados',
-          mensaje: 'Los nombres de equipos en tu CSV son únicos o están bien categorizados.',
-          accion: 'Continuar con la importación'
+          tipo: 'warning',
+          mensaje: 'Se detectaron equipos con nombres similares',
+          accion: 'Agregar columna "categoria" al CSV para resolver ambigüedades'
         });
       }
 
       if (!mappings.categoria) {
         analisis.recomendaciones.push({
           tipo: 'info',
-          titulo: 'Categoría recomendada',
-          mensaje: 'Aunque no se detectaron conflictos, es recomendable incluir la categoría para mayor precisión.',
+          mensaje: 'Columna "categoria" no encontrada',
           accion: 'Opcional: agregar columna categoria'
         });
       }
@@ -635,6 +603,69 @@ router.post('/validar-equipos',
       console.error('Error en validación de conflictos:', error);
       res.status(500).json({
         mensaje: 'Error al validar conflictos de equipos',
+        error: error.message
+      });
+    }
+  }
+);
+
+// 🗑️ LIMPIAR IMPORTACIONES (para testing y desarrollo)
+router.delete('/limpiar/:tipo',
+  [
+    auth,
+    checkRole('admin'), // Solo admin puede limpiar
+    [
+      check('tipo')
+        .isIn(['partidos', 'jugadas', 'todo'])
+        .withMessage('Tipo debe ser "partidos", "jugadas" o "todo"'),
+        
+      check('confirmar')
+        .equals('SI_ESTOY_SEGURO')
+        .withMessage('Debe confirmar con "SI_ESTOY_SEGURO"')
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const { tipo } = req.params;
+      const { limite } = req.body; // Opcional: límite de registros a eliminar
+      
+      console.log(`\n🗑️ LIMPIEZA DE DATOS - Tipo: ${tipo}`);
+      
+      let resultados = {
+        partidosEliminados: 0,
+        jugadasEliminadas: 0
+      };
+
+      if (tipo === 'partidos' || tipo === 'todo') {
+        const filtro = limite ? 
+          { creadoPor: req.usuario._id } : // Si hay límite, solo los del usuario
+          {}; // Sin límite, todos (solo admin)
+          
+        const partidosEliminados = await Partido.deleteMany(filtro);
+        resultados.partidosEliminados = partidosEliminados.deletedCount;
+      }
+
+      if (tipo === 'jugadas' || tipo === 'todo') {
+        // Para jugadas, actualizar partidos removiendo todas las jugadas
+        const partidosActualizados = await Partido.updateMany(
+          {}, 
+          { $set: { jugadas: [] } }
+        );
+        resultados.jugadasEliminadas = partidosActualizados.modifiedCount;
+      }
+
+      console.log(`✅ Limpieza completada: ${JSON.stringify(resultados)}`);
+
+      res.json({
+        mensaje: 'Limpieza completada exitosamente',
+        resultados,
+        advertencia: 'Esta acción no se puede deshacer'
+      });
+
+    } catch (error) {
+      console.error('Error en limpieza:', error);
+      res.status(500).json({
+        mensaje: 'Error al limpiar datos',
         error: error.message
       });
     }

@@ -137,10 +137,10 @@ exports.crearArbitro = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    if (usuario.rol !== 'arbitro') {
-      console.log('❌ ERROR: Usuario no es árbitro');
+    if (usuario.rol !== 'arbitro' && usuario.rolSecundario !== 'arbitro') {
+      console.log('❌ ERROR: Usuario no tiene rol de árbitro');
       return res.status(400).json({ 
-        mensaje: 'El usuario debe tener rol de árbitro para crear un perfil' 
+        mensaje: 'El usuario debe tener rol de árbitro (principal o secundario) para crear un perfil' 
       });
     }
 

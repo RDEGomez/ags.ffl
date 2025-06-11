@@ -7,31 +7,165 @@ const Usuario = require('../models/Usuario');
 const { validationResult } = require('express-validator');
 const { getImageUrlServer } = require('../helpers/imageUrlHelper');
 
+// 🔥 FUNCIÓN HELPER PARA OBTENER NÚMERO DE JUGADOR
+const obtenerNumeroJugador = async (jugadorId, equipoId) => {
+  try {
+    console.log(`🔍 Buscando número de jugador ${jugadorId} en equipo ${equipoId}`);
+    
+    const usuario = await Usuario.findById(jugadorId).select('equipos');
+    if (!usuario) {
+      console.log(`❌ Usuario ${jugadorId} no encontrado`);
+      return null;
+    }
+    
+    console.log(`👤 Usuario encontrado: ${usuario._id}, equipos: ${usuario.equipos.length}`);
+    
+    // 🔥 DEBUG: Mostrar todos los equipos del usuario
+    console.log(`📋 Equipos del usuario:`, usuario.equipos.map(e => ({
+      equipoId: e.equipo.toString(),
+      numero: e.numero
+    })));
+    
+    const equipoData = usuario.equipos.find(e => e.equipo.toString() === equipoId.toString());
+    const numero = equipoData ? equipoData.numero : null;
+    
+    console.log(`📋 Número encontrado para jugador ${jugadorId} en equipo ${equipoId}: ${numero}`);
+    
+    // 🔥 DEBUG ADICIONAL si no encuentra el número
+    if (!numero) {
+      console.log(`⚠️ DEBUG: No se encontró número para el jugador`);
+      console.log(`  - Equipo buscado: ${equipoId}`);
+      console.log(`  - Equipos del usuario: ${usuario.equipos.map(e => e.equipo.toString()).join(', ')}`);
+      console.log(`  - ¿Coincide alguno?: ${usuario.equipos.some(e => e.equipo.toString() === equipoId.toString())}`);
+    }
+    
+    return numero;
+  } catch (error) {
+    console.error('❌ Error al obtener número de jugador:', error);
+    return null;
+  }
+};
+
+// 🔥 FUNCIÓN PARA ENRIQUECER JUGADAS CON NÚMEROS
+const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitanteId) => {
+  console.log('🔄 Enriqueciendo jugadas con números de jugador...');
+  console.log(`📊 Total jugadas a procesar: ${jugadas.length}`);
+  console.log(`🏠 Equipo Local ID: ${equipoLocalId}`);
+  console.log(`✈️ Equipo Visitante ID: ${equipoVisitanteId}`);
+  
+  const jugadasEnriquecidas = await Promise.all(
+    jugadas.map(async (jugada, index) => {
+      const jugadaObj = jugada.toObject ? jugada.toObject() : jugada;
+      
+      console.log(`\n🔍 Procesando jugada #${index + 1}:`);
+      console.log(`  - Tipo: ${jugadaObj.tipoJugada}`);
+      
+      // 🔥 CORREGIR: Extraer el ID del objeto equipoEnPosesion
+      let equipoId;
+      if (jugadaObj.equipoEnPosesion) {
+        // Si es un objeto, extraer el _id
+        if (typeof jugadaObj.equipoEnPosesion === 'object' && jugadaObj.equipoEnPosesion._id) {
+          equipoId = jugadaObj.equipoEnPosesion._id.toString();
+        } 
+        // Si ya es un string (ObjectId), usarlo directamente
+        else if (typeof jugadaObj.equipoEnPosesion === 'string') {
+          equipoId = jugadaObj.equipoEnPosesion;
+        }
+        // Si no tiene _id pero es un objeto, intentar toString()
+        else {
+          equipoId = jugadaObj.equipoEnPosesion.toString();
+        }
+      }
+      
+      console.log(`  - Equipo en posesión ID: ${equipoId}`);
+      console.log(`  - Equipo en posesión objeto:`, jugadaObj.equipoEnPosesion?.nombre || 'Sin nombre');
+      
+      // Enriquecer jugador principal
+      if (jugadaObj.jugadorPrincipal && jugadaObj.jugadorPrincipal._id) {
+        console.log(`  - Jugador Principal: ${jugadaObj.jugadorPrincipal.nombre} (${jugadaObj.jugadorPrincipal._id})`);
+        const numeroP = await obtenerNumeroJugador(jugadaObj.jugadorPrincipal._id, equipoId);
+        jugadaObj.jugadorPrincipal.numero = numeroP;
+        console.log(`  - Número asignado: #${numeroP}`);
+      }
+      
+      // Enriquecer jugador secundario (si existe)
+      if (jugadaObj.jugadorSecundario && jugadaObj.jugadorSecundario._id) {
+        console.log(`  - Jugador Secundario: ${jugadaObj.jugadorSecundario.nombre} (${jugadaObj.jugadorSecundario._id})`);
+        const numeroS = await obtenerNumeroJugador(jugadaObj.jugadorSecundario._id, equipoId);
+        jugadaObj.jugadorSecundario.numero = numeroS;
+        console.log(`  - Número secundario asignado: #${numeroS}`);
+      }
+      
+      return jugadaObj;
+    })
+  );
+  
+  console.log(`✅ ${jugadasEnriquecidas.length} jugadas enriquecidas con números`);
+  return jugadasEnriquecidas;
+};
+
 // 🔥 Helper para enriquecer partidos con URLs completas
 const enriquecerPartidoConUrls = async (partido, req) => {
   const partidoObj = partido.toObject ? partido.toObject() : partido;
   
-  // URLs de imágenes de equipos
-  if (partidoObj.equipoLocal && partidoObj.equipoLocal.imagen) {
+  // URLs de equipos
+  if (partidoObj.equipoLocal?.imagen) {
     partidoObj.equipoLocal.imagen = getImageUrlServer(partidoObj.equipoLocal.imagen, req);
   }
-  if (partidoObj.equipoVisitante && partidoObj.equipoVisitante.imagen) {
+  if (partidoObj.equipoVisitante?.imagen) {
     partidoObj.equipoVisitante.imagen = getImageUrlServer(partidoObj.equipoVisitante.imagen, req);
   }
-
-  // URLs de imágenes de árbitros
-  if (partidoObj.arbitros) {
-    if (partidoObj.arbitros.principal && partidoObj.arbitros.principal.usuario && partidoObj.arbitros.principal.usuario.imagen) {
-      partidoObj.arbitros.principal.usuario.imagen = getImageUrlServer(partidoObj.arbitros.principal.usuario.imagen, req);
-    }
-    if (partidoObj.arbitros.backeador && partidoObj.arbitros.backeador.usuario && partidoObj.arbitros.backeador.usuario.imagen) {
-      partidoObj.arbitros.backeador.usuario.imagen = getImageUrlServer(partidoObj.arbitros.backeador.usuario.imagen, req);
-    }
-    if (partidoObj.arbitros.estadistico && partidoObj.arbitros.estadistico.usuario && partidoObj.arbitros.estadistico.usuario.imagen) {
-      partidoObj.arbitros.estadistico.usuario.imagen = getImageUrlServer(partidoObj.arbitros.estadistico.usuario.imagen, req);
-    }
+  
+  // URLs de torneo
+  if (partidoObj.torneo?.imagen) {
+    partidoObj.torneo.imagen = getImageUrlServer(partidoObj.torneo.imagen, req);
   }
-
+  
+  // 🔥 URLs DE JUGADORES EN JUGADAS
+  if (partidoObj.jugadas && partidoObj.jugadas.length > 0) {
+    partidoObj.jugadas = partidoObj.jugadas.map(jugada => {
+      const jugadaObj = jugada.toObject ? jugada.toObject() : jugada;
+      
+      // URL imagen jugador principal
+      if (jugadaObj.jugadorPrincipal?.imagen) {
+        jugadaObj.jugadorPrincipal.imagen = getImageUrlServer(jugadaObj.jugadorPrincipal.imagen, req);
+      }
+      
+      // URL imagen jugador secundario
+      if (jugadaObj.jugadorSecundario?.imagen) {
+        jugadaObj.jugadorSecundario.imagen = getImageUrlServer(jugadaObj.jugadorSecundario.imagen, req);
+      }
+      
+      // URL imagen equipo en posesión
+      if (jugadaObj.equipoEnPosesion?.imagen) {
+        jugadaObj.equipoEnPosesion.imagen = getImageUrlServer(jugadaObj.equipoEnPosesion.imagen, req);
+      }
+      
+      return jugadaObj;
+    });
+  }
+  
+  // URLs de árbitros
+  if (partidoObj.arbitros) {
+    ['principal', 'backeador', 'estadistico'].forEach(tipo => {
+      if (partidoObj.arbitros[tipo]?.usuario?.imagen) {
+        partidoObj.arbitros[tipo].usuario.imagen = getImageUrlServer(
+          partidoObj.arbitros[tipo].usuario.imagen, req
+        );
+      }
+    });
+  }
+  
+  // URLs de usuarios de sistema
+  if (partidoObj.creadoPor?.imagen) {
+    partidoObj.creadoPor.imagen = getImageUrlServer(partidoObj.creadoPor.imagen, req);
+  }
+  if (partidoObj.ultimaActualizacion?.por?.imagen) {
+    partidoObj.ultimaActualizacion.por.imagen = getImageUrlServer(
+      partidoObj.ultimaActualizacion.por.imagen, req
+    );
+  }
+  
   return partidoObj;
 };
 
@@ -256,13 +390,16 @@ exports.obtenerPartidos = async (req, res) => {
 // 🔍 OBTENER PARTIDO POR ID
 exports.obtenerPartidoPorId = async (req, res) => {
   const timestamp = new Date().toISOString();
-  console.log(`\n🔍 [${timestamp}] INICIO - Obtener partido por ID`);
+  console.log(`\n🏈 [${timestamp}] INICIO - Obtener partido detallado`);
   console.log('🆔 Partido ID:', req.params.id);
 
   try {
-    const partido = await Partido.findById(req.params.id)
-      .populate('equipoLocal', 'nombre imagen categoria jugadores')
-      .populate('equipoVisitante', 'nombre imagen categoria jugadores')
+    const partidoId = req.params.id;
+
+    console.log('🔍 Buscando partido con populate completo...');
+    const partido = await Partido.findById(partidoId)
+      .populate('equipoLocal', 'nombre imagen')
+      .populate('equipoVisitante', 'nombre imagen')
       .populate('torneo', 'nombre fechaInicio fechaFin')
       .populate({
         path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
@@ -271,6 +408,10 @@ exports.obtenerPartidoPorId = async (req, res) => {
           select: 'nombre email imagen'
         }
       })
+      // 🔥 POPULATE BÁSICO DE JUGADORES (sin número porque no está en el nivel principal)
+      .populate('jugadas.jugadorPrincipal', 'nombre imagen')
+      .populate('jugadas.jugadorSecundario', 'nombre imagen') 
+      .populate('jugadas.equipoEnPosesion', 'nombre imagen')
       .populate('creadoPor', 'nombre email')
       .populate('ultimaActualizacion.por', 'nombre');
 
@@ -279,23 +420,50 @@ exports.obtenerPartidoPorId = async (req, res) => {
       return res.status(404).json({ mensaje: 'Partido no encontrado' });
     }
 
-    console.log('✅ Partido encontrado:', partido.equipoLocal.nombre, 'vs', partido.equipoVisitante.nombre);
+    console.log('✅ Partido encontrado:', partido.equipoLocal?.nombre, 'vs', partido.equipoVisitante?.nombre);
+    console.log('🏈 Jugadas encontradas:', partido.jugadas?.length || 0);
 
-    const partidoEnriquecido = await enriquecerPartidoConUrls(partido, req);
+    // 🔥 CONVERTIR A OBJETO ANTES DE ENRIQUECER
+    let partidoEnriquecido = partido.toObject();
+    
+    // 🔥 ENRIQUECER JUGADAS CON NÚMEROS DE JUGADOR
+    if (partidoEnriquecido.jugadas && partidoEnriquecido.jugadas.length > 0) {
+      console.log('🔄 Procesando números de jugadores...');
+      
+      partidoEnriquecido.jugadas = await enriquecerJugadasConNumeros(
+        partidoEnriquecido.jugadas,
+        partidoEnriquecido.equipoLocal._id,
+        partidoEnriquecido.equipoVisitante._id
+      );
+      
+      // 🔥 LOG DE MUESTRA DETALLADO
+      const primeraJugada = partidoEnriquecido.jugadas[0];
+      console.log('\n👤 MUESTRA DE JUGADORES ENRIQUECIDOS:');
+      console.log(`  🏠 Jugador Principal: ${primeraJugada.jugadorPrincipal?.nombre} #${primeraJugada.jugadorPrincipal?.numero || 'N/A'}`);
+      if (primeraJugada.jugadorSecundario) {
+        console.log(`  ✈️ Jugador Secundario: ${primeraJugada.jugadorSecundario?.nombre} #${primeraJugada.jugadorSecundario?.numero || 'N/A'}`);
+      }
+      
+      // 🔥 LOG DE VERIFICACIÓN ADICIONAL
+      console.log('\n🔍 VERIFICACIÓN DE DATOS:');
+      console.log(`  - Total jugadas procesadas: ${partidoEnriquecido.jugadas.length}`);
+      console.log(`  - Primera jugada tiene número principal: ${primeraJugada.jugadorPrincipal?.numero ? 'SÍ' : 'NO'}`);
+    } else {
+      console.log('⚠️ No hay jugadas para procesar');
+    }
 
-    console.log('📤 Enviando partido');
+    // 🔥 ENRIQUECER CON URLs DE IMÁGENES
+    const partidoConUrls = await enriquecerPartidoConUrls(partidoEnriquecido, req);
+
+    console.log('📤 Enviando partido con jugadas y números completos');
     console.log(`✅ [${new Date().toISOString()}] FIN - Partido obtenido\n`);
 
-    res.json({ partido: partidoEnriquecido });
+    res.json({ partido: partidoConUrls });
 
   } catch (error) {
     console.log(`❌ [${new Date().toISOString()}] ERROR al obtener partido:`);
     console.error('💥 Error completo:', error);
     console.log(`❌ [${new Date().toISOString()}] FIN - Obtener partido fallido\n`);
-    
-    if (error.kind === 'ObjectId') {
-      return res.status(404).json({ mensaje: 'ID de partido no válido' });
-    }
     
     res.status(500).json({ 
       mensaje: 'Error al obtener partido', 
@@ -738,7 +906,7 @@ exports.registrarJugada = async (req, res) => {
       case 'sack':
         sack = true;
         break;
-      case 'tackleo':  // 🔥 AGREGAR ESTAS 3 LÍNEAS
+      case 'tackleo':
         puntos = 0;
         break;
       default:
@@ -1091,279 +1259,6 @@ exports.obtenerPartidosEnVivo = async (req, res) => {
     res.status(500).json({ 
       mensaje: 'Error al obtener partidos en vivo', 
       error: error.message 
-    });
-  }
-};
-
-// 🔍 ENDPOINT DE STATUS DE LA API
-exports.obtenerStatus = async (req, res) => {
-  try {
-    res.json({
-      message: '🚀 API AGS Flag Football funcionando correctamente',
-      version: '2.0.0',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      modules: {
-        usuarios: '✅ Activo',
-        equipos: '✅ Activo', 
-        torneos: '✅ Activo',
-        arbitros: '✅ Activo',
-        partidos: '🔥 NUEVO - Activo'
-      },
-      endpoints: {
-        auth: '/auth/*',
-        usuarios: '/usuarios/*',
-        equipos: '/equipos/*', 
-        torneos: '/torneos/*',
-        arbitros: '/arbitros/*',
-        partidos: '/partidos/*'
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Error en el status',
-      error: error.message
-    });
-  }
-};
-
-// 📊 ENDPOINT DE ESTADÍSTICAS GENERALES DEL SISTEMA
-exports.obtenerEstadisticasSistema = async (req, res) => {
-  try {
-    // 📈 Conteos básicos
-    const [
-      totalUsuarios,
-      totalEquipos, 
-      totalTorneos,
-      totalArbitros,
-      totalPartidos,
-      partidosHoy,
-      partidosEnVivo
-    ] = await Promise.all([
-      Usuario.countDocuments(),
-      Equipo.countDocuments(),
-      Torneo.countDocuments(),
-      Arbitro.countDocuments(),
-      Partido.countDocuments(),
-      Partido.countDocuments({
-        fechaHora: {
-          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          $lt: new Date(new Date().setHours(23, 59, 59, 999))
-        }
-      }),
-      Partido.countDocuments({ estado: 'en_curso' })
-    ]);
-
-    // 👥 Distribución de usuarios por rol
-    const distribucionRoles = await Usuario.aggregate([
-      {
-        $group: {
-          _id: '$rol',
-          cantidad: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // 🏆 Distribución de equipos por categoría
-    const distribucionCategorias = await Equipo.aggregate([
-      {
-        $group: {
-          _id: '$categoria',
-          cantidad: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // ⚖️ Estados de árbitros
-    const estadosArbitros = await Arbitro.aggregate([
-      {
-        $group: {
-          _id: '$estado',
-          cantidad: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // ⚽ Estados de partidos
-    const estadosPartidos = await Partido.aggregate([
-      {
-        $group: {
-          _id: '$estado',
-          cantidad: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // 🎯 Partidos por categoría
-    const partidosPorCategoria = await Partido.aggregate([
-      {
-        $group: {
-          _id: '$categoria',
-          cantidad: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // 📅 Actividad reciente (últimos 7 días)
-    const hace7Dias = new Date();
-    hace7Dias.setDate(hace7Dias.getDate() - 7);
-
-    const actividadReciente = await Promise.all([
-      Usuario.countDocuments({ createdAt: { $gte: hace7Dias } }),
-      Equipo.countDocuments({ createdAt: { $gte: hace7Dias } }),
-      Partido.countDocuments({ createdAt: { $gte: hace7Dias } })
-    ]);
-
-    res.json({
-      mensaje: '📊 Estadísticas generales del sistema',
-      timestamp: new Date().toISOString(),
-      
-      // 📈 Totales generales
-      totales: {
-        usuarios: totalUsuarios,
-        equipos: totalEquipos,
-        torneos: totalTorneos,
-        arbitros: totalArbitros,
-        partidos: totalPartidos
-      },
-
-      // ⚽ Estadísticas de partidos
-      partidosEstadisticas: {
-        total: totalPartidos,
-        hoy: partidosHoy,
-        enVivo: partidosEnVivo,
-        porEstado: estadosPartidos.reduce((acc, item) => {
-          acc[item._id] = item.cantidad;
-          return acc;
-        }, {}),
-        porCategoria: partidosPorCategoria.reduce((acc, item) => {
-          acc[item._id] = item.cantidad;
-          return acc;
-        }, {})
-      },
-
-      // 👥 Distribuciones existentes
-      distribuciones: {
-        usuariosPorRol: distribucionRoles.reduce((acc, item) => {
-          acc[item._id] = item.cantidad;
-          return acc;
-        }, {}),
-        
-        equiposPorCategoria: distribucionCategorias.reduce((acc, item) => {
-          acc[item._id] = item.cantidad;
-          return acc;
-        }, {}),
-        
-        arbitrosPorEstado: estadosArbitros.reduce((acc, item) => {
-          acc[item._id] = item.cantidad;
-          return acc;
-        }, {})
-      },
-
-      // 📅 Actividad reciente (últimos 7 días)
-      actividadReciente: {
-        nuevosUsuarios: actividadReciente[0],
-        nuevosEquipos: actividadReciente[1],
-        nuevosPartidos: actividadReciente[2]
-      },
-
-      // 🔗 Enlaces útiles
-      enlaces: {
-        documentacion: '/api/status',
-        usuarios: '/api/usuarios',
-        equipos: '/api/equipos',
-        torneos: '/api/torneos',
-        arbitros: '/api/arbitros',
-        partidos: '/api/partidos',
-        partidosHoy: '/api/partidos/especiales/hoy',
-        partidosEnVivo: '/api/partidos/especiales/en-vivo'
-      }
-    });
-
-  } catch (error) {
-    console.error('Error al obtener estadísticas del sistema:', error);
-    res.status(500).json({
-      mensaje: 'Error al obtener estadísticas del sistema',
-      error: error.message
-    });
-  }
-};
-
-// 🔍 ENDPOINT DE SALUD DETALLADO
-exports.obtenerHealth = async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    
-    // 🔌 Estado de la base de datos
-    const dbState = mongoose.connection.readyState;
-    const dbStates = {
-      0: 'disconnected',
-      1: 'connected', 
-      2: 'connecting',
-      3: 'disconnecting'
-    };
-
-    // ⏱️ Tiempo de respuesta de la DB
-    const startTime = Date.now();
-    await mongoose.connection.db.admin().ping();
-    const dbResponseTime = Date.now() - startTime;
-
-    // 💾 Información del servidor
-    const memoryUsage = process.memoryUsage();
-    const uptime = process.uptime();
-
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      
-      // 🔌 Base de datos
-      database: {
-        status: dbStates[dbState] || 'unknown',
-        responseTime: `${dbResponseTime}ms`,
-        connected: dbState === 1
-      },
-
-      // 💾 Servidor
-      server: {
-        uptime: `${Math.floor(uptime)}s`,
-        memoryUsage: {
-          rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
-          heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
-          heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`
-        },
-        nodeVersion: process.version,
-        platform: process.platform
-      },
-
-      // 🎯 Módulos del sistema
-      modules: {
-        usuarios: '✅ Operativo',
-        equipos: '✅ Operativo',
-        torneos: '✅ Operativo', 
-        arbitros: '✅ Operativo',
-        partidos: '🔥 Operativo - NUEVO'
-      },
-
-      // 🔥 Funcionalidades nuevas disponibles
-      nuevasFuncionalidades: {
-        generadorRol: '✅ Disponible - Genera automáticamente calendarios de partidos',
-        gestionPartidos: '✅ Disponible - CRUD completo de partidos',
-        filtrosAvanzados: '✅ Disponible - Filtrado por torneo, equipo, categoría, fecha',
-        estadisticasPartidos: '⏳ Preparado - Para registro manual de estadísticas',
-        arbitrajeIntegrado: '✅ Disponible - Asignación de árbitros a partidos',
-        partidosEnVivo: '⏳ Preparado - Para gestión en tiempo real (Fase 2/3)'
-      }
-    });
-
-  } catch (error) {
-    res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: error.message,
-      database: {
-        status: 'error',
-        connected: false
-      }
     });
   }
 };

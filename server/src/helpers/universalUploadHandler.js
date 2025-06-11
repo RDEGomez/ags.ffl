@@ -22,7 +22,7 @@ const processUploadedFile = (req) => {
     };
   } else {
     // Local upload - construir URL base dinámicamente
-    const baseUrl = req ? `${req.protocol}://${req.get('host')}` : process.env.BACKEND_URL || 'http://localhost:5000';
+    const baseUrl = req ? `${req.protocol}://${req.get('host')}` : process.env.BACKEND_URL || 'http://localhost:3000';
     return {
       filename: req.file.filename,
       path: req.file.filename,       // Solo filename para local

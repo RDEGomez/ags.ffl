@@ -198,6 +198,65 @@ export const ImportacionMasiva = () => {
     }
   };
 
+  const descargarPlantilla = async (tipo) => {
+    try {
+      console.log(`🔄 Iniciando descarga de plantilla: ${tipo}`);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No estás autenticado. Por favor, inicia sesión.');
+        return;
+      }
+
+      // Usar la URL base correcta
+      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const url = `${baseURL}/api/importacion/plantillas/${tipo}`;
+      
+      console.log(`📡 Descargando desde: ${url}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log(`📊 Respuesta: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+
+      // Obtener el blob del archivo
+      const blob = await response.blob();
+      console.log(`📁 Archivo recibido: ${blob.size} bytes`);
+      
+      // Crear URL temporal para descarga
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      // Crear elemento <a> temporal para descarga
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `plantilla_${tipo}.csv`;
+      link.style.display = 'none';
+      
+      // Agregar al DOM, hacer clic y remover
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Limpiar URL temporal
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      console.log(`✅ Descarga completada exitosamente`);
+      
+    } catch (error) {
+      console.error('❌ Error en descarga:', error);
+      setError(`Error al descargar plantilla: ${error.message}`);
+    }
+  };
+
   return (
     <Box sx={{ 
       width: '100%', 
@@ -501,12 +560,11 @@ export const ImportacionMasiva = () => {
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                
                 <Button
                   variant="outlined"
-                  size="small"
                   startIcon={<FileDownloadIcon />}
-                  href="/api/importacion/plantillas/partidos"
-                  download
+                  onClick={() => descargarPlantilla(wizardData.tipo)}
                   sx={{
                     borderColor: 'rgba(76, 175, 80, 0.3)',
                     color: '#4caf50',
@@ -516,25 +574,7 @@ export const ImportacionMasiva = () => {
                     }
                   }}
                 >
-                  Plantilla Partidos
-                </Button>
-                
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<FileDownloadIcon />}
-                  href="/api/importacion/plantillas/jugadas"
-                  download
-                  sx={{
-                    borderColor: 'rgba(33, 150, 243, 0.3)',
-                    color: '#2196f3',
-                    '&:hover': {
-                      borderColor: 'rgba(33, 150, 243, 0.5)',
-                      backgroundColor: 'rgba(33, 150, 243, 0.05)'
-                    }
-                  }}
-                >
-                  Plantilla Jugadas
+                  Plantilla {wizardData.tipo === 'partidos' ? 'Partidos' : 'Jugadas'}
                 </Button>
               </Box>
             </CardContent>
