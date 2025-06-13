@@ -15,7 +15,8 @@ const categorias = [
   { value: 'femgold', label: 'Femenil Golden' },
   { value: 'femsilv', label: 'Femenil Silver' },
   { value: 'varmast', label: 'Varonil Master' },
-  { value: 'femmast', label: 'Femenil Master' }
+  { value: 'femmast', label: 'Femenil Master' },
+  { value: 'tocho7v7', label: 'Tocho 7v7' }
 ];
 
 export const FiltrosEquipos = ({ equipos, setFiltrados }) => {

@@ -50,7 +50,7 @@ import {
   EmojiEvents as EmojiEventsIcon,
   Groups as GroupsIcon,
   Info as InfoIcon,
-  SportsSoccer as SportsSoccerIcon,
+  SportsFootball as SportsFootballIcon,
   Sports as SportsIcon,
   Add as AddIcon,
   PersonAdd as PersonAddIcon,

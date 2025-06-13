@@ -8,6 +8,7 @@ export const CATEGORY_NAMES = {
   femgold: "Femenil Golden",
   varmast: "Varonil Master",
   femmast: "Femenil Master",
+  tocho7v7: "Tocho 7v7"
 };
 
 // Si necesitas la operación inversa:

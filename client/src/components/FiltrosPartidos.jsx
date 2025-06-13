@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -39,7 +39,8 @@ const categorias = [
   { value: 'femgold', label: 'Femenil Golden' },
   { value: 'femsilv', label: 'Femenil Silver' },
   { value: 'varmast', label: 'Varonil Master' },
-  { value: 'femmast', label: 'Femenil Master' }
+  { value: 'femmast', label: 'Femenil Master' },
+  { value: 'tocho7v7', label: 'Tocho 7v7' }
 ];
 
 // 🔥 Opciones de filtros rápidos por fecha
@@ -50,7 +51,7 @@ const filtrosFechaRapidos = [
   { value: 'proximo_mes', label: 'Próximo Mes' }
 ];
 
-export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
+export const FiltrosPartidos = ({ onFiltrosChange }) => {
   // Estados de filtros
   const [torneoId, setTorneoId] = useState('');
   const [equipoId, setEquipoId] = useState('');
@@ -62,38 +63,35 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
   // Estados de datos
   const [torneosDisponibles, setTorneosDisponibles] = useState([]);
   const [equiposDisponibles, setEquiposDisponibles] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [cargandoDatos, setCargandoDatos] = useState(true);
 
-  // 🔥 Cargar torneos disponibles
+  // 🔥 Cargar datos iniciales (torneos y equipos)
   useEffect(() => {
-    const cargarTorneos = async () => {
+    const cargarDatos = async () => {
       try {
-        const { data } = await axiosInstance.get('/torneos');
-        setTorneosDisponibles(data.torneos || []);
+        setCargandoDatos(true);
+        const [torneosRes, equiposRes] = await Promise.all([
+          axiosInstance.get('/torneos'),
+          axiosInstance.get('/equipos')
+        ]);
+
+        setTorneosDisponibles(torneosRes.data.torneos || []);
+        setEquiposDisponibles(equiposRes.data || []);
       } catch (error) {
-        console.error('Error al cargar torneos:', error);
+        console.error('Error al cargar datos para filtros:', error);
+      } finally {
+        setCargandoDatos(false);
       }
     };
-    cargarTorneos();
+
+    cargarDatos();
   }, []);
 
-  // 🔥 Cargar equipos disponibles
-  useEffect(() => {
-    const cargarEquipos = async () => {
-      try {
-        const { data } = await axiosInstance.get('/equipos');
-        setEquiposDisponibles(data || []);
-      } catch (error) {
-        console.error('Error al cargar equipos:', error);
-      }
-    };
-    cargarEquipos();
-  }, []);
-
-  // 🔥 Función helper para obtener fecha según filtro rápido
-  const obtenerFechaPorFiltroRapido = (filtro) => {
+  // 🔥 Procesar fecha de filtro rápido
+  const procesarFiltroFechaRapido = useCallback((filtro) => {
     const hoy = new Date();
-    
+    hoy.setHours(0, 0, 0, 0);
+
     switch (filtro) {
       case 'hoy':
         return hoy.toISOString().split('T')[0];
@@ -102,11 +100,10 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
         manana.setDate(manana.getDate() + 1);
         return manana.toISOString().split('T')[0];
       case 'esta_semana':
-        // Retorna el rango de la semana actual (lunes a domingo)
-        const inicioSemana = new Date(hoy);
-        inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1);
-        return inicioSemana.toISOString().split('T')[0];
+        // Para esta semana, no enviamos fecha específica sino que manejamos el rango en el backend
+        return '';
       case 'proximo_mes':
+        // Para próximo mes, enviamos el primer día del próximo mes
         const proximoMes = new Date(hoy);
         proximoMes.setMonth(proximoMes.getMonth() + 1);
         proximoMes.setDate(1);
@@ -114,86 +111,27 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
       default:
         return '';
     }
-  };
+  }, []);
 
-  // 🔥 Función de filtrado avanzado
+  // 🔥 Notificar cambios de filtros al componente padre (memoizado)
+  const notificarCambios = useCallback(() => {
+    if (!onFiltrosChange) return;
+
+    const filtros = {
+      torneo: torneoId,
+      equipo: equipoId,
+      categoria: categoria,
+      estado: estado,
+      fecha: filtroFechaRapido ? procesarFiltroFechaRapido(filtroFechaRapido) : fecha
+    };
+
+    onFiltrosChange(filtros);
+  }, [torneoId, equipoId, categoria, estado, fecha, filtroFechaRapido, onFiltrosChange, procesarFiltroFechaRapido]);
+
+  // 🔥 Ejecutar notificación cuando cambien los filtros
   useEffect(() => {
-    let filtrados = [...partidos];
-
-    // Filtro por torneo
-    if (torneoId) {
-      filtrados = filtrados.filter(partido => 
-        partido.torneo && partido.torneo._id === torneoId
-      );
-    }
-
-    // Filtro por equipo (local o visitante)
-    if (equipoId) {
-      filtrados = filtrados.filter(partido =>
-        (partido.equipoLocal && partido.equipoLocal._id === equipoId) ||
-        (partido.equipoVisitante && partido.equipoVisitante._id === equipoId)
-      );
-    }
-
-    // Filtro por categoría
-    if (categoria) {
-      filtrados = filtrados.filter(partido => 
-        partido.categoria === categoria
-      );
-    }
-
-    // Filtro por estado
-    if (estado) {
-      filtrados = filtrados.filter(partido => 
-        partido.estado === estado
-      );
-    }
-
-    // Filtro por fecha específica
-    if (fecha) {
-      filtrados = filtrados.filter(partido => {
-        if (!partido.fechaHora) return false;
-        const fechaPartido = new Date(partido.fechaHora).toISOString().split('T')[0];
-        return fechaPartido === fecha;
-      });
-    }
-
-    // Filtro por fecha rápida
-    if (filtroFechaRapido && !fecha) {
-      const hoy = new Date();
-      
-      filtrados = filtrados.filter(partido => {
-        if (!partido.fechaHora) return false;
-        const fechaPartido = new Date(partido.fechaHora);
-        
-        switch (filtroFechaRapido) {
-          case 'hoy':
-            return fechaPartido.toDateString() === hoy.toDateString();
-          case 'manana':
-            const manana = new Date(hoy);
-            manana.setDate(manana.getDate() + 1);
-            return fechaPartido.toDateString() === manana.toDateString();
-          case 'esta_semana':
-            const inicioSemana = new Date(hoy);
-            inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1);
-            inicioSemana.setHours(0, 0, 0, 0);
-            const finSemana = new Date(inicioSemana);
-            finSemana.setDate(finSemana.getDate() + 6);
-            finSemana.setHours(23, 59, 59, 999);
-            return fechaPartido >= inicioSemana && fechaPartido <= finSemana;
-          case 'proximo_mes':
-            const proximoMes = new Date(hoy);
-            proximoMes.setMonth(proximoMes.getMonth() + 1);
-            return fechaPartido.getMonth() === proximoMes.getMonth() && 
-                   fechaPartido.getFullYear() === proximoMes.getFullYear();
-          default:
-            return true;
-        }
-      });
-    }
-
-    setFiltrados(filtrados);
-  }, [torneoId, equipoId, categoria, estado, fecha, filtroFechaRapido, partidos, setFiltrados]);
+    notificarCambios();
+  }, [notificarCambios]);
 
   // 🔥 Función para limpiar todos los filtros
   const limpiarFiltros = () => {
@@ -234,6 +172,7 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
           value={torneoId}
           label="Torneo"
           onChange={(e) => setTorneoId(e.target.value)}
+          disabled={cargandoDatos}
           sx={{
             color: 'white',
             '.MuiOutlinedInput-notchedOutline': {
@@ -291,7 +230,7 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
       {/* Filtro por equipo */}
       <FormControl 
         size="small" 
-        sx={{ minWidth: 200 }}
+        sx={{ minWidth: 180 }}
         disabled={categoria && equiposFiltrados.length === 0}
       >
         <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Equipo</InputLabel>
@@ -299,6 +238,7 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
           value={equipoId}
           label="Equipo"
           onChange={(e) => setEquipoId(e.target.value)}
+          disabled={cargandoDatos}
           sx={{
             color: 'white',
             '.MuiOutlinedInput-notchedOutline': {
@@ -315,7 +255,7 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
           <MenuItem value="">Todos los equipos</MenuItem>
           {equiposFiltrados.map(equipo => (
             <MenuItem key={equipo._id} value={equipo._id}>
-              {`${equipo.nombre} (${getCategoryName(equipo.categoria)})`}
+              {equipo.nombre} {categoria ? '' : `(${getCategoryName(equipo.categoria)})`}
             </MenuItem>
           ))}
         </Select>
@@ -342,18 +282,18 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
           }}
         >
           <MenuItem value="">Todos los estados</MenuItem>
-          {estadosPartido.map(est => (
-            <MenuItem key={est.value} value={est.value}>
+          {estadosPartido.map(estado => (
+            <MenuItem key={estado.value} value={estado.value}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box 
                   sx={{ 
                     width: 12, 
                     height: 12, 
                     borderRadius: '50%', 
-                    backgroundColor: est.color 
+                    backgroundColor: estado.color 
                   }} 
                 />
-                {est.label}
+                {estado.label}
               </Box>
             </MenuItem>
           ))}
@@ -361,11 +301,11 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
       </FormControl>
 
       {/* Filtros rápidos de fecha */}
-      <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Fecha Rápida</InputLabel>
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Filtro Rápido</InputLabel>
         <Select
           value={filtroFechaRapido}
-          label="Fecha Rápida"
+          label="Filtro Rápido"
           onChange={(e) => {
             setFiltroFechaRapido(e.target.value);
             setFecha(''); // Limpiar fecha específica
@@ -383,7 +323,7 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
             },
           }}
         >
-          <MenuItem value="">Sin filtro</MenuItem>
+          <MenuItem value="">Sin filtro de fecha</MenuItem>
           {filtrosFechaRapidos.map(filtro => (
             <MenuItem key={filtro.value} value={filtro.value}>
               {filtro.label}
@@ -448,7 +388,7 @@ export const FiltrosPartidos = ({ partidos, setFiltrados }) => {
       {/* Indicador de filtros activos */}
       {hayFiltrosActivos && (
         <Chip
-          label={`${partidos.length - (setFiltrados.length || 0)} filtros activos`}
+          label={`Filtros activos`}
           size="small"
           color="primary"
           variant="outlined"

@@ -48,6 +48,12 @@ const reglasCategorias = {
     edadMin: 30,
     edadMax: 99,
     tipoBase: 'femmas'
+  },
+  tocho7v7: {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 99,
+    tipoBase: 'tocho7v7'
   }
 };
 

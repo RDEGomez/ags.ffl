@@ -464,7 +464,8 @@ const importarPartidos = async (req, res) => {
             visitante: parseInt(fila.marcador_visitante) || 0
           },
           observaciones: fila.observaciones || '',
-          duracionMinutos: parseInt(fila.duracion_minutos) || 50
+          duracionMinutos: parseInt(fila.duracion_minutos) || 50,
+          creadoPor: req.usuario._id
         };
 
         // Crear nuevo partido

@@ -27,7 +27,8 @@ const PartidoSchema = new mongoose.Schema({
       'mixgold', 'mixsilv',
       'vargold', 'varsilv',
       'femgold', 'femsilv',
-      'varmast', 'femmast'
+      'varmast', 'femmast',
+      'tocho7v7'
     ]
   },
   

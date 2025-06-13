@@ -14,7 +14,8 @@ const EquipoSchema = new mongoose.Schema({
       'mixgold', 'mixsilv',
       'vargold', 'varsilv',
       'femgold', 'femsilv',
-      'varmast', 'femmast'
+      'varmast', 'femmast',
+      'tocho7v7'
     ]
   },
   imagen: {

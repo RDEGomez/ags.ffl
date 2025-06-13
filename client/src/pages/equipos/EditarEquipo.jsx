@@ -434,6 +434,7 @@ export const EditarEquipo = () => {
                             <MenuItem value="femsilv">Femenil Silver</MenuItem>
                             <MenuItem value="varmast">Varonil Master</MenuItem>
                             <MenuItem value="femmast">Femenil Master</MenuItem>
+                            <MenuItem value="tocho7v7">Tocho 7 v 7</MenuItem>
                           </TextField>
                         )}
                       />
@@ -479,7 +480,8 @@ export const EditarEquipo = () => {
                                   'femgold': 'Femenil Golden',
                                   'femsilv': 'Femenil Silver',
                                   'varmast': 'Varonil Master',
-                                  'femmast': 'Femenil Master'
+                                  'femmast': 'Femenil Master',
+                                  'tocho7v7': 'Tocho 7 v 7'
                                 }[categoriaActual] : 'Categoría del equipo'
                               }
                             </Typography>

@@ -60,7 +60,8 @@ export const CrearTorneo = () => {
     'femgold': 'Femenil Gold',
     'femsilv': 'Femenil Silver',
     'varmast': 'Varonil Master',
-    'femmast': 'Femenil Master'
+    'femmast': 'Femenil Master',
+    'tocho7v7': 'Tocho 7 v 7'
   };
 
   // Esquema de validación con Yup

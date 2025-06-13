@@ -9,13 +9,13 @@ const { auth, checkRole } = require('../middleware/authMiddleware');
 router.post('/generar-rol', 
   [
     auth,
-    checkRole('admin', 'capitan'),
+    checkRole('admin', 'arbitro'),
     [
       // Validaciones básicas
       check('torneoId', 'ID de torneo es obligatorio y debe ser válido').isMongoId(),
       check('categoria', 'Categoría es obligatoria').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
       ]),
       check('tipoRol', 'Tipo de rol es obligatorio').isIn(['todos_contra_todos', 'limitado']),
       check('fechaInicio', 'Fecha de inicio es obligatoria y debe ser válida').isISO8601(),
@@ -79,12 +79,12 @@ router.post('/generar-rol',
 router.delete('/rol/:torneoId/:categoria', 
   [
     auth,
-    checkRole('admin', 'capitan'),
+    checkRole('admin', 'arbitro'),
     [
       param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
       param('categoria', 'Categoría debe ser válida').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
       ])
     ]
   ],
@@ -95,13 +95,13 @@ router.delete('/rol/:torneoId/:categoria',
 router.post('/regenerar-rol', 
   [
     auth,
-    checkRole('admin', 'capitan'),
+    checkRole('admin', 'arbitro'),
     [
       // Mismas validaciones que generar-rol
       check('torneoId', 'ID de torneo es obligatorio y debe ser válido').isMongoId(),
       check('categoria', 'Categoría es obligatoria').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
       ]),
       check('tipoRol', 'Tipo de rol es obligatorio').isIn(['todos_contra_todos', 'limitado']),
       check('fechaInicio', 'Fecha de inicio es obligatoria y debe ser válida').isISO8601(),
@@ -129,7 +129,7 @@ router.post('/regenerar-rol',
 router.post('/', 
   [
     auth,
-    checkRole('admin', 'capitan'),
+    checkRole('admin', 'arbitro'),
     [
       check('equipoLocal', 'Equipo local es obligatorio y debe ser válido').isMongoId(),
       check('equipoVisitante', 'Equipo visitante es obligatorio y debe ser válido').isMongoId(),
@@ -159,7 +159,7 @@ router.post('/',
       // Validaciones opcionales
       check('categoria')
         .optional()
-        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast'])
+        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'])
         .withMessage('Categoría no válida'),
       
       check('duracionMinutos')
@@ -218,7 +218,7 @@ router.get('/',
       
       query('categoria')
         .optional()
-        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast'])
+        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'])
         .withMessage('Categoría no válida'),
       
       query('estado')
@@ -261,7 +261,7 @@ router.get('/:id',
 router.put('/:id', 
   [
     auth,
-    checkRole('admin', 'capitan'),
+    checkRole('admin', 'arbitro'),
     [
       param('id', 'ID de partido debe ser válido').isMongoId(),
       

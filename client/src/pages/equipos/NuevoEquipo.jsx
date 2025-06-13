@@ -606,6 +606,7 @@ export const NuevoEquipo = () => {
                                 <MenuItem value="femsilv">Femenil Silver</MenuItem>
                                 <MenuItem value="varmast">Varonil Master</MenuItem>
                                 <MenuItem value="femmast">Femenil Master</MenuItem>
+                                <MenuItem value="tocho7v7">Tocho 7 v 7</MenuItem>
                               </TextField>
                             )}
                           />

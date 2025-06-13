@@ -635,7 +635,7 @@ export const Home = () => {
                           </Typography>
                           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                             {usuario.rol === 'admin' && '👑 Administrador'}
-                            {usuario.rol === 'capitan' && '⚽ Capitán'}
+                            {usuario.rol === 'capitan' && '🏈 Capitán'}
                             {usuario.rol === 'jugador' && '🏃‍♂️ Jugador'}
                             {usuario.rol === 'arbitro' && '👨‍⚖️ Árbitro'}
                           </Typography>

@@ -28,6 +28,7 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.56.4",
     "react-router-dom": "^7.6.0",
+    "recharts": "^2.15.3",
     "sweetalert2": "^11.21.2",
     "sweetalert2-react-content": "^5.1.0",
     "yup": "^1.6.1"
