@@ -209,7 +209,7 @@ export const ImportacionMasiva = () => {
       }
 
       // Usar la URL base correcta
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
       const url = `${baseURL}/api/importacion/plantillas/${tipo}`;
       
       console.log(`📡 Descargando desde: ${url}`);

@@ -93,7 +93,7 @@ export const ProcesoImportacion = ({ wizardData, updateWizardData, setLoading, s
       const archivo = prepararArchivoCSV();
       
       // Configurar request
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
       const endpoint = wizardData.tipo === 'partidos' 
         ? `${baseURL}/api/importacion/partidos`
         : `${baseURL}/api/importacion/jugadas`;

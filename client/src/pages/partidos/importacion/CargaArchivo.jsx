@@ -40,7 +40,7 @@ export const CargaArchivo = ({ wizardData, updateWizardData, setLoading, setErro
   const [analysisResult, setAnalysisResult] = useState(null);
 
   // Al inicio del archivo, después de los imports
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
   // 🔄 Procesar archivo CSV
   const procesarArchivo = async (file) => {
