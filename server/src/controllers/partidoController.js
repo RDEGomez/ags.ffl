@@ -916,6 +916,7 @@ exports.registrarJugada = async (req, res) => {
     let intercepcion = false;
     let sack = false;
 
+    // 🔥 REEMPLAZAR ESTA SECCIÓN EN partidoController.js
     switch (tipoJugada) {
       case 'touchdown':
         puntos = 6;
@@ -929,15 +930,24 @@ exports.registrarJugada = async (req, res) => {
         break;
       case 'safety':
         puntos = 2;
+        esJugadaDefensiva = true; // 🔥 NUEVO
         break;
       case 'intercepcion':
         intercepcion = true;
+        esJugadaDefensiva = true; // 🔥 NUEVO
+        // 🔥 NUEVO: Si hay touchdown en intercepción
+        if (resultado.touchdown) {
+          puntos = 6;
+          touchdown = true;
+        }
         break;
       case 'sack':
         sack = true;
+        esJugadaDefensiva = true; // 🔥 NUEVO
         break;
       case 'tackleo':
         puntos = 0;
+        esJugadaDefensiva = true; // 🔥 NUEVO
         break;
       default:
         puntos = 0;
@@ -969,11 +979,37 @@ exports.registrarJugada = async (req, res) => {
 
     // Actualizar marcador si hay puntos
     if (nuevaJugada.resultado.puntos > 0) {
-      if (equipoEnPosesion.toString() === partido.equipoLocal.toString()) {
-        partido.marcador.local += nuevaJugada.resultado.puntos;
+      console.log('🎯 Actualizando marcador...');
+      
+      const equipoEnPosesionStr = equipoEnPosesion._id?.toString() || equipoEnPosesion.toString();
+      const equipoLocalStr = partido.equipoLocal._id?.toString() || partido.equipoLocal.toString();
+      const equipoVisitanteStr = partido.equipoVisitante._id?.toString() || partido.equipoVisitante.toString();
+
+      // 🔥 NUEVO: Determinar si es jugada defensiva
+      const jugadasDefensivas = ['safety', 'intercepcion', 'sack', 'tackleo'];
+      const esJugadaDefensiva = jugadasDefensivas.includes(tipoJugada);
+
+      if (esJugadaDefensiva) {
+        // Jugadas defensivas: puntos van al equipo CONTRARIO (defensor)
+        if (equipoEnPosesionStr === equipoLocalStr) {
+          partido.marcador.visitante += nuevaJugada.resultado.puntos;
+          console.log(`🛡️ Jugada defensiva: +${nuevaJugada.resultado.puntos} puntos al VISITANTE`);
+        } else {
+          partido.marcador.local += nuevaJugada.resultado.puntos;
+          console.log(`🛡️ Jugada defensiva: +${nuevaJugada.resultado.puntos} puntos al LOCAL`);
+        }
       } else {
-        partido.marcador.visitante += nuevaJugada.resultado.puntos;
+        // Jugadas ofensivas: puntos van al equipo CON posesión
+        if (equipoEnPosesionStr === equipoLocalStr) {
+          partido.marcador.local += nuevaJugada.resultado.puntos;
+          console.log(`⚡ Jugada ofensiva: +${nuevaJugada.resultado.puntos} puntos al LOCAL`);
+        } else {
+          partido.marcador.visitante += nuevaJugada.resultado.puntos;
+          console.log(`⚡ Jugada ofensiva: +${nuevaJugada.resultado.puntos} puntos al VISITANTE`);
+        }
       }
+
+      console.log('📊 Marcador:', { local: partido.marcador.local, visitante: partido.marcador.visitante });
     }
 
     // Actualizar estadísticas básicas del partido

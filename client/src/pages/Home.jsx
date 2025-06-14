@@ -4,7 +4,8 @@ import {
   Box, Typography, Paper, Grid, Chip, Avatar, Card, CardContent, 
   Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, CircularProgress, Stack, Collapse, IconButton, List, ListItem,
-  Badge, InputAdornment, FormControl, InputLabel, Select, MenuItem
+  Badge, InputAdornment, FormControl, InputLabel, Select, MenuItem,
+  Tooltip, Alert
 } from '@mui/material';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +27,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import axiosInstance from '../config/axios';
 import { getCategoryName } from '../helpers/mappings';
 import { useImage } from '../hooks/useImage';
@@ -100,8 +102,6 @@ const UserProfileAvatar = ({ usuario, size = 120 }) => {
   );
 };
 
-// 🏈 Nota: Usamos el TeamCard importado que está súper épico
-
 // 🎯 Selector de Equipos Mejorado y User-Friendly
 const EquipoSelectorImproved = ({ equipos, onSelect, loading }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -131,36 +131,24 @@ const EquipoSelectorImproved = ({ equipos, onSelect, loading }) => {
           }}
           sx={{
             '& .MuiOutlinedInput-root': {
-              backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2,
               color: 'white',
               '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-              '&:hover fieldset': { borderColor: 'rgba(100,181,246,0.5)' },
-              '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
-            },
-            '& .MuiInputBase-input::placeholder': { 
-              color: 'rgba(255,255,255,0.7)', opacity: 1 
+              '&:hover fieldset': { borderColor: 'rgba(76, 175, 80, 0.5)' },
+              '&.Mui-focused fieldset': { borderColor: '#4caf50' }
             }
           }}
         />
-        
+
         <FormControl fullWidth>
-          <InputLabel sx={{ color: 'rgba(255,255,255,0.7)' }}>Filtrar por categoría</InputLabel>
           <Select
-            value={selectedCategory}
+            value={selectedCategory} 
             onChange={(e) => setSelectedCategory(e.target.value)}
-            label="Filtrar por categoría"
+            displayEmpty
             sx={{
-              backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2,
               color: 'white',
-              '& .MuiOutlinedInput-notchedOutline': { 
-                borderColor: 'rgba(255,255,255,0.3)' 
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': { 
-                borderColor: 'rgba(100,181,246,0.5)' 
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { 
-                borderColor: '#64b5f6' 
-              }
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(76, 175, 80, 0.5)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#4caf50' }
             }}
           >
             <MenuItem value="">Todas las categorías</MenuItem>
@@ -172,106 +160,109 @@ const EquipoSelectorImproved = ({ equipos, onSelect, loading }) => {
       </Stack>
 
       {/* Lista de equipos */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Box sx={{
-          maxHeight: 400, overflow: 'auto',
-          '&::-webkit-scrollbar': { width: '8px' },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: '4px'
-          }
-        }}>
-          <AnimatePresence>
+      <Box sx={{ maxHeight: '400px', overflowY: 'auto' }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress sx={{ color: '#4caf50' }} />
+          </Box>
+        ) : filteredEquipos.length > 0 ? (
+          <List>
             {filteredEquipos.map((equipo, index) => (
               <motion.div
                 key={equipo._id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <Card
+                <ListItem
+                  button
                   onClick={() => onSelect(equipo)}
                   sx={{
-                    mb: 2,
+                    borderRadius: '12px',
+                    mb: 1,
                     backgroundColor: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 2, cursor: 'pointer',
-                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      backgroundColor: 'rgba(100,181,246,0.1)',
-                      border: '1px solid rgba(100,181,246,0.3)',
-                      transform: 'translateX(10px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
-                    }
+                      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                      transform: 'translateX(8px)'
+                    },
+                    transition: 'all 0.3s ease'
                   }}
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar
-                        src={getImageUrl(equipo.imagen)}
-                        sx={{
-                          width: 50, height: 50,
-                          border: '2px solid rgba(255,255,255,0.2)'
-                        }}
-                      >
-                        <GroupsIcon />
-                      </Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="h6" sx={{ 
-                          color: 'white', fontWeight: 'bold', mb: 0.5
-                        }}>
-                          {equipo.nombre}
-                        </Typography>
-                        <Stack direction="row" spacing={1}>
-                          <Chip
-                            label={getCategoryName(equipo.categoria)}
-                            size="small"
-                            sx={{
-                              backgroundColor: 'rgba(100,181,246,0.2)',
-                              color: '#64b5f6',
-                              border: '1px solid rgba(100,181,246,0.3)'
-                            }}
-                          />
-                          <Chip
-                            label={`${equipo.jugadores?.length || 0} jugadores`}
-                            size="small"
-                            sx={{
-                              backgroundColor: 'rgba(76,175,80,0.2)',
-                              color: '#4caf50',
-                              border: '1px solid rgba(76,175,80,0.3)'
-                            }}
-                          />
-                        </Stack>
-                      </Box>
-                      <PersonAddIcon sx={{ color: '#64b5f6' }} />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    width: '100%', 
+                    gap: 2,
+                    p: 1
+                  }}>
+                    <Avatar 
+                      src={getImageUrl(equipo.imagen)}
+                      sx={{ 
+                        width: 50, height: 50,
+                        border: '2px solid rgba(255,255,255,0.2)'
+                      }}
+                    >
+                      <GroupsIcon />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h6" sx={{ 
+                        color: 'white', fontWeight: 'bold', mb: 0.5
+                      }}>
+                        {equipo.nombre}
+                      </Typography>
+                      <Stack direction="row" spacing={1}>
+                        <Chip
+                          label={getCategoryName(equipo.categoria)}
+                          size="small"
+                          sx={{
+                            backgroundColor: 'rgba(100,181,246,0.2)',
+                            color: '#64b5f6',
+                            border: '1px solid rgba(100,181,246,0.3)'
+                          }}
+                        />
+                        <Chip
+                          label={`${equipo.jugadores?.length || 0} jugadores`}
+                          size="small"
+                          sx={{
+                            backgroundColor: 'rgba(76,175,80,0.2)',
+                            color: '#4caf50',
+                            border: '1px solid rgba(76,175,80,0.3)'
+                          }}
+                        />
+                      </Stack>
                     </Box>
-                  </CardContent>
-                </Card>
+                    <PersonAddIcon sx={{ color: '#64b5f6' }} />
+                  </Box>
+                </ListItem>
               </motion.div>
             ))}
-          </AnimatePresence>
-          
-          {filteredEquipos.length === 0 && (
-            <Box sx={{
-              p: 4, textAlign: 'center',
-              border: '2px dashed rgba(255,255,255,0.2)',
-              borderRadius: 2
-            }}>
-              <GroupsIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)', mb: 2 }} />
-              <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
-                No se encontraron equipos
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Intenta ajustar los filtros de búsqueda
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      )}
+          </List>
+        ) : (
+          <Typography sx={{ 
+            color: 'rgba(255,255,255,0.5)', 
+            textAlign: 'center', 
+            py: 4 
+          }}>
+            No se encontraron equipos con los filtros aplicados
+          </Typography>
+        )}
+
+        {filteredEquipos.length === 0 && (
+          <Box sx={{
+            p: 4, textAlign: 'center',
+            border: '2px dashed rgba(255,255,255,0.2)',
+            borderRadius: 2
+          }}>
+            <GroupsIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
+              No se encontraron equipos
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Intenta ajustar los filtros de búsqueda
+            </Typography>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };
@@ -288,6 +279,11 @@ export const Home = () => {
   const [expandidoEquipos, setExpandidoEquipos] = useState(true);
   const [loadingEquiposUsuario, setLoadingEquiposUsuario] = useState(false);
   const [loadingEquiposDisponibles, setLoadingEquiposDisponibles] = useState(false);
+
+  // 🔥 NUEVOS ESTADOS para torneos y estadísticas
+  const [torneoSeleccionado, setTorneoSeleccionado] = useState(null);
+  const [torneosDisponibles, setTorneosDisponibles] = useState([]);
+  const [loadingTorneos, setLoadingTorneos] = useState(false);
 
   const tokenValido = tieneTokenValido();
   const storedToken = getStoredToken();
@@ -330,7 +326,7 @@ export const Home = () => {
           console.log(`✅ Equipo encontrado: ${equipoCompleto.nombre}`);
           return {
             ...equipoCompleto,
-            numeroUsuario: equipoUsuario.numero
+            numeroUsuario: equipoUsuario.numero // 🔥 AGREGAR NÚMERO DEL USUARIO
           };
         } else {
           console.warn(`⚠️ Equipo no encontrado para ID: ${equipoUsuario.equipo}`);
@@ -383,21 +379,48 @@ export const Home = () => {
     }
   }, [usuario, tokenValido]);
 
-  // 🔥 EFECTOS MEJORADOS
-  useEffect(() => {
-    if (usuario && tokenValido) {
-      obtenerEquiposUsuario();
+  // 🔥 NUEVA FUNCIÓN - Cargar torneos disponibles para estadísticas
+  const cargarTorneosDisponibles = useCallback(async () => {
+    if (!tokenValido) return;
+    
+    setLoadingTorneos(true);
+    try {
+      console.log('🔍 Cargando torneos disponibles para estadísticas...');
+      const response = await axiosInstance.get('/estadisticas/torneos-categorias');
+      
+      const torneos = response.data.torneos || [];
+      console.log('✅ Torneos disponibles:', torneos.length);
+      
+      setTorneosDisponibles(torneos);
+      
+      // Seleccionar automáticamente el torneo más reciente si no hay uno seleccionado
+      if (torneos.length > 0 && !torneoSeleccionado) {
+        const torneoMasReciente = torneos.sort((a, b) => 
+          new Date(b.fechaUltimoPartido || b.createdAt) - new Date(a.fechaUltimoPartido || a.createdAt)
+        )[0];
+        setTorneoSeleccionado(torneoMasReciente._id);
+        console.log('🎯 Torneo seleccionado automáticamente:', torneoMasReciente.nombre);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error al cargar torneos:', error);
+      setTorneosDisponibles([]);
+    } finally {
+      setLoadingTorneos(false);
     }
-  }, [obtenerEquiposUsuario]);
+  }, [tokenValido, torneoSeleccionado]);
 
   useEffect(() => {
-    if (usuario && tokenValido) {
-      obtenerEquiposDisponibles();
-    }
-  }, [obtenerEquiposDisponibles]);
+    obtenerEquiposUsuario();
+    obtenerEquiposDisponibles();
+    cargarTorneosDisponibles(); // 🔥 Nueva línea
+  }, [obtenerEquiposUsuario, obtenerEquiposDisponibles, cargarTorneosDisponibles]);
 
   const abrirModal = () => {
-    setAbierto(true);
+    if (puedeInscribirseEquipo()) {
+      setAbierto(true);
+      obtenerEquiposDisponibles();
+    }
   };
 
   const cerrarModal = () => {
@@ -406,17 +429,23 @@ export const Home = () => {
     setNumeroJugador('');
   };
 
-  const handleSelectEquipo = (equipo) => {
+  const seleccionarEquipo = (equipo) => {
     setEquipoSeleccionado(equipo);
   };
 
-  // 🔥 FUNCIÓN DE INSCRIPCIÓN CORREGIDA
+  const volverASeleccion = () => {
+    setEquipoSeleccionado(null);
+    setNumeroJugador('');
+  };
+
   const manejarInscripcion = async () => {
     if (!equipoSeleccionado || !numeroJugador) {
       Swal.fire({
         icon: 'warning',
-        title: 'Datos incompletos',
-        text: 'Selecciona un equipo y asigna un número de camiseta'
+        title: 'Campos incompletos',
+        text: 'Por favor completa todos los campos',
+        background: '#1a1a1a',
+        color: 'white',
       });
       return;
     }
@@ -424,235 +453,175 @@ export const Home = () => {
     setCargando(true);
     
     try {
-      const datosInscripcion = {
-        equipoId: equipoSeleccionado._id,
-        numero: numeroJugador,
-        usuarioId: usuario.id || usuario._id
-      };
-
-      console.log('🚀 Enviando inscripción:', datosInscripcion);
-
-      await axiosInstance.patch('/usuarios/equipo/', datosInscripcion);
-      
-      console.log('✅ Inscripción exitosa, cerrando modal...');
-      
-      // Cerrar modal ANTES del SweetAlert de éxito
-      cerrarModal();
-      setCargando(false);
+      const response = await axiosInstance.post(`/equipos/${equipoSeleccionado._id}/jugadores`, {
+        jugadores: [{
+          usuarioId: usuario._id,
+          numero: parseInt(numeroJugador)
+        }]
+      });
 
       Swal.fire({
         icon: 'success',
         title: '¡Inscripción exitosa!',
-        text: `Te has inscrito en ${equipoSeleccionado.nombre}`,
-        showConfirmButton: false,
-        timer: 2000
+        text: `Te has inscrito correctamente en ${equipoSeleccionado.nombre}`,
+        background: '#1a1a1a',
+        color: 'white',
       });
 
-      // Refrescar datos
-      console.log('🔄 Refrescando datos del usuario...');
-      const refreshExitoso = await refrescarUsuario();
-      
-      if (refreshExitoso) {
-        console.log('✅ Usuario refrescado, recargando listas...');
-        
-        // Cargar equipos directamente
-        await Promise.all([
-          obtenerEquiposUsuario(),
-          obtenerEquiposDisponibles()
-        ]);
-        
-        console.log('✅ Listas actualizadas correctamente');
-      } else {
-        console.log('⚠️ Error refrescando usuario, recargando página...');
-        window.location.reload();
-      }
+      await refrescarUsuario();
+      obtenerEquiposUsuario();
+      obtenerEquiposDisponibles();
+      cerrarModal();
       
     } catch (error) {
-      console.error('❌ Error en inscripción:', error);
-      
-      // Cerrar modal ANTES de mostrar error
-      cerrarModal();
-      setCargando(false);
-      
-      // Pequeño delay para asegurar que el modal se cierre
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Mejor manejo de errores
-      let mensaje = 'Error al inscribirse en el equipo';
-      
-      if (error.response?.data?.mensaje) {
-        mensaje = error.response.data.mensaje;
-      } else if (error.response?.data?.errores) {
-        mensaje = error.response.data.errores[0] || mensaje;
-      }
+      console.error('Error al inscribirse:', error);
       
       Swal.fire({
         icon: 'error',
         title: 'Error en la inscripción',
-        text: mensaje,
-        confirmButtonText: 'Entendido'
+        text: error.response?.data?.mensaje || 'Ocurrió un error al inscribirte',
+        background: '#1a1a1a',
+        color: 'white',
       });
+    } finally {
+      setCargando(false);
     }
   };
 
-  // Estilos consistentes para las tarjetas
-  const cardStyle = {
-    backdropFilter: 'blur(10px)', 
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', 
-    borderRadius: 3,
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 12px 20px rgba(0, 0, 0, 0.2)'
-    }
-  };
-
-  const headerStyle = {
-    p: 2, 
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    color: 'white', 
-    display: 'flex', 
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  };
-
+  // Configuración de animaciones
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.15 } 
+      transition: {
+        staggerChildren: 0.1,
+        duration: 0.3
+      }
     }
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { opacity: 0, y: 20 },
     visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { duration: 0.6, ease: "easeOut" }
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
     }
   };
 
+  // Estilos compartidos
+  const cardStyle = {
+    background: 'linear-gradient(145deg, rgba(30,30,60,0.95), rgba(50,50,80,0.95))',
+    backdropFilter: 'blur(15px)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: 3,
+    overflow: 'hidden'
+  };
+
+  const headerStyle = {
+    p: 2,
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.02)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    transition: 'all 0.3s ease'
+  };
+
   return (
-    <Box sx={{ 
-      width: '100%', 
-      p: { xs: 2, md: 4 },
-      backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
-      minHeight: 'calc(100vh - 64px)',
-      borderRadius: 2
-    }}>
-      {/* 🔥 ALERTA MEJORADA: Solo si hay problemas con el token */}
-      {usuario && !tokenValido && (
-        <Box sx={{ mb: 2 }}>
-          <Paper sx={{ 
-            p: 2, 
-            bgcolor: 'rgba(255, 193, 7, 0.1)', 
-            border: '1px solid rgba(255, 193, 7, 0.3)',
-            borderRadius: 2
-          }}>
-            <Typography variant="body2" sx={{ color: '#ffa726' }}>
-              ⚠️ <strong>Problema de autenticación detectado:</strong> 
-              {!storedToken && ' No hay token guardado.'} 
-              {storedToken && !tokenValido && ' Token inválido o expirado.'} 
-              {' '}
-              <Button 
-                size="small" 
-                onClick={() => window.location.reload()}
-                sx={{ ml: 1, color: '#ffa726' }}
-              >
-                Recargar página
-              </Button>
-            </Typography>
-          </Paper>
-        </Box>
-      )}
-
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-      >
-        <motion.div variants={itemVariants}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ 
-            color: 'white',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-            mb: 5,
-            fontWeight: 'bold',
-            borderLeft: '4px solid #3f51b5',
-            pl: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
-          }}>
-            Dashboard
-            <Chip 
-              label={usuario?.nombre ? `Bienvenido, ${usuario.nombre.split(' ')[0]}` : 'Bienvenido'} 
-              color="primary" 
-              size="small" 
-              sx={{ ml: 2, fontWeight: 'medium' }}
-            />
-          </Typography>
-        </motion.div>
-
-        {usuario ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {/* FILA 1: Perfil + Tarjeta Épica de Agregar Equipo */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', md: 'row' }, 
-              gap: 4 
-            }}>
-              {/* Tarjeta de Perfil con Avatar Mejorado */}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #16213e 50%, #1a1a2e 75%, #0a0a0a 100%)',
+        padding: '20px'
+      }}
+    >
+      {usuario ? (
+        <motion.div variants={containerVariants}>
+          {/* Header principal con información del usuario */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 4 }}>
+            
+            {/* FILA 1: Perfil del usuario y Tarjeta épica de agregar */}
+            <Box sx={{ display: 'flex', gap: 3, alignItems: 'stretch' }}>
+              
+              {/* Tarjeta de perfil del usuario */}
               <Box sx={{ flex: 1 }}>
                 <motion.div variants={itemVariants}>
                   <Card sx={cardStyle}>
-                    <Box sx={headerStyle}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <AccountCircleIcon sx={{ mr: 1, color: '#64b5f6' }} />
-                        <Typography variant="h6">Perfil de Usuario</Typography>
-                      </Box>
-                      <Chip 
-                        icon={<VerifiedUserIcon />} 
-                        label={tokenValido ? "Verificado" : "Sin autenticación"} 
-                        color={tokenValido ? "success" : "warning"}
-                        variant="outlined" 
-                        size="small" 
-                      />
-                    </Box>
                     <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        mb: 3,
-                        p: 2,
-                        borderRadius: 2,
-                        background: 'linear-gradient(145deg, rgba(25,118,210,0.1) 0%, rgba(25,118,210,0.05) 100%)'
-                      }}>
-                        <UserProfileAvatar usuario={usuario} size={80} />
-                        <Box sx={{ ml: 3 }}>
-                          <Typography variant="h5" gutterBottom sx={{ color: 'white', fontWeight: 'medium' }}>
-                            {usuario.nombre || usuario.email}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                        <UserProfileAvatar usuario={usuario} size={100} />
+                        
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="h4" sx={{ 
+                            color: 'white', fontWeight: 'bold', mb: 1,
+                            background: 'linear-gradient(45deg, #64b5f6, #42a5f5)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                          }}>
+                            ¡Bienvenido, {usuario.nombre}! 👋
                           </Typography>
-                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                            {usuario.rol === 'admin' && '👑 Administrador'}
-                            {usuario.rol === 'capitan' && '🏈 Capitán'}
-                            {usuario.rol === 'jugador' && '🏃‍♂️ Jugador'}
-                            {usuario.rol === 'arbitro' && '👨‍⚖️ Árbitro'}
+                          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.8)', mb: 2 }}>
+                            {getCategoryName(usuario.rol) || usuario.rol}
                           </Typography>
                         </Box>
+
+                        <Button
+                          component={NavLink}
+                          to="/perfil"
+                          variant="outlined"
+                          startIcon={<SettingsIcon />}
+                          sx={{
+                            borderColor: 'rgba(100,181,246,0.5)',
+                            color: '#64b5f6',
+                            '&:hover': {
+                              borderColor: '#64b5f6',
+                              backgroundColor: 'rgba(100,181,246,0.1)',
+                              color: 'white'
+                            }
+                          }}
+                        >
+                          Configurar Perfil
+                        </Button>
+
+                        {/* Partículas animadas de fondo */}
+                        {[...Array(8)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            style={{
+                              position: 'absolute',
+                              width: '4px',
+                              height: '4px',
+                              backgroundColor: '#64b5f6',
+                              borderRadius: '50%',
+                              top: `${15 + (i * 12)}%`,
+                              left: `${10 + (i * 10)}%`,
+                            }}
+                            animate={{
+                              y: [0, -15, 0],
+                              opacity: [0.3, 0.8, 0.3],
+                              scale: [1, 1.3, 1]
+                            }}
+                            transition={{
+                              duration: 2.5 + (i * 0.3),
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              delay: i * 0.2
+                            }}
+                          />
+                        ))}
                       </Box>
 
-                      <Divider sx={{ my: 3, opacity: 0.2 }} />
+                      <Divider sx={{ mb: 3, borderColor: 'rgba(255,255,255,0.1)' }} />
 
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        gap: 2
-                      }}>
+                      <Box sx={{ display: 'flex', gap: 3 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)' }}>
                           <EmailIcon sx={{ mr: 2, color: '#64b5f6' }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary">Email</Typography>
+                            <Typography variant="caption" color="text.secondary">EMAIL</Typography>
                             <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{usuario.email}</Typography>
                           </Box>
                         </Box>
@@ -670,7 +639,7 @@ export const Home = () => {
                 </motion.div>
               </Box>
 
-              {/* Tarjeta Épica de Agregar Equipo (movida desde la sección de equipos) */}
+              {/* Tarjeta Épica de Agregar Equipo */}
               <Box sx={{ flex: 1 }}>
                 <motion.div variants={itemVariants}>
                   <Card
@@ -702,148 +671,69 @@ export const Home = () => {
                         background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
                         transition: 'left 0.5s ease',
                       },
-                      '&:hover::before': puedeInscribirseEquipo() ? {
-                        left: '100%'
-                      } : {}
+                      '&:hover::before': puedeInscribirseEquipo() ? { left: '100%' } : {}
                     }}
                   >
                     <CardContent sx={{ 
-                      flex: 1,
-                      display: 'flex',
-                     flexDirection: 'column',
-                     alignItems: 'center',
-                     justifyContent: 'center',
-                     p: 4,
-                     position: 'relative',
-                     zIndex: 1
-                   }}>
-                     <motion.div
-                       animate={{ 
-                         scale: [1, 1.1, 1],
-                         rotate: [0, 5, -5, 0]
-                       }}
-                       transition={{ 
-                         duration: 2,
-                         repeat: Infinity,
-                         ease: "easeInOut"
-                       }}
-                     >
-                       <Box sx={{
-                         backgroundColor: 'rgba(100,181,246,0.2)',
-                         borderRadius: '50%',
-                         width: 80, height: 80,
-                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                         mb: 3, mx: 'auto',
-                         boxShadow: '0 8px 20px rgba(100,181,246,0.3)',
-                         border: '3px solid rgba(100,181,246,0.4)'
-                       }}>
-                         <PersonAddIcon sx={{ 
-                           fontSize: 40, 
-                           color: '#64b5f6',
-                           filter: 'drop-shadow(0 4px 8px rgba(100,181,246,0.5))'
-                         }} />
-                       </Box>
-                     </motion.div>
-                     
-                     <Typography variant="h4" sx={{ 
-                       color: '#64b5f6', 
-                       fontWeight: 'bold',
-                       mb: 2,
-                       textAlign: 'center',
-                       textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                     }}>
-                       {puedeInscribirseEquipo() ? '¡Únete a un Equipo!' : 'Inscripción no disponible'}
+                      p: 4, 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      height: '100%'
+                    }}>
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.1, 1],
+                          rotate: [0, 5, -5, 0]
+                        }}
+                        transition={{ 
+                          duration: 4,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Avatar sx={{
+                          width: 80, height: 80, mb: 3,
+                          background: 'linear-gradient(45deg, rgba(100,181,246,0.8), rgba(100,181,246,0.4))',
+                          boxShadow: '0 8px 32px rgba(100,181,246,0.3)'
+                        }}>
+                          <PersonAddIcon sx={{ fontSize: 40, color: 'white' }} />
+                        </Avatar>
+                      </motion.div>
+                      
+                      <Typography variant="h5" sx={{ 
+                        color: 'white', fontWeight: 'bold', mb: 2,
+                        textShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                      }}>
+                        {puedeInscribirseEquipo() 
+                         ? '🏈 ¡Únete a un Equipo!' 
+                         : '🔒 Inscripciones Limitadas'
+                       }
                      </Typography>
                      
                      <Typography variant="body1" sx={{ 
-                       color: 'rgba(255,255,255,0.8)',
-                       mb: 3,
-                       textAlign: 'center',
-                       fontSize: '1.1rem'
+                       color: 'rgba(255,255,255,0.8)', mb: 3,
+                       maxWidth: '280px'
                      }}>
                        {puedeInscribirseEquipo() 
-                         ? 'Inscríbete en un equipo y comienza tu aventura deportiva' 
-                         : 'Solo jugadores y capitanes pueden inscribirse en equipos'}
+                         ? 'Explora equipos disponibles y comienza tu aventura en el flag football'
+                         : 'Contacta al administrador para más información sobre inscripciones'
+                       }
                      </Typography>
 
-                     <Box sx={{
-                       backgroundColor: 'rgba(0,0,0,0.3)',
-                       borderRadius: 2, p: 2, mb: 3,
-                       border: '1px solid rgba(100,181,246,0.3)',
-                       backdropFilter: 'blur(5px)',
-                       width: '100%'
-                     }}>
-                       <Stack direction="row" spacing={3} justifyContent="center">
-                         <Box sx={{ textAlign: 'center' }}>
-                           <Typography variant="h5" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
-                             {loadingEquiposDisponibles ? '...' : equipos.length}
-                           </Typography>
-                           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                             Equipos Disponibles
-                           </Typography>
-                         </Box>
-                         <Box sx={{ textAlign: 'center' }}>
-                           <Typography variant="h5" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                             {loadingEquiposUsuario ? '...' : equiposUsuario.length}
-                           </Typography>
-                           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                             Mis Equipos
-                           </Typography>
-                         </Box>
-                       </Stack>
-                     </Box>
-
-                     {/* Botón de Configurar Perfil */}
-                     <Button 
-                       variant="outlined" 
-                       fullWidth 
-                       component={NavLink}
-                       to="/perfil"
-                       startIcon={<SettingsIcon />}
-                       onClick={(e) => e.stopPropagation()} // Evitar que se active el modal
-                       sx={{
-                         py: 1.5,
-                         borderRadius: 2,
-                         borderWidth: 2,
-                         borderColor: 'rgba(255,255,255,0.3)',
-                         color: 'rgba(255,255,255,0.8)',
-                         '&:hover': {
-                           borderWidth: 2,
-                           backgroundColor: 'rgba(255,255,255,0.1)',
-                           borderColor: 'rgba(255,255,255,0.5)',
-                           color: 'white'
-                         }
-                       }}
-                     >
-                       Configurar Perfil
-                     </Button>
-
-                     {/* Partículas animadas de fondo */}
-                     {[...Array(8)].map((_, i) => (
-                       <motion.div
-                         key={i}
-                         style={{
-                           position: 'absolute',
-                           width: '4px',
-                           height: '4px',
-                           backgroundColor: '#64b5f6',
-                           borderRadius: '50%',
-                           top: `${15 + (i * 12)}%`,
-                           left: `${10 + (i * 10)}%`,
-                         }}
-                         animate={{
-                           y: [0, -15, 0],
-                           opacity: [0.3, 0.8, 0.3],
-                           scale: [1, 1.3, 1]
-                         }}
-                         transition={{
-                           duration: 2.5 + (i * 0.3),
-                           repeat: Infinity,
-                           ease: "easeInOut",
-                           delay: i * 0.2
+                     {puedeInscribirseEquipo() && (
+                       <Chip
+                         label="Click para empezar"
+                         sx={{
+                           backgroundColor: 'rgba(255,255,255,0.2)',
+                           color: 'white',
+                           fontWeight: 'bold',
+                           '&:hover': { backgroundColor: 'rgba(255,255,255,0.3)' }
                          }}
                        />
-                     ))}
+                     )}
                    </CardContent>
                  </Card>
                </motion.div>
@@ -925,47 +815,149 @@ export const Home = () => {
                          </Paper>
                        </motion.div>
                      ) : (
-                       <Grid container spacing={2}>
-                         <AnimatePresence>
+                       // 🔥 CAMBIO DE GRID A FLEXBOX PARA 1/4 DEL ANCHO
+                       <motion.div
+                         initial={{ opacity: 0 }}
+                         animate={{ opacity: 1 }}
+                         transition={{ duration: 0.6 }}
+                       >
+                         <Box sx={{
+                           display: 'flex',
+                           flexWrap: 'wrap',
+                           gap: 3,
+                           justifyContent: equiposUsuario.length < 4 ? 'flex-start' : 'space-between'
+                         }}>
                            {equiposUsuario.map((equipo, index) => (
-                             <Grid item xs={12} sm={6} md={4} lg={3} key={equipo._id}>
-                               <TeamCard equipo={equipo} usuario={usuario} />
-                             </Grid>
+                             <motion.div
+                               key={equipo._id}
+                               initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                               animate={{ opacity: 1, scale: 1, y: 0 }}
+                               transition={{ 
+                                 duration: 0.6, 
+                                 delay: index * 0.15,
+                                 type: "spring",
+                                 stiffness: 120
+                               }}
+                               style={{
+                                 width: 'calc(25% - 12px)', // 🔥 1/4 del ancho menos gap
+                                 minWidth: '280px', // Ancho mínimo
+                                 maxWidth: '100%'
+                               }}
+                             >
+                               <TeamCard 
+                                 equipo={equipo} 
+                                 usuario={{
+                                   ...usuario,
+                                   numeroJugador: equipo.numeroUsuario
+                                 }}
+                                 torneoId={torneoSeleccionado} // 🔥 Pasar torneoId
+                               />
+                             </motion.div>
                            ))}
-                         </AnimatePresence>
-                       </Grid>
+                         </Box>
+                       </motion.div>
                      )}
+
+                     {/* 🎯 SELECTOR DE TORNEO PARA LAS ESTADÍSTICAS */}
+                     <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                           Ver estadísticas del torneo:
+                         </Typography>
+                         
+                         <FormControl size="small" sx={{ minWidth: 200 }}>
+                           <Select
+                             value={torneoSeleccionado || ''}
+                             onChange={(e) => setTorneoSeleccionado(e.target.value)}
+                             displayEmpty
+                             disabled={loadingTorneos}
+                             sx={{
+                               color: 'white',
+                               fontSize: '0.875rem',
+                               '& .MuiOutlinedInput-notchedOutline': {
+                                 borderColor: 'rgba(255,255,255,0.3)'
+                               },
+                               '&:hover .MuiOutlinedInput-notchedOutline': {
+                                 borderColor: 'rgba(76, 175, 80, 0.5)'
+                               },
+                               '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                 borderColor: '#4caf50'
+                               }
+                             }}
+                           >
+                             <MenuItem value="" disabled>
+                               <em>{loadingTorneos ? 'Cargando torneos...' : 'Selecciona un torneo'}</em>
+                             </MenuItem>
+                             {torneosDisponibles.map((torneo) => (
+                               <MenuItem key={torneo._id} value={torneo._id}>
+                                 {torneo.nombre} ({torneo.totalPartidos || 0} partidos)
+                               </MenuItem>
+                             ))}
+                           </Select>
+                         </FormControl>
+
+                         {torneoSeleccionado && (
+                           <Tooltip title="Actualizar estadísticas">
+                             <IconButton
+                               onClick={() => {
+                                 // Forzar recarga de estadísticas
+                                 obtenerEquiposUsuario();
+                                 cargarTorneosDisponibles();
+                               }}
+                               sx={{ 
+                                 color: '#4caf50',
+                                 '&:hover': { backgroundColor: 'rgba(76, 175, 80, 0.1)' }
+                               }}
+                             >
+                               <RefreshIcon />
+                             </IconButton>
+                           </Tooltip>
+                         )}
+                       </Stack>
+
+                       {!torneoSeleccionado && !loadingTorneos && (
+                         <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+                           Selecciona un torneo para ver las estadísticas reales de tus equipos
+                         </Alert>
+                       )}
+
+                       {torneoSeleccionado && (
+                         <Alert severity="success" sx={{ fontSize: '0.875rem' }}>
+                           📊 Mostrando estadísticas del torneo: {torneosDisponibles.find(t => t._id === torneoSeleccionado)?.nombre}
+                         </Alert>
+                       )}
+                     </Box>
                    </CardContent>
                  </Collapse>
                </Card>
              </motion.div>
            </Box>
          </Box>
-       ) : (
-         <motion.div variants={itemVariants}>
-           <Paper sx={{ 
-             p: 4, 
-             bgcolor: 'rgba(0, 0, 0, 0.7)', 
-             backdropFilter: 'blur(10px)',
-             borderRadius: 3,
-             border: '1px solid rgba(255, 255, 255, 0.1)'
-           }}>
-             <Typography color="error">No hay información de usuario disponible.</Typography>
-             <Button 
-               variant="contained" 
-               color="primary" 
-               sx={{ 
-                 mt: 2,
-                 background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
-                 boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)'
-               }}
-             >
-               Volver a iniciar sesión
-             </Button>
-           </Paper>
-         </motion.div>
-       )}
-     </motion.div>
+       </motion.div>
+     ) : (
+       <motion.div variants={itemVariants}>
+         <Paper sx={{ 
+           p: 4, 
+           bgcolor: 'rgba(0, 0, 0, 0.7)', 
+           backdropFilter: 'blur(10px)',
+           borderRadius: 3,
+           border: '1px solid rgba(255, 255, 255, 0.1)'
+         }}>
+           <Typography color="error">No hay información de usuario disponible.</Typography>
+           <Button 
+             variant="contained" 
+             color="primary" 
+             sx={{ 
+               mt: 2,
+               background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+               boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)'
+             }}
+           >
+             Volver a iniciar sesión
+           </Button>
+         </Paper>
+       </motion.div>
+     )}
 
      {/* Modal de inscripción mejorado */}
      <Dialog 
@@ -975,122 +967,85 @@ export const Home = () => {
        maxWidth="md"
        PaperProps={{
          sx: {
-           borderRadius: 3,
-           background: 'linear-gradient(145deg, rgba(20,20,40,0.98), rgba(40,40,80,0.98))',
+           background: 'linear-gradient(145deg, rgba(30,30,60,0.98), rgba(50,50,80,0.98))',
            backdropFilter: 'blur(20px)',
-           border: '1px solid rgba(255,255,255,0.1)',
-           color: 'white'
+           border: '1px solid rgba(255,255,255,0.2)',
+           borderRadius: 3
          }
        }}
      >
        <DialogTitle sx={{ 
-         pb: 1, 
+         color: 'white', 
          borderBottom: '1px solid rgba(255,255,255,0.1)',
          display: 'flex',
-         justifyContent: 'space-between',
-         alignItems: 'center'
+         alignItems: 'center',
+         gap: 2
        }}>
-         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-           <PersonAddIcon sx={{ color: '#64b5f6', fontSize: 32 }} />
-           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white' }}>
-             Inscribirme a un Equipo
-           </Typography>
-         </Box>
-         <IconButton onClick={cerrarModal} sx={{ color: 'white' }}>
+         <PersonAddIcon sx={{ color: '#64b5f6' }} />
+         {equipoSeleccionado ? 
+           `Inscribirse en ${equipoSeleccionado.nombre}` : 
+           'Seleccionar Equipo'
+         }
+         <IconButton 
+           onClick={cerrarModal}
+           sx={{ ml: 'auto', color: 'rgba(255,255,255,0.7)' }}
+         >
            <CloseIcon />
          </IconButton>
        </DialogTitle>
-       
-       <DialogContent sx={{ pt: 3 }}>
-         {!equipoSeleccionado ? (
+
+       <DialogContent sx={{ p: 3 }}>
+         {equipoSeleccionado ? (
            <Box>
-             <Typography variant="h6" sx={{ color: 'white', mb: 3, fontWeight: 'bold' }}>
-               Selecciona un equipo disponible:
-             </Typography>
-             <EquipoSelectorImproved
-               equipos={equipos}
-               onSelect={handleSelectEquipo}
-               loading={loadingEquiposDisponibles}
-             />
-           </Box>
-         ) : (
-           <Box>
-             <Typography variant="h6" sx={{ color: 'white', mb: 3, fontWeight: 'bold' }}>
-               Confirmar inscripción:
+             <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
+               Número de jugador para {equipoSeleccionado.nombre}:
              </Typography>
              
-             {/* Equipo seleccionado */}
-             <Paper sx={{
-               p: 3, mb: 3,
-               background: 'linear-gradient(145deg, rgba(100,181,246,0.1), rgba(100,181,246,0.05))',
-               border: '1px solid rgba(100,181,246,0.3)',
-               borderRadius: 2
-             }}>
-               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                 <Avatar
-                   src={getImageUrl(equipoSeleccionado.imagen)}
-                   sx={{ width: 60, height: 60 }}
-                 >
-                   <GroupsIcon />
-                 </Avatar>
-                 <Box>
-                   <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                     {equipoSeleccionado.nombre}
-                   </Typography>
-                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                     {getCategoryName(equipoSeleccionado.categoria)}
-                   </Typography>
-                 </Box>
-               </Box>
-             </Paper>
-
-             {/* Número de camiseta */}
              <TextField
                fullWidth
-               label="Número de camiseta"
+               label="Número de jugador (1-99)"
                type="number"
                value={numeroJugador}
                onChange={(e) => setNumeroJugador(e.target.value)}
-               placeholder="Ej: 10"
-               inputProps={{ min: 1, max: 99 }}
+               InputProps={{
+                 inputProps: { min: 1, max: 99 }
+               }}
                sx={{
+                 mb: 3,
                  '& .MuiOutlinedInput-root': {
-                   backgroundColor: 'rgba(255,255,255,0.1)',
-                   borderRadius: 2,
                    color: 'white',
                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                   '&:hover fieldset': { borderColor: 'rgba(100,181,246,0.5)' },
-                   '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
+                   '&:hover fieldset': { borderColor: 'rgba(76, 175, 80, 0.5)' },
+                   '&.Mui-focused fieldset': { borderColor: '#4caf50' }
                  },
-                 '& .MuiInputLabel-root': { 
-                   color: 'rgba(255,255,255,0.7)',
-                   '&.Mui-focused': { color: '#64b5f6' }
-                 }
+                 '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' }
                }}
              />
-             
-             <Typography variant="caption" sx={{ 
-               color: 'rgba(255,255,255,0.6)', 
-               mt: 1, 
-               display: 'block' 
+
+             <Box sx={{ 
+               p: 2, 
+               borderRadius: 2, 
+               background: 'rgba(100,181,246,0.1)',
+               border: '1px solid rgba(100,181,246,0.3)'
              }}>
-               * Elige un número del 1 al 99 que no esté ocupado en el equipo
-             </Typography>
+               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                 📝 <strong>Importante:</strong> El número debe estar disponible y será único para este equipo.
+               </Typography>
+             </Box>
            </Box>
+         ) : (
+           <EquipoSelectorImproved
+             equipos={equipos}
+             onSelect={seleccionarEquipo}
+             loading={loadingEquiposDisponibles}
+           />
          )}
        </DialogContent>
-       
-       <DialogActions sx={{ 
-         p: 3, 
-         borderTop: '1px solid rgba(255,255,255,0.1)',
-         gap: 2
-       }}>
+
+       <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
          <Button
-           onClick={equipoSeleccionado ? () => setEquipoSeleccionado(null) : cerrarModal}
-           sx={{ 
-             color: 'rgba(255,255,255,0.7)',
-             '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
-           }}
+           onClick={equipoSeleccionado ? volverASeleccion : cerrarModal}
+           sx={{ color: 'rgba(255,255,255,0.7)' }}
          >
            {equipoSeleccionado ? 'Volver' : 'Cancelar'}
          </Button>
@@ -1113,6 +1068,6 @@ export const Home = () => {
          )}
        </DialogActions>
      </Dialog>
-   </Box>
+   </motion.div>
  );
 };

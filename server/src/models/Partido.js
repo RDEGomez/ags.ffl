@@ -543,18 +543,36 @@ PartidoSchema.pre('save', function(next) {
     this.actualizarEstadisticas();
   }
   
-  // Actualizar marcador basado en jugadas con puntos
+ // 🔥 REEMPLAZAR EN EL MIDDLEWARE PRE-SAVE
   if (this.isModified('jugadas')) {
     let puntosLocal = 0;
     let puntosVisitante = 0;
     
     this.jugadas.forEach(jugada => {
       if (jugada.resultado.puntos > 0) {
-        const esLocal = jugada.equipoEnPosesion.toString() === this.equipoLocal.toString();
-        if (esLocal) {
-          puntosLocal += jugada.resultado.puntos;
+        const equipoEnPosesionStr = jugada.equipoEnPosesion._id?.toString() || jugada.equipoEnPosesion.toString();
+        const equipoLocalStr = this.equipoLocal._id?.toString() || this.equipoLocal.toString();
+        
+        const esLocal = equipoEnPosesionStr === equipoLocalStr;
+        
+        // 🔥 NUEVO: Detectar jugadas defensivas
+        const jugadasDefensivas = ['safety', 'intercepcion', 'sack', 'tackleo'];
+        const esJugadaDefensiva = jugadasDefensivas.includes(jugada.tipoJugada);
+        
+        if (esJugadaDefensiva) {
+          // Jugadas defensivas: puntos van al equipo contrario
+          if (esLocal) {
+            puntosVisitante += jugada.resultado.puntos;
+          } else {
+            puntosLocal += jugada.resultado.puntos;
+          }
         } else {
-          puntosVisitante += jugada.resultado.puntos;
+          // Jugadas ofensivas: puntos van al equipo con posesión
+          if (esLocal) {
+            puntosLocal += jugada.resultado.puntos;
+          } else {
+            puntosVisitante += jugada.resultado.puntos;
+          }
         }
       }
     });

@@ -510,4 +510,16 @@ router.get('/torneos-categorias',
   estadisticasController.obtenerTorneosConCategorias
 );
 
+// 🃏 5. ESTADÍSTICAS BÁSICAS PARA TARJETA DE EQUIPO (OPTIMIZADO)
+router.get('/tarjeta-equipo/:equipoId/:torneoId',
+  [
+    auth,
+    [
+      param('equipoId', 'ID de equipo debe ser válido').isMongoId(),
+      param('torneoId', 'ID de torneo debe ser válido').isMongoId()
+    ]
+  ],
+  estadisticasController.obtenerEstadisticasTarjetaEquipo
+);
+
 module.exports = router;

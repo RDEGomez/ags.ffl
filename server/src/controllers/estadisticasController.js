@@ -1,4 +1,5 @@
 // 📁 server/src/controllers/estadisticasController.js
+const mongoose = require('mongoose');
 const Partido = require('../models/Partido');
 const Torneo = require('../models/Torneo');
 const Equipo = require('../models/Equipo');
@@ -799,6 +800,293 @@ exports.obtenerTorneosConCategorias = async (req, res) => {
       mensaje: 'Error al obtener torneos con estadísticas', 
       error: error.message,
       torneos: []
+    });
+  }
+};
+
+// 🎯 ESTADÍSTICAS PARA TARJETA DE EQUIPO - VERSIÓN CORREGIDA
+exports.obtenerEstadisticasTarjetaEquipo = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🎯 [${timestamp}] INICIO - Estadísticas para tarjeta de equipo`);
+  console.log('🏈 Equipo ID:', req.params.equipoId);
+  console.log('🎯 Torneo ID:', req.params.torneoId);
+
+  try {
+    const { equipoId, torneoId } = req.params;
+
+    // 🔥 VALIDACIÓN DE MONGOOSE IDS
+    if (!mongoose.Types.ObjectId.isValid(equipoId) || !mongoose.Types.ObjectId.isValid(torneoId)) {
+      console.log('❌ ERROR: IDs inválidos');
+      return res.status(400).json({ mensaje: 'IDs de equipo o torneo inválidos' });
+    }
+
+    // Validación básica
+    const [equipo, torneo] = await Promise.all([
+      Equipo.findById(equipoId).select('nombre imagen categoria'),
+      Torneo.findById(torneoId).select('nombre')
+    ]);
+
+    if (!equipo || !torneo) {
+      console.log('❌ ERROR: Equipo o torneo no encontrado');
+      return res.status(404).json({ mensaje: 'Equipo o torneo no encontrado' });
+    }
+
+    console.log(`✅ Procesando tarjeta para ${equipo.nombre} en ${torneo.nombre}`);
+
+    // 🔥 CONSULTA OPTIMIZADA: Solo partidos finalizados del equipo
+    const partidos = await Partido.find({
+      torneo: new mongoose.Types.ObjectId(torneoId), // 🔥 CORRECCIÓN AQUÍ
+      categoria: equipo.categoria,
+      estado: 'finalizado',
+      $or: [
+        { equipoLocal: new mongoose.Types.ObjectId(equipoId) }, // 🔥 Y AQUÍ
+        { equipoVisitante: new mongoose.Types.ObjectId(equipoId) }
+      ]
+    }).select('marcador equipoLocal equipoVisitante jugadas fechaHora')
+      .sort({ fechaHora: 1 });
+
+    console.log(`📊 Partidos finalizados encontrados: ${partidos.length}`);
+
+    // 🏆 CÁLCULOS BÁSICOS PARA LA TARJETA
+    let estadisticasBasicas = {
+      partidosJugados: partidos.length,
+      partidosGanados: 0,
+      partidosPerdidos: 0,
+      puntosFavor: 0,
+      puntosContra: 0,
+      touchdowns: 0,
+      conversiones1pt: 0,
+      conversiones2pt: 0,
+      safeties: 0,
+      intercepciones: 0,
+      sacks: 0,
+      tackleos: 0,
+      pasesCompletos: 0,
+      pasesIncompletos: 0,
+      corridas: 0
+    };
+
+    // 🎯 OBTENER NÚMERO DE JUGADOR DEL USUARIO
+    let numeroJugador = null;
+    if (req.usuario) {
+      try {
+        const usuario = await Usuario.findById(req.usuario._id).select('equipos');
+        const equipoDelUsuario = usuario?.equipos?.find(e => 
+          e.equipo.toString() === equipoId.toString()
+        );
+        numeroJugador = equipoDelUsuario?.numero || null;
+      } catch (userError) {
+        console.log('⚠️ Error al obtener número de jugador:', userError.message);
+        // No fallar por esto
+      }
+    }
+
+    // 📊 PROCESAR CADA PARTIDO
+    const rachaResultados = [];
+    
+    partidos.forEach((partido, index) => {
+      const esLocal = partido.equipoLocal.toString() === equipoId.toString();
+      const puntosEquipo = esLocal ? partido.marcador.local : partido.marcador.visitante;
+      const puntosRival = esLocal ? partido.marcador.visitante : partido.marcador.local;
+
+      // Acumular puntos
+      estadisticasBasicas.puntosFavor += puntosEquipo;
+      estadisticasBasicas.puntosContra += puntosRival;
+
+      // Determinar resultado
+      if (puntosEquipo > puntosRival) {
+        estadisticasBasicas.partidosGanados++;
+        rachaResultados.push('V');
+      } else if (puntosEquipo < puntosRival) {
+        estadisticasBasicas.partidosPerdidos++;
+        rachaResultados.push('D');
+      }
+
+      // 🎮 PROCESAR JUGADAS DEL PARTIDO (OPTIMIZADO)
+      if (partido.jugadas && partido.jugadas.length > 0) {
+        partido.jugadas.forEach(jugada => {
+          try {
+            // Solo contar jugadas del equipo en posesión
+            if (jugada.equipoEnPosesion && jugada.equipoEnPosesion.toString() === equipoId.toString()) {
+              
+              switch (jugada.tipoJugada) {
+                case 'touchdown':
+                  estadisticasBasicas.touchdowns++;
+                  break;
+                case 'conversion_1pt':
+                  estadisticasBasicas.conversiones1pt++;
+                  break;
+                case 'conversion_2pt':
+                  estadisticasBasicas.conversiones2pt++;
+                  break;
+                case 'safety':
+                  estadisticasBasicas.safeties++;
+                  break;
+                case 'pase_completo':
+                  estadisticasBasicas.pasesCompletos++;
+                  break;
+                case 'pase_incompleto':
+                  estadisticasBasicas.pasesIncompletos++;
+                  break;
+                case 'corrida':
+                  estadisticasBasicas.corridas++;
+                  break;
+              }
+            } else {
+              // Jugadas defensivas (cuando el otro equipo tiene la posesión)
+              switch (jugada.tipoJugada) {
+                case 'intercepcion':
+                  estadisticasBasicas.intercepciones++;
+                  break;
+                case 'sack':
+                  estadisticasBasicas.sacks++;
+                  break;
+                case 'tackleo':
+                  estadisticasBasicas.tackleos++;
+                  break;
+              }
+            }
+          } catch (jugadaError) {
+            console.log('⚠️ Error procesando jugada:', jugadaError.message);
+            // Continuar con la siguiente jugada
+          }
+        });
+      }
+    });
+
+    // 🔢 CÁLCULOS DERIVADOS
+    const totalPases = estadisticasBasicas.pasesCompletos + estadisticasBasicas.pasesIncompletos;
+    const porcentajePases = totalPases > 0 ? 
+      Math.round((estadisticasBasicas.pasesCompletos / totalPases) * 100) : 0;
+    
+    const totalPuntos = (estadisticasBasicas.touchdowns * 6) + 
+                       estadisticasBasicas.conversiones1pt + 
+                       (estadisticasBasicas.conversiones2pt * 2) + 
+                       (estadisticasBasicas.safeties * 2);
+    
+    const promedioPuntosPorPartido = estadisticasBasicas.partidosJugados > 0 ? 
+      Math.round((estadisticasBasicas.puntosFavor / estadisticasBasicas.partidosJugados) * 10) / 10 : 0;
+    
+    const porcentajeVictorias = estadisticasBasicas.partidosJugados > 0 ? 
+      Math.round((estadisticasBasicas.partidosGanados / estadisticasBasicas.partidosJugados) * 100) : 0;
+
+    // 🏅 CALCULAR POSICIÓN EN LA TABLA (CONSULTA LIGERA) - VERSIÓN SIMPLIFICADA
+    let totalEquiposCategoria = 12; // Default
+    let posicionAproximada = 1;
+    
+    try {
+      const equiposCategoria = await Partido.aggregate([
+        {
+          $match: {
+            torneo: new mongoose.Types.ObjectId(torneoId),
+            categoria: equipo.categoria,
+            estado: 'finalizado'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            equiposUnicos: {
+              $addToSet: {
+                $cond: [
+                  { $ne: ['$equipoLocal', null] },
+                  '$equipoLocal',
+                  '$equipoVisitante'
+                ]
+              }
+            }
+          }
+        }
+      ]);
+
+      totalEquiposCategoria = equiposCategoria[0]?.equiposUnicos?.length || 12;
+      
+      // Posición aproximada basada en porcentaje de victorias
+      posicionAproximada = Math.ceil(totalEquiposCategoria * ((100 - porcentajeVictorias) / 100)) || totalEquiposCategoria;
+    } catch (posicionError) {
+      console.log('⚠️ Error calculando posición:', posicionError.message);
+      // Usar valores por defecto
+    }
+
+    // 📦 RESPUESTA OPTIMIZADA PARA TEAMCARD
+    const respuesta = {
+      equipo: {
+        _id: equipo._id,
+        nombre: equipo.nombre,
+        imagen: getImageUrlServer(equipo.imagen, req),
+        categoria: equipo.categoria
+      },
+      torneo: {
+        _id: torneo._id,
+        nombre: torneo.nombre
+      },
+      usuario: {
+        numeroJugador: numeroJugador
+      },
+      estadisticas: {
+        // Básicas de rendimiento
+        partidosJugados: estadisticasBasicas.partidosJugados,
+        partidosGanados: estadisticasBasicas.partidosGanados,
+        partidosPerdidos: estadisticasBasicas.partidosPerdidos,
+        porcentajeVictorias: porcentajeVictorias,
+        
+        // Puntos
+        puntosFavor: estadisticasBasicas.puntosFavor,
+        puntosContra: estadisticasBasicas.puntosContra,
+        diferenciaPuntos: estadisticasBasicas.puntosFavor - estadisticasBasicas.puntosContra,
+        promedioPuntosPorPartido: promedioPuntosPorPartido,
+        totalPuntosCalculados: totalPuntos,
+        
+        // Estadísticas ofensivas
+        touchdowns: estadisticasBasicas.touchdowns,
+        conversiones1pt: estadisticasBasicas.conversiones1pt,
+        conversiones2pt: estadisticasBasicas.conversiones2pt,
+        safeties: estadisticasBasicas.safeties,
+        
+        // Pases
+        pasesCompletos: estadisticasBasicas.pasesCompletos,
+        pasesIncompletos: estadisticasBasicas.pasesIncompletos,
+        totalPases: totalPases,
+        porcentajePases: porcentajePases,
+        
+        // Corridas
+        corridas: estadisticasBasicas.corridas,
+        
+        // Estadísticas defensivas
+        intercepciones: estadisticasBasicas.intercepciones,
+        sacks: estadisticasBasicas.sacks,
+        tackleos: estadisticasBasicas.tackleos,
+        
+        // Posición y ranking
+        posicionLiga: posicionAproximada,
+        totalEquipos: totalEquiposCategoria,
+        
+        // Racha (últimos 5 partidos)
+        rachaActual: rachaResultados.slice(-5)
+      },
+      metadatos: {
+        fechaConsulta: new Date().toISOString(),
+        tiempoRespuesta: Date.now() - new Date(timestamp).getTime(),
+        optimizado: true
+      }
+    };
+
+    console.log('📤 Enviando estadísticas optimizadas para tarjeta');
+    console.log(`  🏆 Partidos: ${estadisticasBasicas.partidosJugados} | Victorias: ${porcentajeVictorias}%`);
+    console.log(`  ⚡ TD: ${estadisticasBasicas.touchdowns} | Promedio: ${promedioPuntosPorPartido} pts`);
+    console.log(`  📊 Posición: ${posicionAproximada}/${totalEquiposCategoria}`);
+    console.log(`✅ [${new Date().toISOString()}] FIN - Tarjeta optimizada\n`);
+
+    res.json(respuesta);
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener estadísticas tarjeta:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Tarjeta fallida\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener estadísticas para tarjeta de equipo', 
+      error: error.message 
     });
   }
 };
