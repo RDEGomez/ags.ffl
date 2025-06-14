@@ -216,7 +216,7 @@ exports.generarRolTorneo = async (req, res) => {
     const { torneoId, categoria, tipoRol, jornadas, fechaInicio, fechaFin, configuracion = {} } = req.body;
     
     console.log('🔐 Validando permisos...');
-    if (!['admin', 'capitan'].includes(req.usuario.rol)) {
+    if (!['admin', 'arbitro'].includes(req.usuario.rol)) {
       console.log('❌ ERROR: Sin permisos para generar rol');
       return res.status(403).json({ mensaje: 'Sin permisos para generar rol' });
     }
