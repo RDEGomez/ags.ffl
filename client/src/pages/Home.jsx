@@ -268,7 +268,7 @@ const EquipoSelectorImproved = ({ equipos, onSelect, loading }) => {
 };
 
 export const Home = () => {
-  const { usuario, tieneTokenValido, getStoredToken, puedeInscribirseEquipo, refrescarUsuario } = useAuth();
+  const { usuario, tieneTokenValido, getStoredToken, puedeInscribirseEquipo, refrescarUsuario, actualizarEquiposUsuario } = useAuth();
 
   const [equipos, setEquipos] = useState([]);
   const [equiposUsuario, setEquiposUsuario] = useState([]);
@@ -453,9 +453,11 @@ export const Home = () => {
     setCargando(true);
     
     try {
-      const response = await axiosInstance.post(`/equipos/${equipoSeleccionado._id}/jugadores`, {
+      // ✅ CORREGIDO: URL y estructura de datos
+      const response = await axiosInstance.post('/equipos/registrarJugadores', {
         jugadores: [{
           usuarioId: usuario._id,
+          equipoId: equipoSeleccionado._id,  // 🔥 AGREGADO: equipoId
           numero: parseInt(numeroJugador)
         }]
       });
@@ -463,23 +465,28 @@ export const Home = () => {
       Swal.fire({
         icon: 'success',
         title: '¡Inscripción exitosa!',
-        text: `Te has inscrito correctamente en ${equipoSeleccionado.nombre}`,
+        text: `Te has inscrito al equipo ${equipoSeleccionado.nombre} con el número ${numeroJugador}`,
         background: '#1a1a1a',
         color: 'white',
       });
 
-      await refrescarUsuario();
+      // Actualizar equipos y cerrar modal
+      actualizarEquiposUsuario();
       obtenerEquiposUsuario();
       obtenerEquiposDisponibles();
       cerrarModal();
-      
+
     } catch (error) {
-      console.error('Error al inscribirse:', error);
+      console.error('❌ Error en inscripción:', error);
+      
+      const errorMessage = error.response?.data?.mensaje || 
+                          error.message || 
+                          'Error desconocido al inscribirse';
       
       Swal.fire({
         icon: 'error',
         title: 'Error en la inscripción',
-        text: error.response?.data?.mensaje || 'Ocurrió un error al inscribirte',
+        text: errorMessage,
         background: '#1a1a1a',
         color: 'white',
       });
