@@ -467,12 +467,10 @@ export const Home = () => {
     
     try {
       // ✅ CORREGIDO: URL y estructura de datos
-      const response = await axiosInstance.post('/equipos/registrarJugadores', {
-        jugadores: [{
-          usuarioId: usuario._id,
-          equipoId: equipoSeleccionado._id,  // AGREGADO: equipoId
-          numero: parseInt(numeroJugador)
-        }]
+      const response = await axiosInstance.patch('/usuarios/equipo', {
+        usuarioId: usuario._id,
+        equipoId: equipoSeleccionado._id,
+        numero: parseInt(numeroJugador)
       });
 
       Swal.fire({
