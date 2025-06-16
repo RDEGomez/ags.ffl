@@ -16,7 +16,7 @@ import { EditarArbitro } from '../pages/arbitros/EditarArbitro'; // 🔥 Nueva i
 import { Partidos, CrearPartido } from '../pages/partidos';
 import { DetallePartido } from '../pages/partidos/DetallePartido';
 import { ImportacionMasiva } from '../pages/partidos/importacion/ImportacionMasiva';
-import { DashboardEstadisticas } from '../pages/estadisticas';
+import { DashboardEstadisticas } from '../pages/estadisticas/DashboardEstadisticas';
 
 // Componente ProtectedRoute para proteger rutas
 export const ProtectedRoute = () => {
