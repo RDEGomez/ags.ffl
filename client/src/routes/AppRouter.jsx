@@ -3,6 +3,11 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Login } from '../pages/auth/Login';
 import { Register } from '../pages/auth/Register';
+// 🔥 NUEVAS IMPORTACIONES
+import { VerifyEmail } from '../pages/auth/VerifyEmail';
+import { ForgotPassword } from '../pages/auth/ForgotPassword';
+import { ResetPassword } from '../pages/auth/ResetPassword';
+
 import { Home } from '../pages/Home';
 import { Layout } from '../layout/Layout';
 import { EditarPerfil } from '../pages/profile/EditarPerfil';
@@ -11,12 +16,12 @@ import { EditarEquipo, Equipos, NuevoEquipo, RegistrarJugadores } from '../pages
 import { Torneos } from '../pages/torneos/Torneos';
 import { CrearTorneo, GestionInscripciones } from '../pages/torneos';
 import { Arbitros } from '../pages/arbitros/Arbitros';
-import { NuevoArbitro } from '../pages/arbitros/NuevoArbitro'; // 🔥 Nueva importación
-import { EditarArbitro } from '../pages/arbitros/EditarArbitro'; // 🔥 Nueva importación
+import { NuevoArbitro } from '../pages/arbitros/NuevoArbitro';
+import { EditarArbitro } from '../pages/arbitros/EditarArbitro';
 import { Partidos, CrearPartido } from '../pages/partidos';
 import { DetallePartido } from '../pages/partidos/DetallePartido';
 import { ImportacionMasiva } from '../pages/partidos/importacion/ImportacionMasiva';
-import { DashboardEstadisticas } from '../pages/estadisticas';
+import { DashboardEstadisticas } from '../pages/estadisticas/DashboardEstadisticas';
 
 // Componente ProtectedRoute para proteger rutas
 export const ProtectedRoute = () => {
@@ -31,9 +36,14 @@ export const ProtectedRoute = () => {
 export const AppRouter = () => {
   return (
     <Routes>
-      {/* Rutas públicas */}
+      {/* Rutas públicas de autenticación */}
       <Route path="/auth/login" element={<Login />} />
       <Route path="/auth/register" element={<Register />} />
+      
+      {/* 🔥 NUEVAS RUTAS DE VERIFICACIÓN Y RECUPERACIÓN */}
+      <Route path="/auth/verify-email/:token" element={<VerifyEmail />} />
+      <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+      <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
 
       {/* Rutas protegidas */}
       <Route element={<ProtectedRoute />}>
@@ -48,14 +58,14 @@ export const AppRouter = () => {
           <Route path="torneos/crear" element={<CrearTorneo />} />
           <Route path="/torneos/:id/inscripciones" element={<GestionInscripciones />} />
           <Route path="arbitros" element={<Arbitros />} />
-          <Route path="arbitros/nuevo" element={<NuevoArbitro />} /> {/* 🔥 Nueva ruta */}
-          <Route path="arbitros/editar/:id" element={<EditarArbitro />} /> {/* 🔥 Nueva ruta */}
+          <Route path="arbitros/nuevo" element={<NuevoArbitro />} />
+          <Route path="arbitros/editar/:id" element={<EditarArbitro />} />
           <Route path="partidos" element={<Partidos />} />
-          <Route path="partidos/crear" element={<CrearPartido />} /> {/* 🔥 Nueva ruta */}
-          <Route path="partidos/:id" element={<DetallePartido />} /> {/* 🔥 Nueva ruta */}
+          <Route path="partidos/crear" element={<CrearPartido />} />
+          <Route path="partidos/:id" element={<DetallePartido />} />
           <Route path="perfil" element={<EditarPerfil />} />
           <Route path="perfil/:id" element={<EditarPerfil />} />
-          <Route path="importacion" element={<ImportacionMasiva />} /> {/* 🔥 Nueva ruta para importación masiva */ }
+          <Route path="importacion" element={<ImportacionMasiva />} />
           <Route path="estadisticas" element={<DashboardEstadisticas />} />
         </Route>
       </Route>

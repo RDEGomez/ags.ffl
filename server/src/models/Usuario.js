@@ -1,4 +1,4 @@
-// 📁 models/Usuario.js
+// 📁 models/Usuario.js - VERSIÓN ACTUALIZADA
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -30,14 +30,48 @@ const UsuarioSchema = new mongoose.Schema({
   },
   rol: {
     type: String,
-    enum: ['admin', 'jugador', 'capitan', 'arbitro'], // 🔥 Agregado 'arbitro'
+    enum: ['admin', 'jugador', 'capitan', 'arbitro'],
     default: 'jugador'
   },
   rolSecundario: {
     type: String,
-    enum: ['arbitro', 'admin'], // Solo árbitro como rol secundario por ahora
+    enum: ['arbitro', 'admin'],
   },
-  // 🔥 Este campo solo aplica para usuarios con rol 'jugador' o 'capitan'
+  
+  // 🔥 NUEVOS CAMPOS PARA VERIFICACIÓN EMAIL
+  emailVerificado: {
+    type: Boolean,
+    default: false
+  },
+  tokenVerificacion: {
+    type: String,
+    select: false // No incluir en consultas por defecto
+  },
+  tokenVerificacionExpira: {
+    type: Date,
+    select: false
+  },
+  
+  // 🔥 NUEVOS CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA
+  tokenRecuperacion: {
+    type: String,
+    select: false
+  },
+  tokenRecuperacionExpira: {
+    type: Date,
+    select: false
+  },
+  
+  // 🔥 CAMPOS DE SEGUIMIENTO
+  fechaUltimaVerificacion: {
+    type: Date
+  },
+  intentosVerificacion: {
+    type: Number,
+    default: 0
+  },
+  
+  // Este campo solo aplica para usuarios con rol 'jugador' o 'capitan'
   equipos: [
     {
       equipo: {
@@ -65,11 +99,37 @@ UsuarioSchema.pre('save', async function (next) {
   }
 });
 
+// 🔥 MÉTODOS PARA VERIFICACIÓN
+UsuarioSchema.methods.crearTokenVerificacion = function() {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  this.tokenVerificacion = crypto.createHash('sha256').update(token).digest('hex');
+  this.tokenVerificacionExpira = Date.now() + 24 * 60 * 60 * 1000; // 24 horas
+  
+  return token; // Retornamos el token sin encriptar para enviar por email
+};
+
+// 🔥 MÉTODOS PARA RECUPERACIÓN
+UsuarioSchema.methods.crearTokenRecuperacion = function() {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  this.tokenRecuperacion = crypto.createHash('sha256').update(token).digest('hex');
+  this.tokenRecuperacionExpira = Date.now() + 10 * 60 * 1000; // 10 minutos
+  
+  return token;
+};
+
+// 🔥 MÉTODO PARA VERIFICAR SI PUEDE HACER LOGIN
+UsuarioSchema.methods.puedeHacerLogin = function() {
+  return this.emailVerificado;
+};
+
 UsuarioSchema.methods.puedeArbitrar = function() {
   return this.rol === 'arbitro' || this.rolSecundario === 'arbitro';
 };
 
-// 🔥 Método para verificar si el usuario puede tener equipos
 UsuarioSchema.methods.puedeEstarEnEquipos = function() {
   return ['jugador', 'capitan'].includes(this.rol);
 };

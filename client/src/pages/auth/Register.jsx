@@ -1,27 +1,42 @@
+// 📁 client/src/pages/auth/Register.jsx - ACTUALIZADO
+import React, { useState } from 'react';
 import {
   Box,
   Button,
   TextField,
   Typography,
   Alert,
-  Link
+  Link,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
-import axios from '../../config/axios';
-import Swal from 'sweetalert2';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import EmailIcon from '@mui/icons-material/Email';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import axios from '../../config/axios';
 import logo from '../../assets/agsffllogo.png';
 
 const schema = Yup.object().shape({
   email: Yup.string().email('Correo inválido').required('Correo requerido'),
   documento: Yup.string().required('Documento requerido'),
   password: Yup.string().min(6, 'Mínimo 6 caracteres').required('Contraseña requerida'),
+  nombre: Yup.string().trim(),
 });
 
 export const Register = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [registroExitoso, setRegistroExitoso] = useState(false);
+  const [emailRegistrado, setEmailRegistrado] = useState('');
 
   const {
     register,
@@ -32,42 +47,132 @@ export const Register = () => {
 
   const onSubmit = async (data) => {
     try {
-      Swal.fire({
-        title: 'Procesando',
-        text: 'Registrando usuario...',
-        icon: 'info',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
+      setLoading(true);
+      setError('');
 
-      await axios.post('/auth/register', data);
+      const response = await axios.post('/auth/register', data);
 
-      Swal.fire({
-        title: '¡Registro exitoso!',
-        text: 'Usuario registrado correctamente',
-        icon: 'success',
-        confirmButtonText: 'Iniciar sesión',
-        confirmButtonColor: '#1976d2'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate('/auth/login');
-        }
-      });
-
+      // Registro exitoso
+      setEmailRegistrado(data.email);
+      setRegistroExitoso(true);
       reset();
 
     } catch (error) {
-      Swal.fire({
-        title: 'Error',
-        text: error.response?.data?.mensaje || 'Error en el registro',
-        icon: 'error',
-        confirmButtonColor: '#1976d2'
-      });
+      console.error('Error en registro:', error);
+      setError(error.response?.data?.mensaje || 'Error en el registro');
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (registroExitoso) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: 'linear-gradient(to bottom right, #0f4c81, #3f2b96)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          px: 2
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          style={{ width: '100%', maxWidth: 500, textAlign: 'center' }}
+        >
+          {/* Logo */}
+          <Box sx={{ mb: 4 }}>
+            <img src={logo} alt="Logo" style={{ height: 120, borderRadius: 60 }} />
+          </Box>
+
+          <CheckCircleIcon sx={{ fontSize: 80, color: '#4caf50', mb: 3 }} />
+
+          <Typography variant="h4" gutterBottom sx={{ color: '#4caf50' }}>
+            ¡Registro Exitoso!
+          </Typography>
+
+          <Alert severity="success" sx={{ mb: 3, textAlign: 'left' }}>
+            <Typography variant="body1" gutterBottom>
+              Tu cuenta ha sido creada exitosamente.
+            </Typography>
+            <Typography variant="body2">
+              Hemos enviado un email de verificación a:<br />
+              <strong>{emailRegistrado}</strong>
+            </Typography>
+          </Alert>
+
+          <Box sx={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+            borderRadius: 2, 
+            p: 3, 
+            mb: 3 
+          }}>
+            <Typography variant="h6" gutterBottom sx={{ color: '#ffd700' }}>
+              📧 Próximos pasos:
+            </Typography>
+            <Stack spacing={1} sx={{ textAlign: 'left' }}>
+              <Typography variant="body2">
+                1. Revisa tu bandeja de entrada
+              </Typography>
+              <Typography variant="body2">
+                2. También revisa la carpeta de spam
+              </Typography>
+              <Typography variant="body2">
+                3. Haz clic en el link de verificación
+              </Typography>
+              <Typography variant="body2">
+                4. ¡Ya podrás iniciar sesión!
+              </Typography>
+            </Stack>
+          </Box>
+
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              <strong>Importante:</strong> El link de verificación expira en 24 horas.
+              Si no lo recibes, puedes solicitar uno nuevo desde la página de login.
+            </Typography>
+          </Alert>
+
+          <Stack direction="row" spacing={2} justifyContent="center">
+            <Button
+              onClick={() => {
+                setRegistroExitoso(false);
+                setEmailRegistrado('');
+              }}
+              variant="outlined"
+              sx={{
+                borderColor: '#ffd700',
+                color: '#ffd700',
+                '&:hover': { 
+                  borderColor: '#f5c400', 
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)' 
+                }
+              }}
+            >
+              Registrar Otro Usuario
+            </Button>
+            <Button
+              component={RouterLink}
+              to="/auth/login"
+              variant="contained"
+              sx={{
+                backgroundColor: '#ffd700',
+                color: 'black',
+                fontWeight: 'bold',
+                '&:hover': { backgroundColor: '#f5c400' }
+              }}
+            >
+              Ir al Login
+            </Button>
+          </Stack>
+        </motion.div>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -81,7 +186,12 @@ export const Register = () => {
         px: 2
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}
+      >
         {/* Logo */}
         <Box sx={{ mb: 4 }}>
           <img src={logo} alt="Logo" style={{ height: 180, borderRadius: 100 }} />
@@ -91,6 +201,12 @@ export const Register = () => {
           Crear cuenta
         </Typography>
 
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <TextField
             fullWidth
@@ -99,6 +215,20 @@ export const Register = () => {
             {...register('email')}
             error={!!errors.email}
             helperText={errors.email?.message}
+            disabled={loading}
+            InputProps={{ style: { color: 'white' } }}
+            InputLabelProps={{ style: { color: 'white' } }}
+            variant="standard"
+          />
+
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Nombre (Opcional)"
+            {...register('nombre')}
+            error={!!errors.nombre}
+            helperText={errors.nombre?.message}
+            disabled={loading}
             InputProps={{ style: { color: 'white' } }}
             InputLabelProps={{ style: { color: 'white' } }}
             variant="standard"
@@ -111,6 +241,7 @@ export const Register = () => {
             {...register('documento')}
             error={!!errors.documento}
             helperText={errors.documento?.message}
+            disabled={loading}
             InputProps={{ style: { color: 'white' } }}
             InputLabelProps={{ style: { color: 'white' } }}
             variant="standard"
@@ -124,6 +255,7 @@ export const Register = () => {
             {...register('password')}
             error={!!errors.password}
             helperText={errors.password?.message}
+            disabled={loading}
             InputProps={{ style: { color: 'white' } }}
             InputLabelProps={{ style: { color: 'white' } }}
             variant="standard"
@@ -133,6 +265,7 @@ export const Register = () => {
             type="submit"
             fullWidth
             variant="contained"
+            disabled={loading}
             sx={{
               mt: 4,
               backgroundColor: '#ffd700',
@@ -141,10 +274,17 @@ export const Register = () => {
               borderRadius: 8,
               '&:hover': {
                 backgroundColor: '#f5c400'
+              },
+              '&:disabled': {
+                backgroundColor: 'rgba(255, 215, 0, 0.5)'
               }
             }}
           >
-            REGISTRARSE
+            {loading ? (
+              <CircularProgress size={24} sx={{ color: 'black' }} />
+            ) : (
+              'REGISTRARSE'
+            )}
           </Button>
         </form>
 
@@ -161,8 +301,21 @@ export const Register = () => {
           </Link>
         </Typography>
 
+        {/* Información sobre verificación */}
+        <Box sx={{ 
+          mt: 4, 
+          p: 2, 
+          backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+          borderRadius: 2 
+        }}>
+          <Typography variant="caption" sx={{ color: 'white', opacity: 0.9 }}>
+            💡 <strong>Importante:</strong> Después del registro recibirás un email de verificación. 
+            Debes verificar tu email antes de poder iniciar sesión.
+          </Typography>
+        </Box>
+
         {/* Términos */}
-        <Typography variant="caption" sx={{ mt: 4, display: 'block', color: 'white', opacity: 0.7 }}>
+        <Typography variant="caption" sx={{ mt: 2, display: 'block', color: 'white', opacity: 0.7 }}>
           Al registrarte aceptas nuestros{' '}
           <Link href="#" underline="hover" sx={{ color: '#ffd700' }}>
             Términos y Condiciones
@@ -173,7 +326,7 @@ export const Register = () => {
           </Link>
           .
         </Typography>
-      </Box>
+      </motion.div>
     </Box>
   );
 };
