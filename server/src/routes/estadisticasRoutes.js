@@ -522,4 +522,29 @@ router.get('/tarjeta-equipo/:equipoId/:torneoId',
   estadisticasController.obtenerEstadisticasTarjetaEquipo
 );
 
+// 👑 OBTENER LÍDERES INDIVIDUALES POR TIPO (TODOS LOS EQUIPOS)
+router.get('/lideres-individuales/:torneoId/:categoria/:tipo',
+  [
+    auth,
+    [
+      param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
+      param('categoria', 'Categoría es requerida').notEmpty(),
+      param('tipo', 'Tipo de estadística es requerido').isIn(['pases', 'puntos', 'tackleos', 'intercepciones', 'sacks', 'recepciones'])
+    ]
+  ],
+  estadisticasController.obtenerLideresIndividuales
+);
+
+// 🏆 OBTENER TODOS LOS LÍDERES INDIVIDUALES (6 TIPOS EN UNA LLAMADA)
+router.get('/todos-lideres-individuales/:torneoId/:categoria',
+  [
+    auth,
+    [
+      param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
+      param('categoria', 'Categoría es requerida').notEmpty()
+    ]
+  ],
+  estadisticasController.obtenerTodosLideresIndividuales
+);
+
 module.exports = router;

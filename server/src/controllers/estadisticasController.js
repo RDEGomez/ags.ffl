@@ -1091,6 +1091,346 @@ exports.obtenerEstadisticasTarjetaEquipo = async (req, res) => {
   }
 };
 
+exports.obtenerLideresIndividuales = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n👑 [${timestamp}] INICIO - Obtener líderes individuales generales`);
+  
+  try {
+    const { torneoId, categoria, tipo } = req.params;
+    console.log('🎯 Parámetros recibidos:', { torneoId, categoria, tipo });
+
+    // Validar torneo
+    const Torneo = require('../models/Torneo');
+    const torneo = await Torneo.findById(torneoId);
+    if (!torneo) {
+      console.log('❌ ERROR: Torneo no encontrado');
+      return res.status(404).json({ mensaje: 'Torneo no encontrado' });
+    }
+
+    // Obtener todos los partidos finalizados de la categoría en el torneo
+    const Partido = require('../models/Partido');
+    const partidos = await Partido.find({
+      torneo: torneoId,
+      categoria: categoria,
+      estado: 'finalizado'
+    }).populate('equipoLocal equipoVisitante', 'nombre imagen');
+
+    if (partidos.length === 0) {
+      console.log('⚠️ No hay partidos finalizados en esta categoría');
+      return res.json({
+        lideres: [],
+        tipo,
+        categoria,
+        torneo: { _id: torneo._id, nombre: torneo.nombre },
+        totalJugadoresConStats: 0,
+        fechaConsulta: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Procesando ${partidos.length} partidos finalizados`);
+
+    // Objeto para acumular estadísticas por jugador
+    const estadisticasJugadores = new Map();
+
+    // Procesar cada partido
+    partidos.forEach(partido => {
+      if (!partido.jugadas || partido.jugadas.length === 0) return;
+
+      // Procesar cada jugada
+      partido.jugadas.forEach(jugada => {
+        const equipoPosesion = jugada.equipoPosesion === 'local' ? partido.equipoLocal : partido.equipoVisitante;
+        if (!equipoPosesion) return;
+
+        // Obtener jugadores involucrados
+        const jugadorPrincipal = equipoPosesion.jugadores?.find(j => j.numero === jugada.numeroJugadorPrincipal);
+        const jugadorSecundario = equipoPosesion.jugadores?.find(j => j.numero === jugada.numeroJugadorSecundario);
+
+        if (jugadorPrincipal) {
+          const jugadorId = jugadorPrincipal._id.toString();
+          
+          // Inicializar estadísticas si no existen
+          if (!estadisticasJugadores.has(jugadorId)) {
+            estadisticasJugadores.set(jugadorId, {
+              jugador: {
+                _id: jugadorPrincipal._id,
+                nombre: jugadorPrincipal.nombre,
+                numero: jugadorPrincipal.numero,
+                avatar: jugadorPrincipal.avatar
+              },
+              equipo: {
+                _id: equipoPosesion._id,
+                nombre: equipoPosesion.nombre,
+                imagen: equipoPosesion.imagen
+              },
+              stats: {
+                pases: { intentos: 0, completados: 0, touchdowns: 0, intercepciones: 0 },
+                recepciones: { total: 0, touchdowns: 0 },
+                tackleos: { total: 0 },
+                intercepciones: { total: 0 },
+                sacks: { total: 0 },
+                puntos: { total: 0, touchdowns: 0 }
+              }
+            });
+          }
+
+          const stats = estadisticasJugadores.get(jugadorId);
+
+          // Acumular estadísticas según el tipo de jugada
+          switch (jugada.tipoJugada) {
+            case 'pase_completo':
+              stats.stats.pases.intentos++;
+              stats.stats.pases.completados++;
+              if (jugada.touchdown) {
+                stats.stats.pases.touchdowns++;
+              }
+              break;
+            case 'pase_incompleto':
+              stats.stats.pases.intentos++;
+              break;
+            case 'intercepcion':
+              if (jugada.numeroJugadorPrincipal === jugadorPrincipal.numero) {
+                // Jugador que hizo la intercepción
+                stats.stats.intercepciones.total++;
+              } else {
+                // QB que lanzó la intercepción
+                stats.stats.pases.intentos++;
+                stats.stats.pases.intercepciones++;
+              }
+              break;
+            case 'sack':
+              stats.stats.sacks.total++;
+              break;
+            case 'tackleo':
+              stats.stats.tackleos.total++;
+              break;
+            case 'touchdown':
+              stats.stats.puntos.total += 6;
+              stats.stats.puntos.touchdowns++;
+              break;
+          }
+
+          // Puntos por jugada
+          if (jugada.puntos) {
+            stats.stats.puntos.total += jugada.puntos;
+          }
+        }
+
+        // Procesar jugador secundario para recepciones
+        if (jugadorSecundario && (jugada.tipoJugada === 'pase_completo' || jugada.tipoJugada === 'touchdown')) {
+          const jugadorSecId = jugadorSecundario._id.toString();
+          
+          if (!estadisticasJugadores.has(jugadorSecId)) {
+            estadisticasJugadores.set(jugadorSecId, {
+              jugador: {
+                _id: jugadorSecundario._id,
+                nombre: jugadorSecundario.nombre,
+                numero: jugadorSecundario.numero,
+                avatar: jugadorSecundario.avatar
+              },
+              equipo: {
+                _id: equipoPosesion._id,
+                nombre: equipoPosesion.nombre,
+                imagen: equipoPosesion.imagen
+              },
+              stats: {
+                pases: { intentos: 0, completados: 0, touchdowns: 0, intercepciones: 0 },
+                recepciones: { total: 0, touchdowns: 0 },
+                tackleos: { total: 0 },
+                intercepciones: { total: 0 },
+                sacks: { total: 0 },
+                puntos: { total: 0, touchdowns: 0 }
+              }
+            });
+          }
+
+          const statsSecundario = estadisticasJugadores.get(jugadorSecId);
+          statsSecundario.stats.recepciones.total++;
+          if (jugada.touchdown) {
+            statsSecundario.stats.recepciones.touchdowns++;
+          }
+        }
+      });
+    });
+
+    // Convertir Map a Array y ordenar según el tipo solicitado
+    const jugadoresArray = Array.from(estadisticasJugadores.values());
+    
+    let lideres = [];
+    switch (tipo) {
+      case 'pases':
+        lideres = jugadoresArray
+          .filter(j => j.stats.pases.completados > 0)
+          .sort((a, b) => b.stats.pases.completados - a.stats.pases.completados);
+        break;
+      case 'puntos':
+        lideres = jugadoresArray
+          .filter(j => j.stats.puntos.total > 0)
+          .sort((a, b) => b.stats.puntos.total - a.stats.puntos.total);
+        break;
+      case 'tackleos':
+        lideres = jugadoresArray
+          .filter(j => j.stats.tackleos.total > 0)
+          .sort((a, b) => b.stats.tackleos.total - a.stats.tackleos.total);
+        break;
+      case 'intercepciones':
+        lideres = jugadoresArray
+          .filter(j => j.stats.intercepciones.total > 0)
+          .sort((a, b) => b.stats.intercepciones.total - a.stats.intercepciones.total);
+        break;
+      case 'sacks':
+        lideres = jugadoresArray
+          .filter(j => j.stats.sacks.total > 0)
+          .sort((a, b) => b.stats.sacks.total - a.stats.sacks.total);
+        break;
+      case 'recepciones':
+        lideres = jugadoresArray
+          .filter(j => j.stats.recepciones.total > 0)
+          .sort((a, b) => b.stats.recepciones.total - a.stats.recepciones.total);
+        break;
+      default:
+        lideres = jugadoresArray;
+    }
+
+    // Tomar solo los primeros 3 (top 3)
+    const top3Lideres = lideres.slice(0, 3);
+
+    // Formatear respuesta con imagen URLs
+    const { getImageUrlServer } = require('../helpers/imageUrlHelper');
+    const lideresFormateados = top3Lideres.map((jugador, index) => ({
+      posicion: index + 1,
+      jugador: {
+        _id: jugador.jugador._id,
+        nombre: jugador.jugador.nombre,
+        numero: jugador.jugador.numero,
+        avatar: getImageUrlServer(jugador.jugador.avatar, req)
+      },
+      equipo: {
+        _id: jugador.equipo._id,
+        nombre: jugador.equipo.nombre,
+        imagen: getImageUrlServer(jugador.equipo.imagen, req)
+      },
+      valor: tipo === 'pases' ? jugador.stats.pases.completados :
+             tipo === 'puntos' ? jugador.stats.puntos.total :
+             tipo === 'tackleos' ? jugador.stats.tackleos.total :
+             tipo === 'intercepciones' ? jugador.stats.intercepciones.total :
+             tipo === 'sacks' ? jugador.stats.sacks.total :
+             tipo === 'recepciones' ? jugador.stats.recepciones.total : 0,
+      estadisticasCompletas: jugador.stats
+    }));
+
+    console.log('📤 Enviando líderes individuales');
+    console.log(`  🏆 Líder ${tipo}: ${lideresFormateados[0]?.jugador.nombre || 'N/A'} (#${lideresFormateados[0]?.jugador.numero || 'N/A'})`);
+    console.log(`  📊 Total con estadísticas: ${jugadoresArray.length}`);
+    console.log(`✅ [${new Date().toISOString()}] FIN - Líderes individuales obtenidos\n`);
+
+    res.json({
+      lideres: lideresFormateados,
+      tipo,
+      categoria,
+      torneo: {
+        _id: torneo._id,
+        nombre: torneo.nombre
+      },
+      totalJugadoresConStats: jugadoresArray.length,
+      fechaConsulta: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener líderes individuales:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Líderes individuales fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener líderes individuales', 
+      error: error.message 
+    });
+  }
+};
+
+// 🔥 NUEVA FUNCIÓN: OBTENER TODOS LOS LÍDERES INDIVIDUALES (6 TIPOS)
+exports.obtenerTodosLideresIndividuales = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🏆 [${timestamp}] INICIO - Obtener todos los líderes individuales`);
+  
+  try {
+    const { torneoId, categoria } = req.params;
+    console.log('🎯 Parámetros recibidos:', { torneoId, categoria });
+
+    // Tipos de estadísticas a obtener
+    const tiposEstadisticas = ['pases', 'puntos', 'tackleos', 'intercepciones', 'sacks', 'recepciones'];
+    
+    // Crear array de promesas para obtener todos los tipos en paralelo
+    const promesasLideres = tiposEstadisticas.map(async (tipo) => {
+      // Simular llamada interna al método anterior
+      try {
+        // Reutilizar la lógica del método anterior
+        const mockReq = { params: { torneoId, categoria, tipo }, ...req };
+        const mockRes = {
+          json: (data) => data,
+          status: () => mockRes
+        };
+
+        // Ejecutar la función anterior internamente
+        const resultado = await new Promise((resolve, reject) => {
+          // Crear un mock response que capture el resultado
+          const originalSend = mockRes.json;
+          mockRes.json = (data) => {
+            resolve(data);
+            return mockRes;
+          };
+          
+          // Llamar a la función anterior
+          exports.obtenerLideresIndividuales(mockReq, mockRes).catch(reject);
+        });
+
+        return { tipo, datos: resultado };
+      } catch (error) {
+        console.error(`Error obteniendo líderes de ${tipo}:`, error);
+        return { 
+          tipo, 
+          datos: { 
+            lideres: [], 
+            tipo, 
+            categoria, 
+            totalJugadoresConStats: 0 
+          } 
+        };
+      }
+    });
+
+    // Ejecutar todas las consultas en paralelo
+    const resultadosLideres = await Promise.all(promesasLideres);
+
+    // Formatear respuesta
+    const lideresIndividuales = {};
+    resultadosLideres.forEach(({ tipo, datos }) => {
+      lideresIndividuales[tipo] = datos;
+    });
+
+    console.log('📤 Enviando todos los líderes individuales');
+    console.log(`  📊 Tipos procesados: ${tiposEstadisticas.length}`);
+    console.log(`✅ [${new Date().toISOString()}] FIN - Todos los líderes individuales obtenidos\n`);
+
+    res.json({
+      mensaje: 'Líderes individuales obtenidos correctamente',
+      lideresIndividuales,
+      categoria,
+      torneo: resultadosLideres[0]?.datos?.torneo,
+      fechaConsulta: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener todos los líderes individuales:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Todos los líderes individuales fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener todos los líderes individuales', 
+      error: error.message 
+    });
+  }
+};
+
 // 🔧 FUNCIONES HELPER INTERNAS
 
 // Helper para obtener posición de un equipo específico
