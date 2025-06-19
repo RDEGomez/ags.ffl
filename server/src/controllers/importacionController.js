@@ -44,30 +44,20 @@ const procesarCSV = (archivo) => {
   });
 };
 
-// 🔥 NUEVO: Helper para buscar jugador por número y equipo
-const buscarJugadorPorNumero = async (numeroJugador, equipoId) => {
-  if (!numeroJugador) throw new Error('Número de jugador requerido');
+// 🔥 FUNCIÓN HELPER PARA BUSCAR JUGADOR POR NÚMERO (como el código original)
+const buscarJugadorPorNumero = (numero, equipoJugadores, tipoJugador = '') => {
+  if (!numero) return { jugador: null, encontrado: false };
   
-  // Convertir a número y validar
-  const numero = parseInt(numeroJugador);
-  if (isNaN(numero) || numero <= 0) {
-    throw new Error(`Número de jugador inválido: "${numeroJugador}". Debe ser un número positivo.`);
+  const jugador = equipoJugadores.find(j => parseInt(j.numero) === parseInt(numero));
+  const encontrado = !!jugador;
+  
+  if (!encontrado) {
+    console.log(`❌ ${tipoJugador} #${numero} NO encontrado`);
+  } else {
+    console.log(`✅ ${tipoJugador} encontrado: #${jugador.numero} ${jugador.nombre}`);
   }
   
-  console.log(`🔍 Buscando jugador #${numero} en equipo ${equipoId}`);
-  
-  // Buscar usuario que pertenezca al equipo específico con el número dado
-  const usuario = await Usuario.findOne({
-    'equipos.equipo': equipoId,
-    'equipos.numero': numero
-  });
-  
-  if (!usuario) {
-    throw new Error(`Jugador #${numero} no encontrado en el equipo especificado. Verifica que el número esté registrado correctamente.`);
-  }
-  
-  console.log(`✅ Jugador encontrado: #${numero} - ${usuario.nombre}`);
-  return usuario;
+  return { jugador, encontrado };
 };
 
 // Funciones helper para partidos (sin cambios)
@@ -157,7 +147,7 @@ const buscarArbitroPorNombre = async (nombreArbitro) => {
   return arbitros[0];
 };
 
-// 🎮 FUNCIÓN CORREGIDA: IMPORTAR JUGADAS CON MANEJO DE JUGADAS DEFENSIVAS
+// 🎮 FUNCIÓN PRINCIPAL: IMPORTAR JUGADAS CON VALIDACIÓN INTELIGENTE
 const importarJugadas = async (req, res) => {
   const timestamp = new Date().toISOString();
   
@@ -189,7 +179,8 @@ const importarJugadas = async (req, res) => {
         total: data.length,
         procesados: 0,
         creados: 0,
-        errores: 0
+        errores: 0,
+        jugadasSinJugador: 0 // 🔥 NUEVO contador
       }
     };
 
@@ -232,7 +223,7 @@ const importarJugadas = async (req, res) => {
       resultados.estadisticas.procesados++;
     }
 
-    // Procesar cada partido con correcciones para jugadas defensivas
+    // 🔥 PROCESAR CADA PARTIDO CON VALIDACIÓN INTELIGENTE
     for (const [partidoId, jugadas] of Object.entries(jugadasPorPartido)) {
       try {
         console.log(`\n🏈 Procesando partido ${partidoId} con ${jugadas.length} jugadas`);
@@ -259,14 +250,12 @@ const importarJugadas = async (req, res) => {
               throw new Error(`Equipo en posesión "${fila.equipo_posesion}" no coincide con los equipos del partido`);
             }
 
-            // 🔥 NUEVO: Determinar en qué equipo buscar los jugadores según el tipo de jugada
+            // Determinar en qué equipo buscar los jugadores según el tipo de jugada
             let equipoDelJugadorPrincipal = equipoEnPosesion;
-            let equipoDelJugadorSecundario = equipoEnPosesion;
 
             // Para jugadas defensivas, el jugador principal está en el equipo DEFENSOR
             const jugadasDefensivas = ['intercepcion', 'sack', 'tackleo'];
             if (jugadasDefensivas.includes(fila.tipo_jugada)) {
-              // El equipo defensor es el CONTRARIO al que tiene posesión
               equipoDelJugadorPrincipal = equipoEnPosesion.toString() === partido.equipoLocal._id.toString() 
                 ? partido.equipoVisitante._id 
                 : partido.equipoLocal._id;
@@ -274,25 +263,42 @@ const importarJugadas = async (req, res) => {
               console.log(`🛡️ Jugada defensiva "${fila.tipo_jugada}" - Buscando jugador en equipo defensor`);
             }
 
-            // Buscar jugador principal en el equipo correcto
-            console.log(`🔍 Buscando jugador principal #${fila.numero_jugador_principal} en equipo ${equipoDelJugadorPrincipal}`);
-            const jugadorPrincipal = await buscarJugadorPorNumero(fila.numero_jugador_principal, equipoDelJugadorPrincipal);
+            // 🔥 BUSCAR JUGADOR PRINCIPAL CON MANEJO DE ERRORES
+            let jugadorPrincipal = null;
+            if (fila.numero_jugador_principal) {
+              try {
+                jugadorPrincipal = await buscarJugadorPorNumero(
+                  fila.numero_jugador_principal, 
+                  equipoDelJugadorPrincipal
+                );
+                console.log(`✅ Jugador principal encontrado: #${fila.numero_jugador_principal} - ${jugadorPrincipal.nombre}`);
+              } catch (error) {
+                console.log(`⚠️ Jugador principal #${fila.numero_jugador_principal} no encontrado`);
+                resultados.warnings.push({
+                  fila: jugada.fila,
+                  mensaje: `Jugador principal #${fila.numero_jugador_principal} no encontrado`,
+                  datos: fila
+                });
+              }
+            }
             
+            // 🔥 BUSCAR JUGADOR SECUNDARIO CON MANEJO DE ERRORES
             let jugadorSecundario = null;
             if (fila.numero_jugador_secundario) {
               try {
-                // Para jugador secundario, considerar tipo de jugada
+                // Determinar equipo para jugador secundario según tipo de jugada
                 let equipoBusquedaSecundario = equipoDelJugadorPrincipal;
-                
-                // Si es intercepción, el jugador secundario (QB que lanzó) está en el equipo ofensivo
                 if (fila.tipo_jugada === 'intercepcion') {
                   equipoBusquedaSecundario = equipoEnPosesion;
                 }
                 
-                console.log(`🔍 Buscando jugador secundario #${fila.numero_jugador_secundario} en equipo ${equipoBusquedaSecundario}`);
-                jugadorSecundario = await buscarJugadorPorNumero(fila.numero_jugador_secundario, equipoBusquedaSecundario);
+                jugadorSecundario = await buscarJugadorPorNumero(
+                  fila.numero_jugador_secundario, 
+                  equipoBusquedaSecundario
+                );
+                console.log(`✅ Jugador secundario encontrado: #${fila.numero_jugador_secundario} - ${jugadorSecundario.nombre}`);
               } catch (error) {
-                // Jugador secundario es opcional, solo agregar warning
+                console.log(`⚠️ Jugador secundario #${fila.numero_jugador_secundario} no encontrado`);
                 resultados.warnings.push({
                   fila: jugada.fila,
                   mensaje: `Jugador secundario #${fila.numero_jugador_secundario} no encontrado`,
@@ -301,7 +307,29 @@ const importarJugadas = async (req, res) => {
               }
             }
 
-            // Crear objeto de jugada
+            // 🔥 VALIDACIÓN INTELIGENTE: ¿Vale la pena guardar esta jugada?
+            const tieneJugadorValido = jugadorPrincipal || jugadorSecundario;
+            
+            if (!tieneJugadorValido) {
+              // ❌ Ningún jugador válido - saltar esta jugada
+              console.log(`❌ SALTANDO jugada fila ${jugada.fila}: Ningún jugador válido encontrado`);
+              resultados.errores.push({
+                fila: jugada.fila,
+                error: `Jugada descartada: Ningún jugador válido encontrado (Principal: #${fila.numero_jugador_principal || 'N/A'}, Secundario: #${fila.numero_jugador_secundario || 'N/A'})`,
+                datos: fila,
+                razon: 'sin_jugadores_validos'
+              });
+              resultados.estadisticas.errores++;
+              resultados.estadisticas.jugadasSinJugador++;
+              continue; // ← Saltar al siguiente
+            }
+
+            // ✅ Al menos un jugador válido - proceder con la jugada
+            console.log(`✅ PROCESANDO jugada fila ${jugada.fila}: Al menos un jugador válido`);
+            console.log(`  - Principal: ${jugadorPrincipal ? '✅' : '❌'} ${jugadorPrincipal?.nombre || 'N/A'}`);
+            console.log(`  - Secundario: ${jugadorSecundario ? '✅' : '❌'} ${jugadorSecundario?.nombre || 'N/A'}`);
+
+            // 🔥 CREAR JUGADA CON JUGADORES VÁLIDOS
             const nuevaJugada = {
               numero: partido.jugadas.length + 1,
               tiempo: {
@@ -312,8 +340,9 @@ const importarJugadas = async (req, res) => {
               equipoEnPosesion: equipoEnPosesion,
               tipoJugada: fila.tipo_jugada,
               descripcion: fila.descripcion || '',
-              jugadorPrincipal: jugadorPrincipal._id,
-              jugadorSecundario: jugadorSecundario?._id,
+              // 🔥 SOLO ASIGNAR IDS SI EXISTEN, NULL SI NO
+              jugadorPrincipal: jugadorPrincipal?._id || null,
+              jugadorSecundario: jugadorSecundario?._id || null,
               resultado: {
                 touchdown: fila.touchdown === 'true' || fila.touchdown === true,
                 intercepcion: fila.intercepcion === 'true' || fila.intercepcion === true,
@@ -327,20 +356,34 @@ const importarJugadas = async (req, res) => {
             // Agregar jugada al partido
             partido.jugadas.push(nuevaJugada);
 
+            // 🔥 RESULTADO CON INFORMACIÓN DETALLADA
+            const descripcionJugada = [
+              fila.tipo_jugada,
+              jugadorPrincipal ? `${jugadorPrincipal.nombre} (#${fila.numero_jugador_principal})` : `#${fila.numero_jugador_principal || '?'} (NO ENCONTRADO)`,
+              jugadorSecundario ? `→ ${jugadorSecundario.nombre} (#${fila.numero_jugador_secundario})` : ''
+            ].filter(Boolean).join(' ');
+
             resultados.exitosos.push({
               fila: jugada.fila,
               partidoId: partidoId,
-              jugada: `${fila.tipo_jugada} - #${fila.numero_jugador_principal} ${jugadorPrincipal.nombre}`,
-              puntos: nuevaJugada.resultado.puntos
+              jugada: descripcionJugada,
+              puntos: nuevaJugada.resultado.puntos,
+              jugadoresValidos: {
+                principal: !!jugadorPrincipal,
+                secundario: !!jugadorSecundario,
+                total: (jugadorPrincipal ? 1 : 0) + (jugadorSecundario ? 1 : 0)
+              }
             });
 
             resultados.estadisticas.creados++;
 
           } catch (error) {
+            // Error general de la jugada
             resultados.errores.push({
               fila: jugada.fila,
               error: error.message,
-              datos: jugada.datos
+              datos: fila,
+              razon: 'error_general'
             });
             resultados.estadisticas.errores++;
           }
@@ -358,7 +401,8 @@ const importarJugadas = async (req, res) => {
           resultados.errores.push({
             fila: jugada.fila,
             error: `Error en partido: ${error.message}`,
-            datos: jugada.datos
+            datos: jugada.datos,
+            razon: 'error_partido'
           });
           resultados.estadisticas.errores++;
         });
@@ -369,6 +413,7 @@ const importarJugadas = async (req, res) => {
     console.log(`  ✅ Exitosos: ${resultados.estadisticas.creados}`);
     console.log(`  ❌ Errores: ${resultados.estadisticas.errores}`);
     console.log(`  ⚠️ Warnings: ${resultados.warnings.length}`);
+    console.log(`  🚫 Sin jugadores válidos: ${resultados.estadisticas.jugadasSinJugador}`);
 
     res.status(200).json({
       mensaje: 'Importación de jugadas completada',
@@ -389,7 +434,7 @@ const importarJugadas = async (req, res) => {
   }
 };
 
-// 🏈 IMPORTAR PARTIDOS
+// 🏈 IMPORTAR PARTIDOS (sin cambios)
 const importarPartidos = async (req, res) => {
   try {
     if (!req.file) {
@@ -451,24 +496,18 @@ const importarPartidos = async (req, res) => {
           torneo: torneo._id,
           categoria: fila.categoria || equipoLocal.categoria,
           fechaHora: fechaHora,
-          sede: {
-            nombre: fila.sede_nombre || 'Por definir',
-            direccion: fila.sede_direccion || ''
-          },
+          duracionMinutos: parseInt(fila.duracion_minutos) || 50,
           arbitros: {
             principal: arbitroPrincipal?._id
           },
-          estado: fila.estado || 'programado',
-          marcador: {
-            local: parseInt(fila.marcador_local) || 0,
-            visitante: parseInt(fila.marcador_visitante) || 0
-          },
-          observaciones: fila.observaciones || '',
-          duracionMinutos: parseInt(fila.duracion_minutos) || 50,
-          creadoPor: req.usuario._id
+          sede: fila.sede ? {
+            nombre: fila.sede,
+            direccion: fila.direccion || ''
+          } : undefined,
+          observaciones: fila.observaciones || ''
         };
 
-        // Crear nuevo partido
+        // Crear partido
         const partido = new Partido(datosPartido);
         await partido.save();
 
@@ -476,8 +515,7 @@ const importarPartidos = async (req, res) => {
           fila: numeroFila,
           partidoId: partido._id,
           equipos: `${equipoLocal.nombre} vs ${equipoVisitante.nombre}`,
-          torneo: torneo.nombre,
-          fecha: fechaHora.toLocaleDateString()
+          fecha: fechaHora.toISOString().split('T')[0]
         });
 
         resultados.estadisticas.creados++;
@@ -494,9 +532,18 @@ const importarPartidos = async (req, res) => {
       resultados.estadisticas.procesados++;
     }
 
+    console.log('\n📊 RESUMEN DE IMPORTACIÓN DE PARTIDOS:');
+    console.log(`  ✅ Exitosos: ${resultados.estadisticas.creados}`);
+    console.log(`  ❌ Errores: ${resultados.estadisticas.errores}`);
+
     res.status(200).json({
       mensaje: 'Importación de partidos completada',
-      resultados
+      resultados,
+      resumen: {
+        archivo: req.file.originalname,
+        procesadoPor: req.usuario.nombre || req.usuario.email,
+        fechaProceso: new Date().toISOString()
+      }
     });
 
   } catch (error) {
@@ -675,6 +722,7 @@ const validarArchivoCSV = async (req, res) => {
   }
 };
 
+// 📤 EXPORTACIONES - TODAS LAS FUNCIONES QUE ESPERAN LAS RUTAS
 module.exports = {
   importarPartidos,
   importarJugadas,

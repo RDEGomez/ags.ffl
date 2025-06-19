@@ -46,13 +46,27 @@ const obtenerNumeroJugador = async (jugadorId, equipoId) => {
   }
 };
 
-// 🔥 FUNCIÓN PARA ENRIQUECER JUGADAS CON NÚMEROS - CORREGIDA PARA JUGADAS DEFENSIVAS
+// 🔄 Helper para enriquecer jugadas con números de jugador
 const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitanteId) => {
-  console.log('🔄 Enriqueciendo jugadas con números de jugador...');
+  console.log('\n🔄 === ENRIQUECIENDO JUGADAS CON NÚMEROS ===');
   console.log(`📊 Total jugadas a procesar: ${jugadas.length}`);
   console.log(`🏠 Equipo Local ID: ${equipoLocalId}`);
   console.log(`✈️ Equipo Visitante ID: ${equipoVisitanteId}`);
   
+  // Helper para obtener número de jugador por equipo
+  const obtenerNumeroJugador = async (jugadorId, equipoId) => {
+    try {
+      const usuario = await Usuario.findById(jugadorId).select('equipos');
+      if (!usuario) return null;
+      
+      const equipoData = usuario.equipos.find(e => e.equipo.toString() === equipoId.toString());
+      return equipoData ? equipoData.numero : null;
+    } catch (error) {
+      console.log(`❌ Error obteniendo número jugador ${jugadorId}:`, error.message);
+      return null;
+    }
+  };
+
   const jugadasEnriquecidas = await Promise.all(
     jugadas.map(async (jugada, index) => {
       const jugadaObj = jugada.toObject ? jugada.toObject() : jugada;
@@ -60,7 +74,7 @@ const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitan
       console.log(`\n🔍 Procesando jugada #${index + 1}:`);
       console.log(`  - Tipo: ${jugadaObj.tipoJugada}`);
       
-      // 🔥 CORREGIR: Extraer el ID del objeto equipoEnPosesion
+      // 🔥 EXTRAER EL ID DEL OBJETO equipoEnPosesion
       let equipoEnPosesionId;
       if (jugadaObj.equipoEnPosesion) {
         // Si es un objeto, extraer el _id
@@ -77,26 +91,16 @@ const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitan
         }
       }
       
-      console.log(`  - Equipo en posesión ID: ${equipoEnPosesionId}`);
-      console.log(`  - Equipo en posesión objeto:`, jugadaObj.equipoEnPosesion?.nombre || 'Sin nombre');
+      console.log(`  - Equipo seleccionado ID: ${equipoEnPosesionId}`);
+      console.log(`  - Equipo seleccionado objeto:`, jugadaObj.equipoEnPosesion?.nombre || 'Sin nombre');
       
-      // 🔥 NUEVO: Determinar en qué equipo buscar los jugadores según el tipo de jugada
+      // 🔥 LÓGICA SIMPLIFICADA: El jugador principal SIEMPRE está en el equipo seleccionado
       let equipoDelJugadorPrincipal = equipoEnPosesionId;
       let equipoDelJugadorSecundario = equipoEnPosesionId;
 
-      // Para jugadas defensivas, el jugador principal está en el equipo DEFENSOR
-      const jugadasDefensivas = ['intercepcion', 'sack', 'tackleo'];
-      if (jugadasDefensivas.includes(jugadaObj.tipoJugada)) {
-        // El equipo defensor es el CONTRARIO al que tiene posesión
-        equipoDelJugadorPrincipal = equipoEnPosesionId === equipoLocalId.toString() 
-          ? equipoVisitanteId.toString() 
-          : equipoLocalId.toString();
-        
-        console.log(`  🛡️ Jugada defensiva "${jugadaObj.tipoJugada}" - Buscando jugador en equipo defensor`);
-        console.log(`  - Equipo defensor ID: ${equipoDelJugadorPrincipal}`);
-      }
+      console.log(`  📍 Buscando jugador principal en equipo seleccionado: ${equipoDelJugadorPrincipal}`);
 
-      // Enriquecer jugador principal
+      // 🏠 ENRIQUECER JUGADOR PRINCIPAL
       if (jugadaObj.jugadorPrincipal && jugadaObj.jugadorPrincipal._id) {
         console.log(`  - Jugador Principal: ${jugadaObj.jugadorPrincipal.nombre} (${jugadaObj.jugadorPrincipal._id})`);
         console.log(`  - Buscando en equipo: ${equipoDelJugadorPrincipal}`);
@@ -106,24 +110,40 @@ const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitan
         console.log(`  - Número asignado: #${numeroP}`);
       }
       
-      // Enriquecer jugador secundario (si existe)
+      // ✈️ ENRIQUECER JUGADOR SECUNDARIO (si existe)
       if (jugadaObj.jugadorSecundario && jugadaObj.jugadorSecundario._id) {
         console.log(`  - Jugador Secundario: ${jugadaObj.jugadorSecundario.nombre} (${jugadaObj.jugadorSecundario._id})`);
         
-        // Para jugador secundario, considerar tipo de jugada
-        let equipoBusquedaSecundario = equipoDelJugadorPrincipal;
-        
-        // Si es intercepción, el jugador secundario (QB que lanzó) está en el equipo ofensivo
+        // 🔥 LÓGICA ESPECIAL PARA INTERCEPCIÓN: QB está en el equipo CONTRARIO
         if (jugadaObj.tipoJugada === 'intercepcion') {
-          equipoBusquedaSecundario = equipoEnPosesionId;
-          console.log(`  - Intercepción: Jugador secundario (QB) buscado en equipo ofensivo: ${equipoBusquedaSecundario}`);
+          equipoDelJugadorSecundario = equipoEnPosesionId === equipoLocalId.toString() 
+            ? equipoVisitanteId.toString() 
+            : equipoLocalId.toString();
+          console.log(`  - Intercepción: QB buscado en equipo contrario: ${equipoDelJugadorSecundario}`);
+        } else {
+          // Para otras jugadas, buscar en el mismo equipo
+          equipoDelJugadorSecundario = equipoEnPosesionId;
+          console.log(`  - Otras jugadas: Jugador secundario en mismo equipo: ${equipoDelJugadorSecundario}`);
         }
         
-        console.log(`  - Buscando jugador secundario en equipo: ${equipoBusquedaSecundario}`);
+        console.log(`  - Buscando jugador secundario en equipo: ${equipoDelJugadorSecundario}`);
         
-        const numeroS = await obtenerNumeroJugador(jugadaObj.jugadorSecundario._id, equipoBusquedaSecundario);
+        const numeroS = await obtenerNumeroJugador(jugadaObj.jugadorSecundario._id, equipoDelJugadorSecundario);
         jugadaObj.jugadorSecundario.numero = numeroS;
         console.log(`  - Número secundario asignado: #${numeroS}`);
+      }
+
+      // 🏈 ENRIQUECER JUGADOR TOUCHDOWN (si existe)
+      if (jugadaObj.jugadorTouchdown && jugadaObj.jugadorTouchdown._id) {
+        console.log(`  - Jugador Touchdown: ${jugadaObj.jugadorTouchdown.nombre} (${jugadaObj.jugadorTouchdown._id})`);
+        
+        // 🔥 El jugador touchdown SIEMPRE está en el equipo en posesión (el que se beneficia)
+        const equipoDelJugadorTouchdown = equipoEnPosesionId;
+        console.log(`  - Buscando jugador touchdown en equipo: ${equipoDelJugadorTouchdown}`);
+        
+        const numeroT = await obtenerNumeroJugador(jugadaObj.jugadorTouchdown._id, equipoDelJugadorTouchdown);
+        jugadaObj.jugadorTouchdown.numero = numeroT;
+        console.log(`  - Número touchdown asignado: #${numeroT}`);
       }
       
       return jugadaObj;
@@ -870,12 +890,34 @@ exports.cambiarEstado = async (req, res) => {
   }
 };
 
-// 📝 REGISTRAR JUGADA MANUAL (FUNCIÓN BÁSICA - FASE 1)
+// 📝 REGISTRAR JUGADA CON NÚMEROS Y ESTRUCTURA CORRECTA - VERSIÓN FINAL
 exports.registrarJugada = async (req, res) => {
+
+  console.log('\n🔍 === DEBUG JUGADOR TOUCHDOWN ===');
+  console.log('📨 Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🎯 numeroJugadorTouchdown:', req.body.numeroJugadorTouchdown);
+
   const timestamp = new Date().toISOString();
-  console.log(`\n📝 [${timestamp}] INICIO - Registrar jugada manual`);
+  console.log(`\n📝 [${timestamp}] INICIO - Registrar jugada con números (estructura correcta)`);
   console.log('🆔 Partido ID:', req.params.id);
-  console.log('📨 Jugada:', JSON.stringify(req.body, null, 2));
+  console.log('📨 Jugada:', JSON.stringify(req.body, null, 2));const partido = await Partido.findById(partidoId)
+  .populate('equipoLocal', 'nombre imagen')
+  .populate('equipoVisitante', 'nombre imagen')
+  .populate('torneo', 'nombre fechaInicio fechaFin')
+  .populate({
+    path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
+    populate: {
+      path: 'usuario',
+      select: 'nombre email imagen'
+    }
+  })
+  // 🔥 POPULATE BÁSICO DE JUGADORES (sin número porque no está en el nivel principal)
+  .populate('jugadas.jugadorPrincipal', 'nombre imagen')
+  .populate('jugadas.jugadorSecundario', 'nombre imagen')
+  .populate('jugadas.jugadorTouchdown', 'nombre imagen') // ← 🔥 AGREGADO
+  .populate('jugadas.equipoEnPosesion', 'nombre imagen')
+  .populate('creadoPor', 'nombre email')
+  .populate('ultimaActualizacion.por', 'nombre');
 
   try {
     const errores = validationResult(req);
@@ -887,20 +929,39 @@ exports.registrarJugada = async (req, res) => {
     const { 
       tipoJugada, 
       equipoEnPosesion, 
-      jugadorPrincipal, 
-      jugadorSecundario, 
+      numeroJugadorPrincipal, 
+      numeroJugadorSecundario,
+      numeroJugadorTouchdown,
       descripcion,
       resultado = {}
     } = req.body;
 
     console.log('🔍 Buscando partido...');
-    const partido = await Partido.findById(partidoId);
+    // 🔥 CAMBIO: Solo populamos nombre, no jugadores
+    const partido = await Partido.findById(partidoId)
+      .populate('equipoLocal', 'nombre imagen')
+      .populate('equipoVisitante', 'nombre imagen')
+      .populate('torneo', 'nombre fechaInicio fechaFin')
+      .populate({
+        path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
+        populate: {
+          path: 'usuario',
+          select: 'nombre email imagen'
+        }
+      })
+      // 🔥 POPULATE BÁSICO DE JUGADORES (sin número porque no está en el nivel principal)
+      .populate('jugadas.jugadorPrincipal', 'nombre imagen')
+      .populate('jugadas.jugadorSecundario', 'nombre imagen')
+      .populate('jugadas.jugadorTouchdown', 'nombre imagen') // ← 🔥 AGREGADO
+      .populate('jugadas.equipoEnPosesion', 'nombre imagen')
+      .populate('creadoPor', 'nombre email')
+      .populate('ultimaActualizacion.por', 'nombre');
+      
     if (!partido) {
       console.log('❌ ERROR: Partido no encontrado');
       return res.status(404).json({ mensaje: 'Partido no encontrado' });
     }
 
-    // Solo permitir registro en partidos en curso
     if (!['en_curso', 'medio_tiempo'].includes(partido.estado)) {
       console.log('❌ ERROR: Partido no está en curso');
       return res.status(400).json({ 
@@ -908,20 +969,151 @@ exports.registrarJugada = async (req, res) => {
       });
     }
 
+    console.log('🔍 Buscando usuarios/jugadores por equipo...');
+    
+    const equipoId = equipoEnPosesion;
+    let nombreEquipo = '';
+    let esEquipoLocal = false;
+    
+    if (equipoId.toString() === partido.equipoLocal._id.toString()) {
+      nombreEquipo = partido.equipoLocal.nombre;
+      esEquipoLocal = true;
+      console.log(`📍 Equipo: LOCAL (${nombreEquipo})`);
+    } else if (equipoId.toString() === partido.equipoVisitante._id.toString()) {
+      nombreEquipo = partido.equipoVisitante.nombre;
+      esEquipoLocal = false;
+      console.log(`📍 Equipo: VISITANTE (${nombreEquipo})`);
+    } else {
+      console.log('❌ ERROR: Equipo no válido');
+      return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
+    }
+
+    // 🔥 BUSCAR USUARIOS QUE PERTENECEN AL EQUIPO
+    console.log(`🔍 Buscando usuarios del equipo ${nombreEquipo}...`);
+    const Usuario = require('../models/Usuario');
+    
+    const usuariosDelEquipo = await Usuario.find({
+      'equipos.equipo': equipoId
+    }).select('nombre equipos');
+
+    console.log(`👥 Usuarios encontrados: ${usuariosDelEquipo.length}`);
+
+    // 🔥 PROCESAR JUGADORES CON SUS NÚMEROS
+    const equipoJugadores = usuariosDelEquipo.map(usuario => {
+      const equipoData = usuario.equipos.find(e => e.equipo.toString() === equipoId.toString());
+      return {
+        _id: usuario._id,
+        nombre: usuario.nombre,
+        numero: equipoData.numero,
+        posicion: equipoData.posicion
+      };
+    }).filter(jugador => jugador.numero !== undefined && jugador.numero !== null);
+
+    // Debug mejorado
+    console.log('🎯 DEBUG - Jugadores en el roster:');
+    console.log(`  📊 Total jugadores: ${equipoJugadores.length}`);
+    equipoJugadores.forEach((jugador, index) => {
+      console.log(`  ${index + 1}. #${jugador.numero} - ${jugador.nombre} (${jugador.posicion || 'N/A'})`);
+    });
+
+    console.log('🎯 DEBUG - Números que buscamos:');
+    console.log(`  🔍 Principal: "${numeroJugadorPrincipal}" (Tipo: ${typeof numeroJugadorPrincipal})`);
+    if (numeroJugadorSecundario) {
+      console.log(`  🔍 Secundario: "${numeroJugadorSecundario}" (Tipo: ${typeof numeroJugadorSecundario})`);
+    }
+    if (numeroJugadorTouchdown) {
+      console.log(`  🔍 Touchdown: "${numeroJugadorTouchdown}" (Tipo: ${typeof numeroJugadorTouchdown})`);
+    }
+
+    // Función de búsqueda
+    const buscarJugadorPorNumero = (numero, nombreCampo) => {
+      if (!numero) return { jugador: null, encontrado: true };
+      
+      console.log(`\n🔍 Buscando jugador #${numero} para ${nombreCampo}:`);
+      const numeroBuscado = parseInt(numero);
+      console.log(`  📝 Número convertido: ${numeroBuscado}`);
+      
+      const jugador = equipoJugadores.find(j => {
+        const numeroJugador = parseInt(j.numero);
+        console.log(`  🔍 Comparando: ${numeroJugador} === ${numeroBuscado} ? ${numeroJugador === numeroBuscado}`);
+        return numeroJugador === numeroBuscado;
+      });
+      
+      const encontrado = !!jugador;
+      
+      if (!encontrado) {
+        console.log(`  ❌ Jugador #${numero} NO encontrado en ${nombreEquipo} (${nombreCampo})`);
+        console.log(`  📋 Números disponibles: [${equipoJugadores.map(j => j.numero).join(', ')}]`);
+      } else {
+        console.log(`  ✅ Jugador encontrado: #${jugador.numero} ${jugador.nombre} (${nombreCampo})`);
+      }
+      
+      return { jugador: jugador || null, encontrado };
+    };
+
+    // 🔍 Buscar jugadores - LÓGICA ESPECIAL PARA INTERCEPCIÓN
+    const { jugador: jugadorPrincipal, encontrado: principal_encontrado } = 
+      buscarJugadorPorNumero(numeroJugadorPrincipal, 'Principal');
+
+    let jugadorSecundario = null;
+    let secundario_encontrado = true;
+
+    if (numeroJugadorSecundario) {
+      if (tipoJugada === 'intercepcion') {
+        // Para intercepción, buscar QB en el equipo CONTRARIO
+        const equipoContrario = equipoId.toString() === partido.equipoLocal._id.toString()
+          ? partido.equipoVisitante._id
+          : partido.equipoLocal._id;
+        
+        console.log(`🔍 Buscando QB #${numeroJugadorSecundario} en equipo contrario...`);
+        
+        const usuariosEquipoContrario = await Usuario.find({
+          'equipos.equipo': equipoContrario
+        }).select('nombre equipos');
+
+        const jugadoresEquipoContrario = usuariosEquipoContrario.map(usuario => {
+          const equipoData = usuario.equipos.find(e => e.equipo.toString() === equipoContrario.toString());
+          return {
+            _id: usuario._id,
+            nombre: usuario.nombre,
+            numero: equipoData ? equipoData.numero : null,
+            posicion: equipoData ? equipoData.posicion : null
+          };
+        }).filter(jugador => jugador.numero !== undefined && jugador.numero !== null);
+
+        jugadorSecundario = jugadoresEquipoContrario.find(j => parseInt(j.numero) === parseInt(numeroJugadorSecundario));
+        secundario_encontrado = !!jugadorSecundario;
+        
+      } else {
+        // Para todas las demás jugadas, buscar en el mismo equipo (código original)
+        jugadorSecundario = equipoJugadores.find(j => parseInt(j.numero) === parseInt(numeroJugadorSecundario));
+        secundario_encontrado = !!jugadorSecundario;
+      }
+    }
+
+    // Buscar jugador que anotó touchdown (si aplica)
+    const { jugador: jugadorTouchdown, encontrado: touchdown_encontrado } = 
+      buscarJugadorPorNumero(numeroJugadorTouchdown, 'Touchdown');
+
+    console.log('📊 Resumen de búsqueda:');
+    console.log(`  🎯 Principal (#${numeroJugadorPrincipal}): ${principal_encontrado ? '✅' : '❌'}`);
+    if (numeroJugadorSecundario) {
+      console.log(`  🎯 Secundario (#${numeroJugadorSecundario}): ${secundario_encontrado ? '✅' : '❌'}`);
+    }
+    if (numeroJugadorTouchdown) {
+      console.log(`  🎯 Touchdown (#${numeroJugadorTouchdown}): ${touchdown_encontrado ? '✅' : '❌'}`);
+    }
+
+    // ... resto del código (crear jugada, marcador, etc.) igual que antes ...
+
     console.log('⚽ Creando nueva jugada...');
     
-    // Determinar puntos según tipo de jugada
     let puntos = 0;
     let touchdown = false;
     let intercepcion = false;
     let sack = false;
 
-    // 🔥 REEMPLAZAR ESTA SECCIÓN EN partidoController.js
     switch (tipoJugada) {
-      case 'touchdown':
-        puntos = 6;
-        touchdown = true;
-        break;
       case 'conversion_1pt':
         puntos = 1;
         break;
@@ -930,155 +1122,160 @@ exports.registrarJugada = async (req, res) => {
         break;
       case 'safety':
         puntos = 2;
-        esJugadaDefensiva = true; // 🔥 NUEVO
         break;
       case 'intercepcion':
         intercepcion = true;
-        esJugadaDefensiva = true; // 🔥 NUEVO
-        // 🔥 NUEVO: Si hay touchdown en intercepción
+        if (resultado.touchdown) {  // ✅ YA EXISTÍA
+          puntos = 6;
+          touchdown = true;
+        }
+        break;
+      case 'corrida':
+        if (resultado.touchdown) {  // ✅ YA EXISTÍA
+          puntos = 6;
+          touchdown = true;
+        }
+        break;
+      // 🔥 NUEVO: agregar checkbox TD para pase_completo
+      case 'pase_completo':
         if (resultado.touchdown) {
           puntos = 6;
           touchdown = true;
         }
         break;
+      case 'pase_incompleto':
+        // Sin puntos ni checkboxes
+        break;
       case 'sack':
         sack = true;
-        esJugadaDefensiva = true; // 🔥 NUEVO
         break;
       case 'tackleo':
         puntos = 0;
-        esJugadaDefensiva = true; // 🔥 NUEVO
         break;
       default:
         puntos = 0;
     }
 
-    // Crear objeto de jugada
+    console.log('\n🔍 === DEBUG JUGADOR TOUCHDOWN ===');
+    console.log('📨 Request body recibido:', JSON.stringify(req.body, null, 2));
+    console.log('🎯 numeroJugadorTouchdown del request:', req.body.numeroJugadorTouchdown);
+    console.log('🎯 Tipo de numeroJugadorTouchdown:', typeof req.body.numeroJugadorTouchdown);
+
+    // Debug de la búsqueda del jugador touchdown
+    if (req.body.numeroJugadorTouchdown) {
+      console.log('🔍 Iniciando búsqueda de jugador touchdown...');
+      const { jugador: jugadorTouchdown, encontrado: touchdown_encontrado } = 
+        buscarJugadorPorNumero(req.body.numeroJugadorTouchdown, 'Touchdown');
+      
+      console.log('🏈 Resultado búsqueda jugadorTouchdown:');
+      console.log(`   - Encontrado: ${touchdown_encontrado}`);
+      console.log(`   - Jugador: ${jugadorTouchdown ? jugadorTouchdown.nombre : 'NULL'}`);
+      console.log(`   - ID: ${jugadorTouchdown ? jugadorTouchdown._id : 'NULL'}`);
+    } else {
+      console.log('⚠️ numeroJugadorTouchdown NO viene en el request');
+    }
+
+    // Debug del objeto resultado que viene del frontend
+    console.log('📊 resultado del request:', JSON.stringify(req.body.resultado, null, 2));
+
+    // Debug antes de crear la jugada
+    console.log('\n🏗️ === ANTES DE CREAR JUGADA ===');
+    console.log('🏈 jugadorTouchdown final:', jugadorTouchdown ? {
+      _id: jugadorTouchdown._id,
+      nombre: jugadorTouchdown.nombre,
+      numero: jugadorTouchdown.numero
+    } : 'NULL');
+
     const nuevaJugada = {
       numero: partido.jugadas.length + 1,
       tiempo: {
-        minuto: Math.floor(Date.now() / 60000) % 60, // Tiempo mock por ahora
-        segundo: Math.floor(Date.now() / 1000) % 60,
-        periodo: partido.tiempoJuego.periodo
+        minuto: Math.min(partido.jugadas.length * 2, 49),
+        segundo: Math.floor(Math.random() * 60),
+        periodo: partido.tiempoJuego?.periodo || 1
       },
       equipoEnPosesion,
       tipoJugada,
       descripcion,
-      jugadorPrincipal,
-      jugadorSecundario,
-      resultado: {
-        touchdown,
-        intercepcion,
-        sack,
-        puntos: resultado.puntos !== undefined ? resultado.puntos : puntos
-      }
+      jugadorPrincipal: jugadorPrincipal ? jugadorPrincipal._id : null,
+      jugadorSecundario: jugadorSecundario ? jugadorSecundario._id : null,
+      jugadorTouchdown: jugadorTouchdown ? jugadorTouchdown._id : null, // 🔍 DEBUG ESTO
+      resultado: { touchdown, intercepcion, sack, puntos },
+      registradoPor: req.usuario._id,
+      fechaRegistro: new Date()
     };
 
-    // Agregar jugada al partido
+    console.log('\n✅ === JUGADA CREADA ===');
+    console.log('🏈 nuevaJugada.jugadorTouchdown:', nuevaJugada.jugadorTouchdown);
+    console.log('🏆 nuevaJugada.resultado:', JSON.stringify(nuevaJugada.resultado, null, 2));
+
     partido.jugadas.push(nuevaJugada);
 
-    // Actualizar marcador si hay puntos
+    // Actualizar marcador - LÓGICA SIMPLIFICADA
     if (nuevaJugada.resultado.puntos > 0) {
-      console.log('🎯 Actualizando marcador...');
-      
-      const equipoEnPosesionStr = equipoEnPosesion._id?.toString() || equipoEnPosesion.toString();
-      const equipoLocalStr = partido.equipoLocal._id?.toString() || partido.equipoLocal.toString();
-      const equipoVisitanteStr = partido.equipoVisitante._id?.toString() || partido.equipoVisitante.toString();
+      const equipoQueAnotaStr = equipoEnPosesion.toString(); // Ahora es "equipo al que se asigna la jugada"
+      const equipoLocalStr = partido.equipoLocal._id.toString();
 
-      // 🔥 NUEVO: Determinar si es jugada defensiva
-      const jugadasDefensivas = ['safety', 'intercepcion', 'sack', 'tackleo'];
-      const esJugadaDefensiva = jugadasDefensivas.includes(tipoJugada);
-
-      if (esJugadaDefensiva) {
-        // Jugadas defensivas: puntos van al equipo CONTRARIO (defensor)
-        if (equipoEnPosesionStr === equipoLocalStr) {
-          partido.marcador.visitante += nuevaJugada.resultado.puntos;
-          console.log(`🛡️ Jugada defensiva: +${nuevaJugada.resultado.puntos} puntos al VISITANTE`);
-        } else {
-          partido.marcador.local += nuevaJugada.resultado.puntos;
-          console.log(`🛡️ Jugada defensiva: +${nuevaJugada.resultado.puntos} puntos al LOCAL`);
-        }
+      // LOS PUNTOS SIEMPRE VAN AL EQUIPO AL QUE SE ASIGNA LA JUGADA
+      if (equipoQueAnotaStr === equipoLocalStr) {
+        partido.marcador.local += nuevaJugada.resultado.puntos;
+        console.log(`🏆 +${nuevaJugada.resultado.puntos} puntos para equipo LOCAL (${nombreEquipo})`);
       } else {
-        // Jugadas ofensivas: puntos van al equipo CON posesión
-        if (equipoEnPosesionStr === equipoLocalStr) {
-          partido.marcador.local += nuevaJugada.resultado.puntos;
-          console.log(`⚡ Jugada ofensiva: +${nuevaJugada.resultado.puntos} puntos al LOCAL`);
-        } else {
-          partido.marcador.visitante += nuevaJugada.resultado.puntos;
-          console.log(`⚡ Jugada ofensiva: +${nuevaJugada.resultado.puntos} puntos al VISITANTE`);
-        }
+        partido.marcador.visitante += nuevaJugada.resultado.puntos;
+        console.log(`🏆 +${nuevaJugada.resultado.puntos} puntos para equipo VISITANTE (${nombreEquipo})`);
       }
-
-      console.log('📊 Marcador:', { local: partido.marcador.local, visitante: partido.marcador.visitante });
     }
-
-    // Actualizar estadísticas básicas del partido
-    const esEquipoLocal = equipoEnPosesion.toString() === partido.equipoLocal.toString();
-    const equipoStats = esEquipoLocal ? partido.estadisticas.equipoLocal : partido.estadisticas.equipoVisitante;
-
-    switch (tipoJugada) {
-      case 'pase_completo':
-        equipoStats.pases.intentos++;
-        equipoStats.pases.completados++;
-        break;
-      case 'pase_incompleto':
-        equipoStats.pases.intentos++;
-        break;
-      case 'touchdown':
-        if (tipoJugada.includes('pase') || descripcion?.includes('pase')) {
-          equipoStats.pases.touchdowns++;
-        } else {
-          equipoStats.corridas.touchdowns++;
-        }
-        break;
-      case 'intercepcion':
-        // La intercepción cuenta para el equipo defensivo
-        const equipoDefensivo = esEquipoLocal ? partido.estadisticas.equipoVisitante : partido.estadisticas.equipoLocal;
-        equipoDefensivo.defensiva.intercepciones++;
-        break;
-      case 'sack':
-        const equipoDefensivoSack = esEquipoLocal ? partido.estadisticas.equipoVisitante : partido.estadisticas.equipoLocal;
-        equipoDefensivoSack.defensiva.sacks++;
-        break;
-      case 'tackleo':  
-        const equipoDefensivoTackleo = esEquipoLocal ? partido.estadisticas.equipoVisitante : partido.estadisticas.equipoLocal;
-        equipoDefensivoTackleo.defensiva.tackleos++;
-        break;
-    }
-
-    // Actualizar metadatos
-    partido.ultimaActualizacion = {
-      fecha: new Date(),
-      por: req.usuario._id
-    };
 
     await partido.save();
 
-    console.log(`✅ Jugada registrada: ${tipoJugada} (${nuevaJugada.resultado.puntos} pts)`);
-    console.log(`📊 Marcador actualizado: ${partido.marcador.local} - ${partido.marcador.visitante}`);
+    const warnings = [];
+    if (!principal_encontrado && numeroJugadorPrincipal) {
+      warnings.push(`Jugador #${numeroJugadorPrincipal} no encontrado en ${nombreEquipo}`);
+    }
+    if (!secundario_encontrado && numeroJugadorSecundario) {
+      const equipoSecundario = tipoJugada === 'intercepcion' ? 'equipo contrario' : nombreEquipo;
+      warnings.push(`Jugador #${numeroJugadorSecundario} no encontrado en ${equipoSecundario}`);
+    }
+    if (!touchdown_encontrado && numeroJugadorTouchdown) {
+      warnings.push(`Jugador #${numeroJugadorTouchdown} no encontrado en ${nombreEquipo}`);
+    }
 
-    // Respuesta simplificada
+    console.log('\n🔍 VERIFICACIÓN FINAL DE JUGADORES:');
+    console.log(`  - Tipo de jugada: ${tipoJugada}`);
+    console.log(`  - Equipo seleccionado: ${nombreEquipo}`);
+    console.log(`  - Principal encontrado: ${principal_encontrado} -> ${jugadorPrincipal?.nombre || 'NULL'}`);
+    console.log(`  - Secundario encontrado: ${secundario_encontrado} -> ${jugadorSecundario?.nombre || 'NULL'}`);
+    console.log(`  - ¿Es intercepción?: ${tipoJugada === 'intercepcion'}`);
+
     const respuesta = {
       mensaje: 'Jugada registrada exitosamente',
-      jugada: nuevaJugada,
+      warnings: warnings.length > 0 ? warnings : undefined,
+      jugada: {
+        ...nuevaJugada,
+        jugadorPrincipal: jugadorPrincipal ? {
+          _id: jugadorPrincipal._id,
+          nombre: jugadorPrincipal.nombre,
+          numero: jugadorPrincipal.numero
+        } : null,
+        jugadorSecundario: jugadorSecundario ? {
+          _id: jugadorSecundario._id,
+          nombre: jugadorSecundario.nombre,
+          numero: jugadorSecundario.numero
+        } : null,
+        jugadorTouchdown: jugadorTouchdown ? {
+          _id: jugadorTouchdown._id,
+          nombre: jugadorTouchdown.nombre,
+          numero: jugadorTouchdown.numero
+        } : null
+      },
       marcadorActualizado: partido.marcador,
       numeroJugada: nuevaJugada.numero
     };
 
-    console.log('📤 Enviando respuesta exitosa');
-    console.log(`✅ [${new Date().toISOString()}] FIN - Jugada registrada\n`);
-
     res.status(201).json(respuesta);
 
   } catch (error) {
-    console.log(`❌ [${new Date().toISOString()}] ERROR al registrar jugada:`);
-    console.error('💥 Error completo:', error);
-    console.log(`❌ [${new Date().toISOString()}] FIN - Registrar jugada fallido\n`);
-    
-    res.status(500).json({ 
-      mensaje: 'Error al registrar jugada', 
-      error: error.message 
-    });
+    console.error('Error:', error);
+    res.status(500).json({ mensaje: 'Error al registrar jugada', error: error.message });
   }
 };
 

@@ -196,8 +196,6 @@ const JugadasPanel = ({ partido }) => {
   // Helper para obtener icono según tipo de jugada
   const getJugadaIcon = (tipo) => {
     switch(tipo) {
-      case 'touchdown':
-        return <TouchAppIcon sx={{ color: '#4caf50' }} />;
       case 'pase_completo':
       case 'pase_incompleto':
         return <SportsFootballIcon sx={{ color: '#2196f3' }} />;
@@ -220,8 +218,6 @@ const JugadasPanel = ({ partido }) => {
   // Helper para obtener color según tipo de jugada
   const getJugadaColor = (tipo) => {
     switch(tipo) {
-      case 'touchdown':
-        return '#4caf50';
       case 'pase_completo':
         return '#2196f3';
       case 'pase_incompleto':
@@ -245,8 +241,6 @@ const JugadasPanel = ({ partido }) => {
   // Helper para obtener etiqueta legible
   const getJugadaLabel = (tipo) => {
     switch(tipo) {
-      case 'touchdown':
-        return 'Touchdown';
       case 'pase_completo':
         return 'Pase Completo';
       case 'pase_incompleto':
@@ -464,26 +458,31 @@ const JugadasPanel = ({ partido }) => {
                           👥 Jugadores Involucrados
                         </Typography>
                         
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          gap: 1.5
-                        }}>
-                          {/* Jugador Principal */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           {jugada.jugadorPrincipal && (
                             <JugadorInfo 
                               jugador={jugada.jugadorPrincipal}
-                              tipo="principal"
-                              colorJugada={colorJugada}
+                              label="Principal"
+                              tipoJugada={jugada.tipoJugada}
                             />
                           )}
-                          
-                          {/* Jugador Secundario */}
                           {jugada.jugadorSecundario && (
                             <JugadorInfo 
                               jugador={jugada.jugadorSecundario}
-                              tipo="secundario"
-                              colorJugada={colorJugada}
+                              label="Secundario"
+                              tipoJugada={jugada.tipoJugada}
+                            />
+                          )}
+                          {/* 🔥 NUEVO: Mostrar jugador que anotó touchdown */}
+                          {jugada.jugadorTouchdown && jugada.resultado?.touchdown && (
+                            <JugadorInfo 
+                              jugador={jugada.jugadorTouchdown}
+                              label="Anotador"
+                              tipoJugada="touchdown"
+                              sx={{ 
+                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                border: '1px solid rgba(76, 175, 80, 0.3)'
+                              }}
                             />
                           )}
                         </Box>

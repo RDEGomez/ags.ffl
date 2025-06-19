@@ -542,42 +542,211 @@ router.get('/especiales/en-vivo',
   partidoController.obtenerPartidosEnVivo
 );
 
-// 📝 REGISTRAR JUGADA MANUAL (FUNCIÓN BÁSICA - FASE 1)
 router.post('/:id/jugadas', 
   [
     auth,
-    checkRole('admin', 'arbitro', 'capitan'), // 🔥 Permitir también capitanes
+    checkRole('admin', 'arbitro'),
     [
+      // Validación de ID del partido
       param('id', 'ID de partido debe ser válido').isMongoId(),
       
-      check('tipoJugada', 'Tipo de jugada es obligatorio').isIn([
-        'pase_completo', 'pase_incompleto', 'intercepcion', 'corrida', 
-        'touchdown', 'conversion_1pt', 'conversion_2pt', 'safety', 
-        'timeout', 'sack', 'tackleo'
-      ]),
+      // 🔥 ACTUALIZADA: Validación del tipo de jugada SIN 'touchdown'
+      check('tipoJugada', 'Tipo de jugada es obligatorio')
+        .notEmpty()
+        .isIn([
+          'pase_completo', 'pase_incompleto', 'intercepcion', 'corrida', 
+          'conversion_1pt', 'conversion_2pt', 'safety', 'timeout', 'sack', 'tackleo'
+        ])
+        .withMessage('Tipo de jugada no válido'),
       
-      check('equipoEnPosesion', 'Equipo en posesión es obligatorio').isMongoId(),
-      check('jugadorPrincipal', 'Jugador principal es obligatorio').isMongoId(),
+      // Validación del equipo en posesión
+      check('equipoEnPosesion', 'Equipo en posesión es obligatorio y debe ser válido')
+        .isMongoId(),
       
-      check('jugadorSecundario')
+      // Validación de números de jugador
+      check('numeroJugadorPrincipal')
         .optional()
-        .isMongoId()
-        .withMessage('ID de jugador secundario debe ser válido'),
+        .isInt({ min: 1, max: 99 })
+        .withMessage('Número de jugador principal debe ser entre 1 y 99'),
       
+      check('numeroJugadorSecundario')
+        .optional()
+        .isInt({ min: 1, max: 99 })
+        .withMessage('Número de jugador secundario debe ser entre 1 y 99'),
+      
+      check('numeroJugadorTouchdown')
+        .optional()
+        .isInt({ min: 1, max: 99 })
+        .withMessage('Número de jugador touchdown debe ser entre 1 y 99'),
+      
+      // Validación de descripción (opcional)
       check('descripcion')
         .optional()
-        .trim()
-        .isLength({ max: 200 })
-        .withMessage('La descripción no puede exceder 200 caracteres'),
+        .isLength({ min: 1, max: 200 })
+        .withMessage('Descripción debe tener entre 1 y 200 caracteres'),
       
+      // 🔥 VALIDACIONES CONDICIONALES ACTUALIZADAS
+      body('numeroJugadorPrincipal')
+        .if(body('tipoJugada').isIn([
+          'pase_completo', 'pase_incompleto', 'corrida', 'sack', 
+          'intercepcion', 'conversion_1pt', 'conversion_2pt'
+        ]))
+        .notEmpty()
+        .withMessage('Número de jugador principal es obligatorio para este tipo de jugada'),
+      
+      body('numeroJugadorSecundario')
+        .if(body('tipoJugada').isIn(['pase_completo', 'intercepcion', 'conversion_2pt']))
+        .notEmpty()
+        .withMessage('Número de jugador secundario es obligatorio para este tipo de jugada'),
+      
+      // Validación de resultado (opcional, con valores por defecto)
       check('resultado.puntos')
         .optional()
         .isInt({ min: 0, max: 6 })
-        .withMessage('Los puntos deben estar entre 0 y 6')
+        .withMessage('Puntos deben ser entre 0 y 6'),
+      
+      check('resultado.touchdown')
+        .optional()
+        .isBoolean()
+        .withMessage('Touchdown debe ser verdadero o falso'),
+      
+      check('resultado.intercepcion')
+        .optional()
+        .isBoolean()
+        .withMessage('Intercepción debe ser verdadero o falso'),
+      
+      check('resultado.sack')
+        .optional()
+        .isBoolean()
+        .withMessage('Sack debe ser verdadero o falso')
     ]
   ],
   partidoController.registrarJugada
 );
+
+// 🔥 NUEVA RUTA: VALIDAR NÚMEROS DE JUGADORES (ÚTIL PARA EL FRONTEND)
+router.post('/:id/validar-jugadores',
+  [
+    auth,
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      check('equipoId', 'ID de equipo es obligatorio').isMongoId(),
+      check('numeros', 'Lista de números es obligatoria').isArray({ min: 1 }),
+      check('numeros.*', 'Cada número debe ser entre 1 y 99').isInt({ min: 1, max: 99 })
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { equipoId, numeros } = req.body;
+      
+      const partido = await Partido.findById(id)
+        .populate('equipoLocal', 'jugadores')
+        .populate('equipoVisitante', 'jugadores');
+      
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      // Determinar qué equipo usar
+      let equipoJugadores = [];
+      if (equipoId === partido.equipoLocal._id.toString()) {
+        equipoJugadores = partido.equipoLocal.jugadores || [];
+      } else if (equipoId === partido.equipoVisitante._id.toString()) {
+        equipoJugadores = partido.equipoVisitante.jugadores || [];
+      } else {
+        return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
+      }
+      
+      // Validar cada número
+      const validacion = numeros.map(numero => {
+        const jugador = equipoJugadores.find(j => j.numero === parseInt(numero));
+        return {
+          numero: parseInt(numero),
+          valido: !!jugador,
+          jugador: jugador ? {
+            _id: jugador._id,
+            nombre: jugador.nombre,
+            numero: jugador.numero
+          } : null
+        };
+      });
+      
+      const todosValidos = validacion.every(v => v.valido);
+      
+      res.json({
+        valido: todosValidos,
+        validacion,
+        mensaje: todosValidos ? 'Todos los números son válidos' : 'Algunos números no son válidos'
+      });
+      
+    } catch (error) {
+      console.error('Error al validar jugadores:', error);
+      res.status(500).json({ mensaje: 'Error al validar jugadores' });
+    }
+  }
+);
+
+// 🔥 NUEVA RUTA: OBTENER JUGADORES DE UN EQUIPO EN EL PARTIDO (PARA REFERENCIA)
+router.get('/:id/jugadores/:equipoId',
+  [
+    auth,
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      param('equipoId', 'ID de equipo debe ser válido').isMongoId()
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const { id, equipoId } = req.params;
+      
+      const partido = await Partido.findById(id)
+        .populate('equipoLocal', 'nombre jugadores')
+        .populate('equipoVisitante', 'nombre jugadores');
+      
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      let equipo = null;
+      let jugadores = [];
+      
+      if (equipoId === partido.equipoLocal._id.toString()) {
+        equipo = partido.equipoLocal;
+        jugadores = partido.equipoLocal.jugadores || [];
+      } else if (equipoId === partido.equipoVisitante._id.toString()) {
+        equipo = partido.equipoVisitante;
+        jugadores = partido.equipoVisitante.jugadores || [];
+      } else {
+        return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
+      }
+      
+      // Formatear respuesta
+      const jugadoresFormateados = jugadores
+        .sort((a, b) => a.numero - b.numero) // Ordenar por número
+        .map(j => ({
+          _id: j._id,
+          nombre: j.nombre,
+          numero: j.numero,
+          posicion: j.posicion
+        }));
+      
+      res.json({
+        equipo: {
+          _id: equipo._id,
+          nombre: equipo.nombre
+        },
+        jugadores: jugadoresFormateados,
+        total: jugadoresFormateados.length
+      });
+      
+    } catch (error) {
+      console.error('Error al obtener jugadores:', error);
+      res.status(500).json({ mensaje: 'Error al obtener jugadores' });
+    }
+  }
+);
+
 
 // 🔥 TAMBIÉN AGREGAR ESTAS RUTAS ÚTILES SI NO LAS TIENES:
 

@@ -245,11 +245,17 @@ const PartidoSchema = new mongoose.Schema({
     jugadorPrincipal: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Usuario',
-      required: true
+      default: null // Puede ser null para jugadas defensivas o de equipo
     },
     jugadorSecundario: { // Para pases (receptor) o intercepciones
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Usuario'
+      ref: 'Usuario',
+      default: null // Puede ser null si no aplica
+    },
+    jugadorTouchdown: { // Para cuando el anotador es diferente al jugador principal
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario',
+      default: null // Puede ser null si no hay touchdown o es el mismo que el principal
     },
     resultado: {
       touchdown: {
@@ -555,24 +561,11 @@ PartidoSchema.pre('save', function(next) {
         
         const esLocal = equipoEnPosesionStr === equipoLocalStr;
         
-        // 🔥 NUEVO: Detectar jugadas defensivas
-        const jugadasDefensivas = ['safety', 'intercepcion', 'sack', 'tackleo'];
-        const esJugadaDefensiva = jugadasDefensivas.includes(jugada.tipoJugada);
-        
-        if (esJugadaDefensiva) {
-          // Jugadas defensivas: puntos van al equipo contrario
-          if (esLocal) {
-            puntosVisitante += jugada.resultado.puntos;
-          } else {
-            puntosLocal += jugada.resultado.puntos;
-          }
+        // 🔥 LÓGICA SIMPLIFICADA - Puntos van al equipo seleccionado
+        if (esLocal) {
+          puntosLocal += jugada.resultado.puntos;
         } else {
-          // Jugadas ofensivas: puntos van al equipo con posesión
-          if (esLocal) {
-            puntosLocal += jugada.resultado.puntos;
-          } else {
-            puntosVisitante += jugada.resultado.puntos;
-          }
+          puntosVisitante += jugada.resultado.puntos;
         }
       }
     });
