@@ -68,117 +68,114 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
 
   // 🎯 TIPOS DE JUGADAS CON ICONOS Y CONFIGURACIÓN
   const tiposJugada = [
-  {
-    id: 'pase_completo',
-    label: 'Pase Completo',
-    icon: <TouchAppIcon />,
-    color: '#4caf50',
-    gradient: 'linear-gradient(135deg, #4caf50, #66bb6a)',
-    puntos: 0,
-    campos: [
-      { nombre: 'pasador', label: 'Pasador', requerido: true },
-      { nombre: 'receptor', label: 'Receptor', requerido: true }
-    ],
-    // 🔥 NUEVO: checkbox touchdown para pase completo
-    tieneCheckboxTouchdown: true
-  },
-  {
-    id: 'pase_incompleto',
-    label: 'Pase Incompleto',
-    icon: <BlockIcon />,
-    color: '#ff9800',
-    gradient: 'linear-gradient(135deg, #ff9800, #ffb74d)',
-    puntos: 0,
-    campos: [
-      { nombre: 'pasador', label: 'Pasador', requerido: true }
-    ]
-  },
-  {
-    id: 'corrida',
-    label: 'Corrida',
-    icon: <RunIcon />,
-    color: '#2196f3',
-    gradient: 'linear-gradient(135deg, #2196f3, #42a5f5)',
-    puntos: 0,
-    campos: [
-      { nombre: 'corredor', label: 'Corredor', requerido: true },
-      { nombre: 'tackleador', label: 'Tackleador', requerido: false }
-    ],
-    tieneCheckboxTouchdown: true // ✅ YA EXISTÍA
-  },
-  {
-    id: 'tackleo',
-    label: 'Tackleo',
-    icon: <SportsIcon />,
-    color: '#795548',
-    gradient: 'linear-gradient(135deg, #795548, #8d6e63)',
-    puntos: 0,
-    campos: [
-      { nombre: 'tackleador', label: 'Jugador que Tacklea', requerido: true }
-    ]
-  },
-  {
-    id: 'sack',
-    label: 'Sack',
-    icon: <ShieldIcon />,
-    color: '#9c27b0',
-    gradient: 'linear-gradient(135deg, #9c27b0, #ba68c8)',
-    puntos: 0,
-    campos: [
-      { nombre: 'tackleador', label: 'Jugador que hace Sack', requerido: true }
-    ]
-  },
-  {
-    id: 'intercepcion',
-    label: 'Intercepción',
-    icon: <BlockHandIcon />,
-    color: '#3f51b5',
-    gradient: 'linear-gradient(135deg, #3f51b5, #5c6bc0)',
-    puntos: 0,
-    campos: [
-      { nombre: 'interceptor', label: 'Interceptor', requerido: true },
-      { nombre: 'qb_interceptado', label: 'QB Interceptado (Equipo Contrario)', requerido: true }
-    ],
-    tieneCheckboxTouchdown: true, // ✅ YA EXISTÍA
-    campoTouchdownExtra: { nombre: 'jugador_touchdown', label: 'Jugador que Anotó', requerido: false },
-    jugadorSecundarioEsDelEquipoContrario: true // ✅ YA EXISTÍA
-  },
-  {
-    id: 'conversion_1pt',
-    label: 'Conversión 1pt',
-    icon: <BoltIcon />,
-    color: '#ff5722',
-    gradient: 'linear-gradient(135deg, #ff5722, #ff7043)',
-    puntos: 1,
-    campos: [
-      { nombre: 'pasador', label: 'Pasador', requerido: true },
-      { nombre: 'receptor', label: 'Receptor', requerido: true }
-    ]
-  },
-  {
-    id: 'conversion_2pt',
-    label: 'Conversión 2pt',
-    icon: <BoltIcon />,
-    color: '#e91e63',
-    gradient: 'linear-gradient(135deg, #e91e63, #ec407a)',
-    puntos: 2,
-    campos: [
-      { nombre: 'pasador', label: 'Pasador', requerido: true },
-      { nombre: 'receptor', label: 'Receptor', requerido: true }
-    ]
-  },
-  {
-    id: 'safety',
-    label: 'Safety',
-    icon: <SecurityIcon />,
-    color: '#607d8b',
-    gradient: 'linear-gradient(135deg, #607d8b, #78909c)',
-    puntos: 2,
-    campos: [
-      { nombre: 'tackleador', label: 'Tackleador', requerido: false }
-    ]
-  }
-];
+    {
+      id: 'pase_completo',
+      label: 'Pase Completo',
+      icon: <TouchAppIcon />,
+      color: '#4caf50',
+      gradient: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+      puntos: 0,
+      campos: [
+        { nombre: 'pasador', label: 'Pasador', requerido: true },
+        { nombre: 'receptor', label: 'Receptor', requerido: true }
+      ],
+      tieneCheckboxTouchdown: true
+    },
+    {
+      id: 'pase_incompleto',
+      label: 'Pase Incompleto',
+      icon: <BlockIcon />,
+      color: '#ff9800',
+      gradient: 'linear-gradient(135deg, #ff9800, #ffb74d)',
+      puntos: 0,
+      campos: [
+        { nombre: 'pasador', label: 'Pasador', requerido: true }
+      ]
+    },
+    {
+      id: 'corrida',
+      label: 'Corrida',
+      icon: <RunIcon />,
+      color: '#2196f3',
+      gradient: 'linear-gradient(135deg, #2196f3, #42a5f5)',
+      puntos: 0,
+      campos: [
+        { nombre: 'corredor', label: 'Corredor', requerido: true },
+        { nombre: 'tackleador', label: 'Tackleador', requerido: false }
+      ],
+      tieneCheckboxTouchdown: true
+    },
+    {
+      id: 'tackleo',
+      label: 'Tackleo',
+      icon: <SportsIcon />,
+      color: '#795548',
+      gradient: 'linear-gradient(135deg, #795548, #8d6e63)',
+      puntos: 0,
+      campos: [
+        { nombre: 'tackleador', label: 'Jugador que Tacklea', requerido: true }
+      ]
+    },
+    {
+      id: 'sack',
+      label: 'Sack',
+      icon: <ShieldIcon />,
+      color: '#9c27b0',
+      gradient: 'linear-gradient(135deg, #9c27b0, #ba68c8)',
+      puntos: 0,
+      campos: [
+        { nombre: 'tackleador', label: 'Jugador que hace Sack', requerido: true }
+      ]
+    },
+    {
+      id: 'intercepcion',
+      label: 'Intercepción',
+      icon: <BlockHandIcon />,
+      color: '#3f51b5',
+      gradient: 'linear-gradient(135deg, #3f51b5, #5c6bc0)',
+      puntos: 0,
+      campos: [
+        { nombre: 'interceptor', label: 'Interceptor', requerido: true },
+        { nombre: 'qb_interceptado', label: 'QB Interceptado (Equipo Contrario)', requerido: true }
+      ],
+      tieneCheckboxTouchdown: true,
+      campoTouchdownExtra: { nombre: 'touchdown_corredor', label: 'Jugador que anota TD' }
+    },
+    {
+      id: 'conversion_1pt',
+      label: 'Conversión 1pt',
+      icon: <StarIcon />,
+      color: '#ffeb3b',
+      gradient: 'linear-gradient(135deg, #ffeb3b, #fff176)',
+      puntos: 1,
+      campos: [
+        { nombre: 'pateador', label: 'Pateador', requerido: true }
+      ]
+    },
+    {
+      id: 'conversion_2pt',
+      label: 'Conversión 2pt',
+      icon: <StarIcon />,
+      color: '#ff5722',
+      gradient: 'linear-gradient(135deg, #ff5722, #ff7043)',
+      puntos: 2,
+      campos: [
+        { nombre: 'anotador', label: 'Jugador que anota', requerido: true },
+        { nombre: 'pasador', label: 'Pasador (si aplica)', requerido: false }
+      ]
+    },
+    {
+      id: 'safety',
+      label: 'Safety',
+      icon: <SecurityIcon />,
+      color: '#607d8b',
+      gradient: 'linear-gradient(135deg, #607d8b, #78909c)',
+      puntos: 2,
+      campos: [
+        { nombre: 'tackleador', label: 'Tackleador', requerido: false }
+      ]
+    }
+  ];
 
   // Cargar información básica del partido
   useEffect(() => {
@@ -186,7 +183,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     // Los números de jugadores se validarán en el backend
   }, [partido]);
 
-  // 🎯 DRAG & DROP HANDLERS
+  // 🎯 DRAG & DROP HANDLERS CON SOPORTE TÁCTIL
   const handleDragStart = (e, jugada) => {
     setDraggedItem(jugada);
     e.dataTransfer.effectAllowed = 'move';
@@ -223,6 +220,64 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     if (draggedItem) {
       abrirModalJugada(draggedItem);
     }
+  };
+
+  // 🔥 NUEVOS HANDLERS TÁCTILES PARA MÓVILES
+  const handleTouchStart = (e, jugada) => {
+    setDraggedItem(jugada);
+    e.currentTarget.style.opacity = '0.5';
+    e.currentTarget.style.transform = 'scale(1.05)';
+  };
+
+  const handleTouchMove = (e) => {
+    e.preventDefault(); // Prevenir scroll
+    const touch = e.touches[0];
+    
+    // Encontrar elemento bajo el dedo
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Verificar si está sobre la zona de drop
+    if (dropzoneRef.current?.contains(elementBelow)) {
+      setDropzoneActive(true);
+    } else {
+      setDropzoneActive(false);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    e.currentTarget.style.transform = 'scale(1)';
+    
+    if (!draggedItem) return;
+    
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Verificar si se soltó sobre la zona de drop
+    if (dropzoneRef.current?.contains(elementBelow)) {
+      abrirModalJugada(draggedItem);
+    }
+    
+    setDraggedItem(null);
+    setDropzoneActive(false);
+  };
+
+  // 🔥 HANDLERS TÁCTILES PARA LA ZONA DE DROP
+  const handleDropzoneTouchStart = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDropzoneTouchMove = (e) => {
+    e.preventDefault();
+    setDropzoneActive(true);
+  };
+
+  const handleDropzoneTouchEnd = (e) => {
+    e.preventDefault();
+    if (draggedItem) {
+      abrirModalJugada(draggedItem);
+    }
+    setDropzoneActive(false);
   };
 
   // 🎯 MODAL Y FORMULARIO
@@ -345,7 +400,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
 
       switch (jugadaSeleccionada.id) {
         case 'pase_completo':
-        case 'touchdown':
         case 'conversion_1pt':
         case 'conversion_2pt':
           // Requieren pasador Y receptor
@@ -390,65 +444,93 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
       }
 
       // 🔥 NUEVA VALIDACIÓN: No permitir tackleador si hay touchdown
-      if ((jugadaSeleccionada.id === 'intercepcion' || jugadaSeleccionada.id === 'corrida') && 
-          touchdownMarcado && formularioData.tackleador) {
-        Swal.fire({
+      if (touchdownMarcado && formularioData.tackleador) {
+        return Swal.fire({
           icon: 'warning',
-          title: 'Jugada inconsistente',
-          text: 'No se puede especificar un tackleador si la jugada terminó en touchdown'
+          title: 'Conflicto en la jugada',
+          text: 'Una jugada de touchdown no puede tener tackleador. Por favor corrige esto.'
         });
-        return;
+      }
+
+      // 🔥 VALIDACIÓN MEJORADA: Campo extra de touchdown
+      if (touchdownMarcado && jugadaSeleccionada.campoTouchdownExtra) {
+        if (!formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre]) {
+          camposFaltantes.push(jugadaSeleccionada.campoTouchdownExtra.label);
+        }
       }
 
       if (camposFaltantes.length > 0) {
-        Swal.fire({
+        return Swal.fire({
           icon: 'warning',
-          title: 'Campos requeridos',
-          text: `Faltan: ${camposFaltantes.join(', ')}`
+          title: 'Campos faltantes',
+          html: `Por favor completa los siguientes campos:<br><br><strong>${camposFaltantes.join('<br>')}</strong>`
         });
-        return;
       }
 
-      // Preparar datos de la jugada
-      const jugadaData = {
+      console.log('📝 Enviando jugada al backend...');
+      console.log('Datos del formulario:', formularioData);
+
+      // 🔥 PREPARAR DATOS PARA ENVÍO (NUEVA ESTRUCTURA)
+      const datosJugada = {
         tipoJugada: jugadaSeleccionada.id,
         equipoEnPosesion: formularioData.equipoEnPosesion,
-        descripcion: formularioData.descripcion || `${jugadaSeleccionada.label}`,
+        descripcion: formularioData.descripcion || `${jugadaSeleccionada.label} registrado`,
         
-        // Enviar números de jugadores en lugar de IDs
-        numeroJugadorPrincipal: parseInt(formularioData.pasador) || parseInt(formularioData.corredor) || 
-                              parseInt(formularioData.interceptor) || parseInt(formularioData.tackleador),
-        
-        // 🔥 SOLO enviar jugador secundario si existe y tiene valor
-        ...(formularioData.receptor && { numeroJugadorSecundario: parseInt(formularioData.receptor) }),
-        ...(formularioData.qb_interceptado && { numeroJugadorSecundario: parseInt(formularioData.qb_interceptado) }),
-        
-        // 🔥 NUEVO: Campo extra para touchdown en intercepción
-        ...(touchdownMarcado && jugadaSeleccionada.campoTouchdownExtra && formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre] && {
-          numeroJugadorTouchdown: parseInt(formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre])
-        }),
-        
+        // 🔥 NUEVO: Mapeo inteligente de jugadores
+        jugadorPrincipal: 
+          formularioData.anotador || 
+          formularioData.corredor || 
+          formularioData.receptor || 
+          formularioData.interceptor || 
+          formularioData.tackleador || 
+          formularioData.pateador ||
+          null,
+          
+        jugadorSecundario: 
+          formularioData.pasador || 
+          formularioData.qb_interceptado ||
+          (touchdownMarcado ? formularioData[jugadaSeleccionada.campoTouchdownExtra?.nombre] : null) ||
+          null,
+
+        // 🔥 NUEVO: Datos de resultado con lógica mejorada
         resultado: {
-          puntos: touchdownMarcado ? 6 : jugadaSeleccionada.puntos,
-          touchdown: touchdownMarcado || jugadaSeleccionada.id === 'touchdown',
+          puntos: touchdownMarcado ? 6 : (jugadaSeleccionada.puntos || 0),
+          touchdown: touchdownMarcado,
           intercepcion: jugadaSeleccionada.id === 'intercepcion',
           sack: jugadaSeleccionada.id === 'sack'
         }
       };
 
-      const response = await axiosInstance.post(`/partidos/${partido._id}/jugadas`, jugadaData);
+      console.log('📤 Datos finales enviados:', datosJugada);
 
-      // Cerrar modal y actualizar
+      const response = await axiosInstance.post(`/partidos/${partido._id}/jugadas`, datosJugada);
+
+      console.log('✅ Respuesta del servidor:', response.data);
+
+      // Cerrar modal y limpiar
       cerrarModal();
-      onActualizar();
-
-      // Mostrar confirmación con warnings si los hay
-      const { warnings } = response.data;
       
-      if (warnings && warnings.length > 0) {
+      // Actualizar vista del partido
+      if (onActualizar) {
+        await onActualizar();
+      }
+
+      // 🔥 NUEVO: Mensajes de éxito más detallados con advertencias
+      const warnings = [];
+      
+      // Validaciones de advertencia (no bloquean el registro)
+      if (jugadaSeleccionada.id === 'intercepcion' && !formularioData.qb_interceptado) {
+        warnings.push('No se especificó el QB interceptado');
+      }
+      
+      if ((jugadaSeleccionada.id === 'corrida' || jugadaSeleccionada.id === 'pase_completo') && touchdownMarcado && formularioData.tackleador) {
+        warnings.push('Jugada con TD no debería tener tackleador');
+      }
+
+      if (warnings.length > 0) {
         Swal.fire({
-          icon: 'warning',
-          title: '¡Jugada registrada con avisos!',
+          icon: 'success',
+          title: '¡Jugada registrada!',
           html: `<strong>${jugadaSeleccionada.label}</strong> registrado correctamente<br><br>
                  <small style="color: #ff9800;">⚠️ ${warnings.join('<br>⚠️ ')}</small>`,
           timer: 4000,
@@ -528,6 +610,11 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                   draggable
                   onDragStart={(e) => handleDragStart(e, jugada)}
                   onDragEnd={handleDragEnd}
+                  // 🔥 NUEVOS EVENTOS TÁCTILES
+                  onTouchStart={(e) => handleTouchStart(e, jugada)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onClick={() => abrirModalJugada(jugada)} // 🔥 NUEVO: Click directo como alternativa
                   sx={{
                     p: 2,
                     textAlign: 'center',
@@ -544,6 +631,9 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    touchAction: 'none', // 🔥 NUEVO: Prevenir gestos del navegador
+                    userSelect: 'none', // 🔥 NUEVO: Prevenir selección de texto
+                    WebkitUserSelect: 'none', // 🔥 NUEVO: Safari
                     '&:hover': {
                       borderColor: 'rgba(255, 255, 255, 0.3)',
                       boxShadow: `0 8px 32px ${jugada.color}40`
@@ -553,15 +643,27 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                     }
                   }}
                 >
-                  <DragIcon sx={{ position: 'absolute', top: 8, right: 8, fontSize: 16, opacity: 0.7 }} />
-                  <Box sx={{ fontSize: 32, mb: 1 }}>
+                  <DragIcon sx={{ 
+                    position: 'absolute', 
+                    top: 8, 
+                    right: 8, 
+                    fontSize: 16, 
+                    opacity: 0.7,
+                    pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
+                  }} />
+                  <Box sx={{ 
+                    fontSize: 32, 
+                    mb: 1,
+                    pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
+                  }}>
                     {jugada.icon}
                   </Box>
                   <Typography variant="body2" sx={{ 
                     fontWeight: 'bold', 
                     fontSize: '0.75rem',
                     lineHeight: 1.2,
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
                   }}>
                     {jugada.label}
                   </Typography>
@@ -574,7 +676,8 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                         backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         color: 'white',
                         fontSize: '0.65rem',
-                        height: 20
+                        height: 20,
+                        pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
                       }} 
                     />
                   )}
@@ -599,13 +702,18 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          // 🔥 NUEVOS EVENTOS TÁCTILES PARA LA ZONA DE DROP
+          onTouchStart={handleDropzoneTouchStart}
+          onTouchMove={handleDropzoneTouchMove}
+          onTouchEnd={handleDropzoneTouchEnd}
           sx={{
             minHeight: 150,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            textAlign: 'center'
+            textAlign: 'center',
+            touchAction: 'none', // 🔥 NUEVO: Prevenir gestos del navegador
           }}
         >
           <motion.div
@@ -632,7 +740,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
           <Typography variant="body2" sx={{ 
             color: 'rgba(255, 255, 255, 0.5)' 
           }}>
-            Arrastra un tipo de jugada aquí para comenzar el registro
+            {draggedItem ? 'Suelta para registrar la jugada' : 'Arrastra una jugada aquí o toca directamente'}
           </Typography>
         </CardContent>
       </Card>
@@ -659,7 +767,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugada</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Equipo</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugador Principal</TableCell>
-                    <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugador Secundario</TableCell> {/* 🔥 NUEVA COLUMNA */}
+                    <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugador Secundario</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Puntos</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Acciones</TableCell>
                   </TableRow>
@@ -686,7 +794,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           {jugada.equipoEnPosesion?.nombre || 'N/A'}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {/* 🔥 CAMBIAR ESTA ESTRUCTURA */}
                           {(jugada.jugadorPrincipal?.numero && jugada.jugadorPrincipal?.nombre) ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Avatar 
@@ -716,7 +823,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           )}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {/* 🔥 CAMBIAR ESTA ESTRUCTURA TAMBIÉN */}
                           {(jugada.jugadorSecundario?.numero && jugada.jugadorSecundario?.nombre) ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Avatar 
@@ -977,19 +1083,65 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                             fontSize: '0.75rem'
                           }}
                         >
-                          Visit.
+                          Visitante
                         </Typography>
                       </Box>
                     </Box>
-                    
-                    {/* Nombre del equipo seleccionado */}
-                    <Typography variant="body1" sx={{ 
-                      color: '#64b5f6', 
-                      fontWeight: 'bold',
-                      minWidth: 120
-                    }}>
-                      {equipoSeleccionado ? partido.equipoLocal.nombre : partido.equipoVisitante.nombre}
+                  </Box>
+
+                  {/* Campos dinámicos */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 2 }}>
+                      Información de jugadores:
                     </Typography>
+                    <Box sx={{
+                      display: 'flex',
+                      flexDirection: jugadaSeleccionada.campos.length > 2 ? 'column' : 'row',
+                      gap: 2,
+                      flexWrap: 'wrap'
+                    }}>
+                      {jugadaSeleccionada.campos.map((campo) => (
+                        <TextField
+                          key={campo.nombre}
+                          type="number"
+                          label={`${campo.label} ${campo.requerido ? '*' : ''}`}
+                          placeholder="Ej: 12"
+                          value={formularioData[campo.nombre] || ''}
+                          onChange={(e) => manejarCambioFormulario(campo.nombre, e.target.value)}
+                          inputProps={{ 
+                            min: 1, 
+                            max: 99,
+                            style: { textAlign: 'center', fontSize: '1.1rem', fontWeight: 'bold' }
+                          }}
+                          sx={{ 
+                            flex: jugadaSeleccionada.campos.length === 1 ? '1 1 100%' : '1 1 calc(50% - 8px)',
+                            minWidth: '140px',
+                            '& .MuiInputLabel-root': { 
+                              color: 'rgba(255, 255, 255, 0.7)' 
+                            },
+                            '& .MuiInputBase-input': { 
+                              color: 'white',
+                              '&::placeholder': {
+                                color: 'rgba(255, 255, 255, 0.4)',
+                                opacity: 1
+                              }
+                            },
+                            '& .MuiOutlinedInput-root': {
+                              minHeight: 56,
+                              '& fieldset': {
+                                borderColor: 'rgba(255, 255, 255, 0.2)'
+                              },
+                              '&:hover fieldset': {
+                                borderColor: 'rgba(255, 255, 255, 0.4)'
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#64b5f6'
+                              }
+                            }
+                          }}
+                        />
+                      ))}
+                    </Box>
                   </Box>
 
                   {/* ✅ CHECKBOX TOUCHDOWN (para intercepción y corrida) */}
@@ -1072,58 +1224,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                         }}
                       />
                     </motion.div>
-                  )}
-
-                  {/* Contenedor para campos de jugadores - INPUTS NUMÉRICOS */}
-                  {jugadaSeleccionada.campos.length > 0 && (
-                    <Box sx={{
-                      display: 'flex',
-                      flexDirection: jugadaSeleccionada.campos.length === 1 ? 'column' : 'row',
-                      gap: 2,
-                      flexWrap: 'wrap'
-                    }}>
-                      {jugadaSeleccionada.campos.map((campo) => (
-                        <TextField
-                          key={campo.nombre}
-                          type="number"
-                          label={`${campo.label} ${campo.requerido ? '*' : ''}`}
-                          placeholder="Ej: 12"
-                          value={formularioData[campo.nombre] || ''}
-                          onChange={(e) => manejarCambioFormulario(campo.nombre, e.target.value)}
-                          inputProps={{ 
-                            min: 1, 
-                            max: 99,
-                            style: { textAlign: 'center', fontSize: '1.1rem', fontWeight: 'bold' }
-                          }}
-                          sx={{ 
-                            flex: jugadaSeleccionada.campos.length === 1 ? '1 1 100%' : '1 1 calc(50% - 8px)',
-                            minWidth: '140px',
-                            '& .MuiInputLabel-root': { 
-                              color: 'rgba(255, 255, 255, 0.7)' 
-                            },
-                            '& .MuiInputBase-input': { 
-                              color: 'white',
-                              '&::placeholder': {
-                                color: 'rgba(255, 255, 255, 0.4)',
-                                opacity: 1
-                              }
-                            },
-                            '& .MuiOutlinedInput-root': {
-                              minHeight: 56,
-                              '& fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.2)'
-                              },
-                              '&:hover fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.4)'
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#64b5f6'
-                              }
-                            }
-                          }}
-                        />
-                      ))}
-                    </Box>
                   )}
 
                   {/* Descripción opcional */}
