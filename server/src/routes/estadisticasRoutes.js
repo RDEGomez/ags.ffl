@@ -522,4 +522,27 @@ router.get('/tarjeta-equipo/:equipoId/:torneoId',
   estadisticasController.obtenerEstadisticasTarjetaEquipo
 );
 
+// 🏆 OBTENER CLASIFICACIÓN GENERAL TOP 5 (NUEVO ENDPOINT)
+router.get('/clasificacion-general/:torneoId/:categoria',
+  [
+    auth,
+    [
+      param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
+      param('categoria', 'Categoría es requerida').notEmpty()
+    ]
+  ],
+  estadisticasController.obtenerClasificacionGeneral
+);
+
+router.get('/debug-jugador/:partidoId/:numeroJugador',
+  [
+    auth,
+    [
+      param('partidoId', 'ID de partido debe ser válido').isMongoId(),
+      param('numeroJugador', 'Número de jugador debe ser válido').isInt({ min: 1, max: 99 })
+    ]
+  ],
+  estadisticasController.debugJugadorJugadas
+);
+
 module.exports = router;

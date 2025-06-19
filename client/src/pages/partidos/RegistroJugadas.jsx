@@ -38,6 +38,7 @@ import {
   Timer as TimerIcon,
   Close as CloseIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   CheckCircle as CheckCircleIcon,
   SportsCricket as SportsIcon,
   DirectionsRun as RunIcon,
@@ -270,6 +271,58 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
       ...prev,
       equipoEnPosesion: esLocal ? partido.equipoLocal._id : partido.equipoVisitante._id
     }));
+  };
+
+  // Función eliminar jugada con Swal
+  const eliminarJugada = async (jugadaId) => {
+    // 🔥 Usar Swal para la confirmación (como en el resto de la página)
+    const result = await Swal.fire({
+      title: '¿Eliminar jugada?',
+      text: 'Esta acción no se puede deshacer',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f44336',
+      cancelButtonColor: '#64b5f6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const response = await axiosInstance.delete(`/partidos/${partido._id}/jugadas/${jugadaId}`);
+      
+      // Usar onActualizar para recargar el partido completo
+      if (onActualizar) {
+        await onActualizar();
+      }
+      
+      // Mostrar mensaje de éxito con Swal
+      Swal.fire({
+        icon: 'success',
+        title: 'Jugada eliminada',
+        html: `
+          <p>La jugada se eliminó correctamente</p>
+          <p><strong>Marcador actualizado: ${response.data.marcadorActualizado?.local || 0} - ${response.data.marcadorActualizado?.visitante || 0}</strong></p>
+        `,
+        timer: 3000,
+        showConfirmButton: false
+      });
+      
+    } catch (error) {
+      console.error('Error al eliminar jugada:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.mensaje || 'Error al eliminar jugada'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 🎯 REGISTRAR JUGADA
@@ -615,7 +668,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                   {partido.jugadas.slice(-10).reverse().map((jugada, index) => {
                     const tipoJugada = tiposJugada.find(t => t.id === jugada.tipoJugada);
                     return (
-                      <TableRow key={jugada.numero}>
+                      <TableRow key={jugada._id || jugada.numero}>
                         <TableCell sx={{ color: 'white' }}>{jugada.numero}</TableCell>
                         <TableCell sx={{ color: 'white' }}>
                           <Chip
@@ -633,7 +686,8 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           {jugada.equipoEnPosesion?.nombre || 'N/A'}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {jugada.jugadorPrincipal?.numero && jugada.jugadorPrincipal?.nombre ? (
+                          {/* 🔥 CAMBIAR ESTA ESTRUCTURA */}
+                          {(jugada.jugadorPrincipal?.numero && jugada.jugadorPrincipal?.nombre) ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Avatar 
                                 src={jugada.jugadorPrincipal?.imagen} 
@@ -655,10 +709,15 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                                 </Typography>
                               </Box>
                             </Box>
-                          ) : 'N/A'}
+                          ) : (
+                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                              N/A
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {jugada.jugadorSecundario?.numero && jugada.jugadorSecundario?.nombre ? (
+                          {/* 🔥 CAMBIAR ESTA ESTRUCTURA TAMBIÉN */}
+                          {(jugada.jugadorSecundario?.numero && jugada.jugadorSecundario?.nombre) ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Avatar 
                                 src={jugada.jugadorSecundario?.imagen} 
@@ -680,7 +739,11 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                                 </Typography>
                               </Box>
                             </Box>
-                          ) : 'N/A'}
+                          ) : (
+                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                              N/A
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
                           <Chip 
@@ -694,9 +757,14 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Tooltip title="Editar jugada">
-                            <IconButton size="small" sx={{ color: '#64b5f6' }}>
-                              <EditIcon fontSize="small" />
+                          <Tooltip title="Eliminar jugada">
+                            <IconButton 
+                              size="small" 
+                              sx={{ color: '#f44336' }}
+                              onClick={() => eliminarJugada(jugada._id || jugada.numero)}
+                              disabled={loading}
+                            >
+                              <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </TableCell>

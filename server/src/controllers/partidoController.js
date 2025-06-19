@@ -6,6 +6,7 @@ const Arbitro = require('../models/Arbitro');
 const Usuario = require('../models/Usuario');
 const { validationResult } = require('express-validator');
 const { getImageUrlServer } = require('../helpers/imageUrlHelper');
+const mongoose = require('mongoose');
 
 // 🔥 FUNCIÓN HELPER PARA OBTENER NÚMERO DE JUGADOR
 const obtenerNumeroJugador = async (jugadorId, equipoId) => {
@@ -900,7 +901,11 @@ exports.registrarJugada = async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log(`\n📝 [${timestamp}] INICIO - Registrar jugada con números (estructura correcta)`);
   console.log('🆔 Partido ID:', req.params.id);
-  console.log('📨 Jugada:', JSON.stringify(req.body, null, 2));const partido = await Partido.findById(partidoId)
+  console.log('📨 Jugada:', JSON.stringify(req.body, null, 2));
+
+  const partidoId = req.params.id;
+  
+  const partido = await Partido.findById(partidoId)
   .populate('equipoLocal', 'nombre imagen')
   .populate('equipoVisitante', 'nombre imagen')
   .populate('torneo', 'nombre fechaInicio fechaFin')
@@ -1187,6 +1192,7 @@ exports.registrarJugada = async (req, res) => {
     } : 'NULL');
 
     const nuevaJugada = {
+      _id: new mongoose.Types.ObjectId(),
       numero: partido.jugadas.length + 1,
       tiempo: {
         minuto: Math.min(partido.jugadas.length * 2, 49),
@@ -1573,6 +1579,85 @@ exports.obtenerPartidosEnVivo = async (req, res) => {
     
     res.status(500).json({ 
       mensaje: 'Error al obtener partidos en vivo', 
+      error: error.message 
+    });
+  }
+};
+
+exports.eliminarJugada = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🗑️ [${timestamp}] INICIO - Eliminar jugada por ID`);
+  
+  try {
+    const { partidoId, jugadaId } = req.params;
+    console.log('🎯 Partido ID:', partidoId);
+    console.log('🎯 Jugada ID:', jugadaId);
+    
+    const partido = await Partido.findById(partidoId);
+    
+    if (!partido) {
+      console.log('❌ ERROR: Partido no encontrado');
+      return res.status(404).json({ mensaje: 'Partido no encontrado' });
+    }
+    
+    // Buscar jugada por ID
+    const jugadaIndex = partido.jugadas.findIndex(
+      j => j._id.toString() === jugadaId
+    );
+    
+    if (jugadaIndex === -1) {
+      console.log('❌ ERROR: Jugada no encontrada');
+      return res.status(404).json({ mensaje: 'Jugada no encontrada' });
+    }
+    
+    const jugadaEliminada = partido.jugadas[jugadaIndex];
+    console.log(`🎯 Eliminando jugada: ${jugadaEliminada.tipoJugada} (${jugadaEliminada.resultado?.puntos || 0} pts)`);
+    
+    // Eliminar jugada específica
+    partido.jugadas.splice(jugadaIndex, 1);
+    
+    // 🔥 RECALCULAR MARCADOR COMPLETO (más seguro)
+    partido.marcador.local = 0;
+    partido.marcador.visitante = 0;
+    
+    partido.jugadas.forEach(jugada => {
+      if (jugada.resultado?.puntos > 0) {
+        const esLocal = jugada.equipoEnPosesion.toString() === partido.equipoLocal.toString();
+        if (esLocal) {
+          partido.marcador.local += jugada.resultado.puntos;
+        } else {
+          partido.marcador.visitante += jugada.resultado.puntos;
+        }
+      }
+    });
+    
+    // Actualizar metadatos
+    partido.ultimaActualizacion = {
+      fecha: new Date(),
+      por: req.usuario._id
+    };
+    
+    await partido.save();
+    
+    console.log(`✅ Jugada eliminada exitosamente`);
+    console.log(`📊 Marcador recalculado: ${partido.marcador.local} - ${partido.marcador.visitante}`);
+    
+    res.json({ 
+      mensaje: 'Jugada eliminada exitosamente',
+      jugadaEliminada: {
+        _id: jugadaEliminada._id,
+        tipo: jugadaEliminada.tipoJugada,
+        puntos: jugadaEliminada.resultado?.puntos || 0
+      },
+      marcadorActualizado: partido.marcador,
+      totalJugadas: partido.jugadas.length
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al eliminar jugada:`);
+    console.error('💥 Error completo:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al eliminar jugada', 
       error: error.message 
     });
   }

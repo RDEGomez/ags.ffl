@@ -829,4 +829,17 @@ router.delete('/:id/jugadas/ultima',
   }
 );
 
+// 🗑️ ELIMINAR JUGADA POR ID
+router.delete('/:partidoId/jugadas/:jugadaId', 
+  [
+    auth,
+    checkRole('admin', 'arbitro'),
+    [
+      param('partidoId', 'ID de partido debe ser válido').isMongoId(),
+      param('jugadaId', 'ID de jugada debe ser válido').isMongoId()
+    ]
+  ],
+  partidoController.eliminarJugada
+);
+
 module.exports = router;

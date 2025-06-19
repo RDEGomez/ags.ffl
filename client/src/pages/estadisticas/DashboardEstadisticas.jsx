@@ -31,6 +31,7 @@ import {
 import { TablaPosiciones } from './TablaPosiciones';
 import { TendenciaPuntos } from './TendenciaPuntos';
 import { LideresEstadisticas } from './LideresEstadisticas';
+import ClasificacionGeneral from '../../components/ClasificacionGeneral';
 
 // 🎨 ANIMACIONES
 const containerVariants = {
@@ -406,6 +407,11 @@ export const DashboardEstadisticas = () => {
           </motion.div>
         )}
       </motion.div>
+      <hr />
+      <ClasificacionGeneral 
+        torneoId={torneoSeleccionado} 
+        categoria={categoriaSeleccionada} 
+      />
     </Container>
   );
 };
