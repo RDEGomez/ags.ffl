@@ -579,7 +579,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* 🎯 ZONA DE ICONOS DE JUGADAS */}
+      {/* 🎯 ZONA DE ICONOS DE JUGADAS - OPTIMIZADA PARA DESKTOP */}
       <Card sx={{
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         borderRadius: 3,
@@ -590,80 +590,120 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
           <Typography variant="h6" sx={{ color: 'white', mb: 3, display: 'flex', alignItems: 'center' }}>
             <SportsFootballIcon sx={{ mr: 2, color: '#64b5f6' }} />
             Tipos de Jugadas
-            <Chip label="Arrastra al área de registro" size="small" sx={{ ml: 2, backgroundColor: 'rgba(100, 181, 246, 0.2)' }} />
+            <Chip 
+              label="Toca o arrastra para registrar"
+              size="small" 
+              sx={{ ml: 2, backgroundColor: 'rgba(100, 181, 246, 0.2)' }} 
+            />
           </Typography>
           
+          {/* 🔥 GRID OPTIMIZADO PARA 9 JUGADAS EN UNA FILA */}
           <Box sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 2,
-            justifyContent: 'center'
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(3, 1fr)', // 📱 Móvil: 3 columnas
+              sm: 'repeat(4, 1fr)', // 🖥️ Tablet: 4 columnas  
+              md: 'repeat(6, 1fr)', // 🖥️ Desktop: 6 columnas
+              lg: 'repeat(9, 1fr)', // 🖥️ Desktop grande: 9 columnas (todas en una fila)
+              xl: 'repeat(9, 1fr)'  // 🖥️ Desktop extra grande: 9 columnas
+            },
+            gap: { xs: 1, sm: 1.5, md: 1, lg: 1.5 }, // Gap ajustado para desktop
+            justifyContent: 'center',
+            maxWidth: '100%',
+            overflow: 'hidden'
           }}>
             {tiposJugada.map((jugada) => (
               <motion.div
                 key={jugada.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                style={{ flex: '0 1 auto' }}
               >
                 <Paper
                   draggable
                   onDragStart={(e) => handleDragStart(e, jugada)}
                   onDragEnd={handleDragEnd}
-                  // 🔥 NUEVOS EVENTOS TÁCTILES
-                  onTouchStart={(e) => handleTouchStart(e, jugada)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  onClick={() => abrirModalJugada(jugada)} // 🔥 NUEVO: Click directo como alternativa
+                  // 🔥 EVENTOS TÁCTILES SOLO PARA MÓVIL
+                  // 🔥 EVENTOS TÁCTILES SOLO PARA DESKTOP
+                  onTouchStart={window.innerWidth >= 900 ? (e) => handleTouchStart(e, jugada) : undefined}
+                  onTouchMove={window.innerWidth >= 900 ? handleTouchMove : undefined}
+                  onTouchEnd={window.innerWidth >= 900 ? handleTouchEnd : undefined}
+                  // 🔥 CLICK SIMPLIFICADO - FUNCIONA EN MÓVIL Y DESKTOP
+                  onClick={() => abrirModalJugada(jugada)}
                   sx={{
-                    p: 2,
+                    p: { xs: 1.5, sm: 2, md: 1, lg: 1.5 }, // Padding reducido en desktop
                     textAlign: 'center',
                     background: jugada.gradient,
                     color: 'white',
-                    cursor: 'grab',
+                    cursor: { xs: 'pointer', md: 'grab' }, // Cursor adaptado
                     border: '2px solid transparent',
                     borderRadius: 2,
                     position: 'relative',
                     overflow: 'hidden',
-                    width: 140,
-                    height: 120,
+                    width: '100%',
+                    height: { 
+                      xs: 90,      // Móvil: altura compacta
+                      sm: 120,     // Tablet: altura media
+                      md: 100,     // Desktop: altura optimizada
+                      lg: 110,     // Desktop grande: altura balanceada
+                      xl: 120      // Desktop extra: altura completa
+                    },
+                    minWidth: {
+                      md: 85,      // Ancho mínimo en desktop medio
+                      lg: 100,     // Ancho mínimo en desktop grande
+                      xl: 120      // Ancho mínimo en desktop extra
+                    },
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    touchAction: 'none', // 🔥 NUEVO: Prevenir gestos del navegador
-                    userSelect: 'none', // 🔥 NUEVO: Prevenir selección de texto
-                    WebkitUserSelect: 'none', // 🔥 NUEVO: Safari
+                    touchAction: { xs: 'manipulation', md: 'none' }, // Permitir gestos en móvil
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
                     '&:hover': {
                       borderColor: 'rgba(255, 255, 255, 0.3)',
-                      boxShadow: `0 8px 32px ${jugada.color}40`
+                      boxShadow: `0 8px 32px ${jugada.color}40`,
+                      transform: 'translateY(-2px)' // Efecto hover sutil
                     },
                     '&:active': {
-                      cursor: 'grabbing'
+                      cursor: { xs: 'pointer', md: 'grabbing' }
                     }
                   }}
                 >
                   <DragIcon sx={{ 
                     position: 'absolute', 
-                    top: 8, 
-                    right: 8, 
-                    fontSize: 16, 
+                    top: { xs: 4, sm: 8, md: 4, lg: 6 }, 
+                    right: { xs: 4, sm: 8, md: 4, lg: 6 }, 
+                    fontSize: { xs: 12, sm: 16, md: 12, lg: 14 }, // Tamaño del icono ajustado
                     opacity: 0.7,
-                    pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
+                    pointerEvents: 'none',
+                    display: { xs: 'none', md: 'block' } // Solo mostrar en desktop
                   }} />
                   <Box sx={{ 
-                    fontSize: 32, 
-                    mb: 1,
-                    pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
+                    fontSize: { 
+                      xs: 24, 
+                      sm: 32, 
+                      md: 24,     // Icono más pequeño en desktop
+                      lg: 28,     // Tamaño balanceado
+                      xl: 32      // Tamaño completo en pantallas grandes
+                    }, 
+                    mb: { xs: 0.5, sm: 1, md: 0.5, lg: 0.75 },
+                    pointerEvents: 'none'
                   }}>
                     {jugada.icon}
                   </Box>
                   <Typography variant="body2" sx={{ 
                     fontWeight: 'bold', 
-                    fontSize: '0.75rem',
-                    lineHeight: 1.2,
+                    fontSize: { 
+                      xs: '0.65rem', 
+                      sm: '0.75rem',
+                      md: '0.6rem',   // Texto más pequeño para que quepa
+                      lg: '0.65rem',  // Tamaño balanceado
+                      xl: '0.7rem'    // Tamaño óptimo en pantallas grandes
+                    },
+                    lineHeight: 1.1, // Altura de línea más compacta
                     textAlign: 'center',
-                    pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
+                    pointerEvents: 'none',
+                    px: 0.5 // Padding horizontal para evitar overflow de texto
                   }}>
                     {jugada.label}
                   </Typography>
@@ -672,12 +712,24 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                       label={`${jugada.puntos} pts`} 
                       size="small" 
                       sx={{ 
-                        mt: 1, 
+                        mt: { xs: 0.5, sm: 1, md: 0.5, lg: 0.75 }, 
                         backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         color: 'white',
-                        fontSize: '0.65rem',
-                        height: 20,
-                        pointerEvents: 'none' // 🔥 NUEVO: Evitar interferencia con drag
+                        fontSize: { 
+                          xs: '0.6rem', 
+                          sm: '0.65rem',
+                          md: '0.55rem',  // Texto más pequeño en el chip
+                          lg: '0.6rem',
+                          xl: '0.65rem'
+                        },
+                        height: { 
+                          xs: 16, 
+                          sm: 20,
+                          md: 16,        // Altura reducida del chip
+                          lg: 18,
+                          xl: 20
+                        },
+                        pointerEvents: 'none'
                       }} 
                     />
                   )}
