@@ -257,6 +257,7 @@ export const useEstadisticas = () => {
     }
   }, []);
 
+  // 🔥 FUNCIÓN obtenerTodosLideres CORREGIDA
   const obtenerTodosLideres = useCallback(async (equipoId, torneoId) => {
     const shouldFetch = equipoId && torneoId;
     
@@ -269,7 +270,8 @@ export const useEstadisticas = () => {
 
       console.log(`🏆 Obteniendo todos los líderes: ${equipoId}/${torneoId}...`);
       
-      const tiposLideres = ['pases', 'puntos', 'tackleos', 'intercepciones', 'sacks', 'recepciones'];
+      // 🔥 CAMBIO CRÍTICO: 'pases' → 'qbrating'
+      const tiposLideres = ['qbrating', 'puntos', 'tackleos', 'intercepciones', 'sacks', 'recepciones'];
       
       const promesasLideres = tiposLideres.map(tipo => 
         axiosInstance.get(`/estadisticas/lideres/${equipoId}/${torneoId}/${tipo}`)

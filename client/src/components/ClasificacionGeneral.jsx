@@ -1,3 +1,5 @@
+// 📁 src/components/ClasificacionGeneral.jsx
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -34,14 +36,14 @@ const getImageUrl = (imagen) => {
   return `${API_URL}/uploads/${imagen}`;
 };
 
-// 🎨 CONFIGURACIÓN DE ICONOS Y COLORES POR TIPO
+// 🎨 CONFIGURACIÓN DE ICONOS Y COLORES - ACTUALIZADA CON QB RATING
 const CONFIGURACION_TIPOS = {
-  pases: {
+  qbrating: {
     icono: <Sports />,
-    titulo: "MAESTRO DEL PASE",
+    titulo: "MAESTRO QB",
     color: "#3b82f6",
     gradient: "linear-gradient(145deg, #1976d2, #42a5f5)",
-    label: "Pases Completados"
+    label: "QB Rating"
   },
   puntos: {
     icono: <EmojiEvents />,
@@ -80,6 +82,15 @@ const CONFIGURACION_TIPOS = {
   }
 };
 
+// 🎨 FUNCIÓN HELPER PARA OBTENER COLOR DEL QB RATING
+const obtenerColorQBRating = (rating) => {
+  if (rating >= 130) return '#4caf50'; // Verde - Excelente
+  if (rating >= 110) return '#2196f3'; // Azul - Muy bueno
+  if (rating >= 90) return '#ff9800';  // Naranja - Bueno
+  if (rating >= 70) return '#ffeb3b';  // Amarillo - Regular
+  return '#f44336'; // Rojo - Malo
+};
+
 // 🔥 COMPONENTE: TARJETA INDIVIDUAL DE LÍDER CON TOP 5
 const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
   const config = CONFIGURACION_TIPOS[tipo];
@@ -92,17 +103,17 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
       <Box
         sx={{
           background: `linear-gradient(145deg, ${config.color}20, ${config.color}10)`,
-          backdropFilter: 'blur(25px)',
-          border: `1px solid ${config.color}40`,
-          borderRadius: '20px',
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${config.color}30`,
+          borderRadius: 3,
           p: 3,
-          height: '400px',
+          height: '320px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}
       >
-        <CircularProgress sx={{ color: config.color }} size={60} />
+        <CircularProgress sx={{ color: config.color }} />
       </Box>
     );
   }
@@ -111,18 +122,25 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
     return (
       <Box
         sx={{
-          background: `linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))`,
-          backdropFilter: 'blur(25px)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '20px',
+          background: `linear-gradient(145deg, ${config.color}20, ${config.color}10)`,
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${config.color}30`,
+          borderRadius: 3,
           p: 3,
-          height: '400px',
+          height: '320px',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center'
         }}
       >
-        <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+        {config.icono && React.cloneElement(config.icono, { 
+          sx: { fontSize: '2rem', color: config.color, mb: 2, opacity: 0.5 } 
+        })}
+        <Typography variant="h6" sx={{ color: config.color, textAlign: 'center', mb: 1 }}>
+          {config.titulo}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
           Sin datos disponibles
         </Typography>
       </Box>
@@ -131,270 +149,267 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      whileHover={{ y: -8 }}
     >
       <Box
         sx={{
-          background: `linear-gradient(145deg, ${config.color}20, ${config.color}10)`,
-          backdropFilter: 'blur(25px)',
+          background: `linear-gradient(145deg, ${config.color}25, ${config.color}10)`,
+          backdropFilter: 'blur(20px)',
           border: `1px solid ${config.color}40`,
-          borderRadius: '20px',
-          overflow: 'hidden',
-          height: '400px',
+          borderRadius: 3,
+          p: 3,
+          // 🔧 ALTURA DE LA TARJETA - Ajustar aquí si necesitas más espacio para el Top 5
+          height: '520px', // Aumentado de 320px a 420px (+100px)
           position: 'relative',
-          boxShadow: `
-            0 8px 32px rgba(0,0,0,0.3),
-            0 0 0 1px rgba(255,255,255,0.1),
-            inset 0 1px 0 rgba(255,255,255,0.2)
-          `,
+          overflow: 'hidden',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: `
-              0 12px 40px rgba(0,0,0,0.4),
-              0 0 0 1px rgba(255,255,255,0.2),
-              inset 0 1px 0 rgba(255,255,255,0.3)
-            `,
+            transform: 'translateY(-4px)',
+            boxShadow: `0 12px 40px ${config.color}30`,
+            border: `1px solid ${config.color}60`
           }
         }}
       >
-        {/* HEADER CON ICONO Y TÍTULO */}
-        <Box
-          sx={{
-            p: 2,
-            background: config.gradient,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, zIndex: 2 }}>
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              {React.cloneElement(config.icono, { 
-                sx: { 
-                  color: 'white', 
-                  fontSize: '2rem',
-                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
-                } 
-              })}
-            </motion.div>
-            <Typography variant="h6" sx={{ 
-              color: 'white',
-              fontWeight: 900,
-              fontSize: '0.9rem',
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)'
-            }}>
-              {config.titulo}
-            </Typography>
-          </Box>
-          
-          <Chip
-            label={config.label}
-            sx={{
-              height: 22,
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              background: 'rgba(255, 255, 255, 0.25)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              zIndex: 2
-            }}
-          />
-
-          {/* Efecto de brillo animado */}
+        {/* 🔥 BACKGROUND DEL LOGO DEL EQUIPO - Atenuado y circular */}
+        {lider.equipo?.imagen && (
           <Box
             sx={{
               position: 'absolute',
-              top: 0,
-              left: '-100%',
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-              transform: 'skewX(-12deg)',
-              animation: 'shimmer 3s infinite',
-              '@keyframes shimmer': {
-                '0%': { left: '-100%' },
-                '100%': { left: '100%' }
-              }
+              bottom: '20px', // 🔧 POSICIÓN VERTICAL - Esquina inferior
+              right: '20px',  // 🔧 POSICIÓN HORIZONTAL - Esquina derecha
+              width: '120px', // 🔧 TAMAÑO DEL CÍRCULO - Ajustar entre 80px-150px
+              height: '120px',
+              backgroundImage: `url(${getImageUrl(lider.equipo.imagen)})`,
+              backgroundSize: 'cover', // Cambiado de 'contain' a 'cover' para mejor ajuste circular
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
+              opacity: 0.12, // 🔧 TRANSPARENCIA - Aumentada un poco para mejor visibilidad
+              filter: 'grayscale(30%)', // Reducido para mantener algo de color
+              borderRadius: '50%', // 🔥 CÍRCULO PERFECTO - Elimina bordes cuadrados
+              pointerEvents: 'none',
+              zIndex: 0
             }}
           />
+        )}
+
+        {/* Header con ícono y título */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, position: 'relative', zIndex: 1 }}>
+          {config.icono && React.cloneElement(config.icono, { 
+            sx: { fontSize: '1.4rem', color: config.color } 
+          })}
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: config.color, 
+              fontWeight: 800, 
+              fontSize: '0.9rem',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5
+            }}
+          >
+            {config.titulo}
+          </Typography>
         </Box>
 
-        {/* LÍDER PRINCIPAL */}
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          {/* Avatar con corona */}
-          <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              transition={{ type: "spring", stiffness: 400 }}
-            >
-              <Avatar
-                src={getImageUrl(lider.jugador.imagen)}
-                sx={{
-                  width: 70,
-                  height: 70,
-                  border: '3px solid white',
-                  boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
-                }}
-              >
-                {lider.jugador.nombre?.charAt(0)}
-              </Avatar>
-            </motion.div>
-            
-            {/* Corona dorada */}
-            <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -8,
-                  right: -8,
-                  width: 32,
-                  height: 32,
-                  background: 'linear-gradient(145deg, #ffd700, #ffb300)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)'
-                }}
-              >
-                <EmojiEvents sx={{ color: 'white', fontSize: '1.2rem' }} />
-              </Box>
-            </motion.div>
+        {/* Líder Principal (#1) */}
+        <Box
+          sx={{
+            background: config.gradient,
+            borderRadius: 2,
+            p: 2,
+            mb: 2,
+            position: 'relative',
+            overflow: 'hidden',
+            zIndex: 1 // Asegurar que esté sobre el background del logo
+          }}
+        >
+          {/* Corona para el #1 */}
+          <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+            <EmojiEvents sx={{ color: '#ffd700', fontSize: '1.2rem' }} />
           </Box>
 
-          {/* Nombre del líder */}
-          <Typography variant="h6" sx={{ 
-            color: 'white',
-            fontWeight: 900,
-            mb: 0.5,
-            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)'
-          }}>
-            {lider.jugador.nombre}
-          </Typography>
-          
-          <Typography variant="body2" sx={{ 
-            color: 'rgba(255, 255, 255, 0.8)',
-            fontWeight: 600,
-            mb: 2
-          }}>
-            #{lider.jugador.numero} • {lider.equipo.nombre}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar
+              src={getImageUrl(lider.jugador?.imagen)}
+              sx={{
+                width: 50,
+                height: 50,
+                border: '3px solid rgba(255,255,255,0.3)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}
+            >
+              {lider.jugador?.nombre?.charAt(0) || '?'}
+            </Avatar>
 
-          {/* Valor principal animado */}
-          <motion.div
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <Typography variant="h2" sx={{ 
-              color: 'white',
-              fontWeight: 900,
-              textShadow: `0 0 20px ${config.color}80`,
-              fontSize: '3rem',
-              lineHeight: 1
-            }}>
-              {lider.valor}
-            </Typography>
-          </motion.div>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography 
+                variant="body1" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 700,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {lider.jugador?.nombre || 'Jugador'}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <Chip
+                  label={`#${lider.jugador?.numero || 0}`}
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    color: 'white'
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  {lider.equipo?.nombre || 'Equipo'}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Valor Principal - CON FORMATO ESPECIAL PARA QB RATING */}
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: tipo === 'qbrating' ? obtenerColorQBRating(lider.valor) : 'white', 
+                  fontWeight: 900,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                  fontSize: tipo === 'qbrating' ? '1.8rem' : '2rem'
+                }}
+              >
+                {/* 🔥 FORMATO ESPECIAL PARA QB RATING */}
+                {tipo === 'qbrating' ? Number(lider.valor).toFixed(1) : lider.valor}
+              </Typography>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 600,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {config.label}
+              </Typography>
+              
+              {/* 🔥 INFORMACIÓN ADICIONAL PARA QB RATING */}
+              {tipo === 'qbrating' && lider.qbRatingData && (
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'rgba(255,255,255,0.8)',
+                    fontSize: '0.65rem',
+                    display: 'block',
+                    mt: 0.5
+                  }}
+                >
+                  {lider.qbRatingData.completados}/{lider.qbRatingData.intentos} ({lider.qbRatingData.porcentajeComplecion}%)
+                </Typography>
+              )}
+            </Box>
+          </Box>
         </Box>
 
-        {/* MINI TABLA CON LOS RESTANTES 4 */}
+        {/* Top 2-5 */}
         {restantes.length > 0 && (
-          <Box sx={{ 
-            px: 2, 
-            pb: 2,
-            background: 'rgba(0, 0, 0, 0.2)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <Divider sx={{ 
-              borderColor: 'rgba(255, 255, 255, 0.2)', 
-              mb: 1.5 
-            }} />
+          <Box sx={{ position: 'relative', zIndex: 1 }}> {/* Asegurar que esté sobre el background */}
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'rgba(255,255,255,0.7)', 
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                mb: 1,
+                display: 'block'
+              }}
+            >
+              Top {restantes.length + 1}
+            </Typography>
             
             <AnimatePresence>
               {restantes.map((jugador, index) => (
                 <motion.div
-                  key={jugador.jugador._id}
+                  key={jugador.jugador?._id || index}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
+                  transition={{ delay: index * 0.1, duration: 0.4 }}
                 >
-                  <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    py: 1,
-                    px: 1,
-                    borderRadius: '8px',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                    }
-                  }}>
-                    {/* Posición */}
-                    <Box sx={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: '50%',
-                      background: `linear-gradient(145deg, ${config.color}60, ${config.color}40)`,
+                  <Box
+                    sx={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
+                      justifyContent: 'space-between',
+                      py: 1,
+                      px: 1.5,
+                      mb: 1,
+                      background: `linear-gradient(90deg, ${config.color}15, transparent)`,
+                      borderRadius: 2,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        background: `linear-gradient(90deg, ${config.color}25, ${config.color}10)`,
+                        transform: 'translateX(4px)'
+                      }
+                    }}
+                  >
+                    {/* Posición */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      minWidth: 24,
+                      mr: 1
                     }}>
                       <Typography variant="caption" sx={{ 
-                        color: 'white',
+                        color: config.color,
                         fontWeight: 900,
-                        fontSize: '0.7rem'
+                        fontSize: '0.8rem'
                       }}>
-                        {jugador.posicion}
+                        #{index + 2}
                       </Typography>
                     </Box>
 
                     {/* Avatar pequeño */}
                     <Avatar
-                      src={getImageUrl(jugador.jugador.imagen)}
+                      src={getImageUrl(jugador.jugador?.imagen)}
                       sx={{
-                        width: 32,
-                        height: 32,
-                        border: '2px solid rgba(255, 255, 255, 0.3)',
-                        flexShrink: 0
+                        width: 28,
+                        height: 28,
+                        mr: 1,
+                        border: `1px solid ${config.color}40`
                       }}
                     >
-                      {jugador.jugador.nombre?.charAt(0)}
+                      {jugador.jugador?.nombre?.charAt(0) || '?'}
                     </Avatar>
 
-                    {/* Información del jugador */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ 
+                    {/* Info del jugador */}
+                    <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+                      <Typography variant="caption" sx={{ 
                         color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        display: 'block'
                       }}>
-                        {jugador.jugador.nombre}
+                        {jugador.jugador?.nombre}
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         color: 'rgba(255, 255, 255, 0.7)',
                         fontSize: '0.65rem'
                       }}>
-                        #{jugador.jugador.numero}
+                        #{jugador.jugador?.numero}
                       </Typography>
                     </Box>
 
-                    {/* Valor */}
+                    {/* Valor - CON FORMATO ESPECIAL PARA QB RATING */}
                     <Box sx={{ 
                       background: `linear-gradient(145deg, ${config.color}40, ${config.color}20)`,
                       borderRadius: '12px',
@@ -403,11 +418,12 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
                       flexShrink: 0
                     }}>
                       <Typography variant="body2" sx={{ 
-                        color: 'white',
+                        color: tipo === 'qbrating' ? obtenerColorQBRating(jugador.valor) : 'white',
                         fontWeight: 900,
                         fontSize: '0.85rem'
                       }}>
-                        {jugador.valor}
+                        {/* 🔥 FORMATO ESPECIAL PARA QB RATING */}
+                        {tipo === 'qbrating' ? Number(jugador.valor).toFixed(1) : jugador.valor}
                       </Typography>
                     </Box>
                   </Box>
@@ -444,8 +460,8 @@ export const ClasificacionGeneral = ({ torneoId, categoria }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Tipos de estadísticas a mostrar
-  const tiposEstadisticas = ['puntos', 'pases', 'recepciones', 'tackleos', 'intercepciones', 'sacks'];
+  // 🔥 TIPOS DE ESTADÍSTICAS ACTUALIZADOS: 'pases' → 'qbrating'
+  const tiposEstadisticas = ['qbrating', 'puntos', 'recepciones', 'tackleos', 'intercepciones', 'sacks'];
 
   // Cargar datos de clasificación
   useEffect(() => {
@@ -456,18 +472,15 @@ export const ClasificacionGeneral = ({ torneoId, categoria }) => {
       setError(null);
 
       try {
-        console.log('🏆 Cargando clasificación general...');
-        const response = await axiosInstance.get(
-          `/estadisticas/clasificacion-general/${torneoId}/${categoria}`
-        );
-
-        if (response.data?.clasificacionGeneral) {
-          setClasificacion(response.data.clasificacionGeneral);
-          console.log('✅ Clasificación cargada correctamente');
-        }
+        console.log(`🏆 Cargando clasificación general: ${torneoId}/${categoria}`);
+        const response = await axiosInstance.get(`/estadisticas/clasificacion-general/${torneoId}/${categoria}`);
+        
+        console.log('✅ Clasificación cargada:', response.data.clasificacionGeneral);
+        setClasificacion(response.data.clasificacionGeneral || {});
       } catch (error) {
-        console.error('❌ Error al cargar clasificación:', error);
-        setError(error.response?.data?.mensaje || 'Error al cargar la clasificación');
+        console.error('❌ Error cargando clasificación:', error);
+        setError(error.response?.data?.mensaje || 'Error al cargar clasificación');
+        setClasificacion({});
       } finally {
         setLoading(false);
       }
@@ -479,7 +492,10 @@ export const ClasificacionGeneral = ({ torneoId, categoria }) => {
   if (error) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+        <Typography variant="h6" sx={{ color: 'error.main', mb: 2 }}>
+          Error al cargar clasificación
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {error}
         </Typography>
       </Box>
@@ -487,189 +503,55 @@ export const ClasificacionGeneral = ({ torneoId, categoria }) => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
-      <Box sx={{ mb: 6 }}>
-        {/* Header de la sección */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 2, 
-          mb: 4,
-          justifyContent: 'center'
-        }}>
-          <motion.div
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 4, repeat: Infinity }}
-          >
-            <TrendingUp sx={{ 
-              color: '#ffd700', 
-              fontSize: '3rem',
-              filter: 'drop-shadow(0 0 20px rgba(255, 215, 0, 0.6))'
-            }} />
-          </motion.div>
-
-          {/* ENCABEZADO CLASIFICACIÓN GENERAL - CAMBIAR POR ESTE CÓDIGO */}
-          <Box sx={{ 
-            mb: 4, 
-            textAlign: 'center',
-            position: 'relative'
-          }}>
-            {/* Efecto de fondo dinámico */}
-            <motion.div
-              animate={{
-                background: [
-                  'radial-gradient(ellipse at center, rgba(255,215,0,0.15) 0%, transparent 50%)',
-                  'radial-gradient(ellipse at center, rgba(76,175,80,0.15) 0%, transparent 50%)',
-                  'radial-gradient(ellipse at center, rgba(63,81,181,0.15) 0%, transparent 50%)',
-                  'radial-gradient(ellipse at center, rgba(255,215,0,0.15) 0%, transparent 50%)'
-                ]
-              }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              style={{
-                position: 'absolute',
-                inset: -20,
-                borderRadius: '50%',
-                filter: 'blur(20px)'
-              }}
-            />
-            
-            {/* Título principal */}
-            <motion.div
-              initial={{ opacity: 0, y: -30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <Typography 
-                variant="h3" 
-                sx={{ 
-                  fontWeight: 900,
-                  background: `
-                    linear-gradient(145deg, 
-                      #ffd700 0%,
-                      #ffeb3b 25%,
-                      #4caf50 50%,
-                      #2196f3 75%,
-                      #9c27b0 100%
-                    )
-                  `,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
-                  mb: 1,
-                  fontSize: { xs: '2.5rem', sm: '3rem' },
-                  position: 'relative',
-                  zIndex: 1
-                }}
-              >
-                Clasificación General
-              </Typography>
-            </motion.div>
-            
-            {/* Subtítulo con animación */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <Typography variant="h6" sx={{ 
-                color: 'rgba(255, 255, 255, 0.8)',
-                fontWeight: 600,
-                position: 'relative',
-                zIndex: 1
-              }}>
-                🏆 Posiciones y estadísticas por categoría
-              </Typography>
-            </motion.div>
-            
-            {/* Línea decorativa animada */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1, delay: 0.6 }}
-              style={{
-                height: '3px',
-                background: 'linear-gradient(90deg, transparent, #ffd700, #4caf50, #2196f3, transparent)',
-                marginTop: '16px',
-                borderRadius: '2px',
-                position: 'relative',
-                zIndex: 1
-              }}
-            />
-          </Box>
-          
-          <motion.div
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <AutoAwesome sx={{ color: '#ffd700', fontSize: '2rem' }} />
-          </motion.div>
-        </Box>
-
-        {/* Grid de tarjetas */}
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 3,
-          maxWidth: '1400px',
-          mx: 'auto'
-        }}>
-          {tiposEstadisticas.map((tipo, index) => (
-            <motion.div
-              key={tipo}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-            >
-              <TarjetaClasificacion 
-                tipo={tipo}
-                lideresData={clasificacion[tipo]}
-                loading={loading}
-              />
-            </motion.div>
-          ))}
-        </Box>
-
-        {/* Indicador de carga global */}
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999
-            }}
-          >
-            <Box sx={{
-              background: 'linear-gradient(145deg, rgba(0,0,0,0.9), rgba(0,0,0,0.7))',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '20px',
-              p: 4,
-              textAlign: 'center'
-            }}>
-              <CircularProgress sx={{ color: '#ffd700', mb: 2 }} size={60} />
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-                Cargando clasificación...
-              </Typography>
-            </Box>
-          </motion.div>
-        )}
+    <Box>
+      {/* Header */}
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 900,
+            background: 'linear-gradient(45deg, #ffd700, #ffed4e)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent',
+            mb: 1
+          }}
+        >
+          🏆 CLASIFICACIÓN GENERAL
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+          Top 5 líderes por categoría
+        </Typography>
       </Box>
-    </motion.div>
+
+      {/* Grid de tarjetas */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: 3,
+          width: '100%'
+        }}
+      >
+        {tiposEstadisticas.map((tipo) => (
+          <TarjetaClasificacion
+            key={tipo}
+            tipo={tipo}
+            lideresData={clasificacion[tipo]}
+            loading={loading}
+          />
+        ))}
+      </Box>
+
+      {/* Footer info */}
+      {!loading && Object.keys(clasificacion).length > 0 && (
+        <Box sx={{ textAlign: 'center', mt: 4, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+            🔄 Actualizado automáticamente • 📊 Basado en partidos finalizados
+          </Typography>
+        </Box>
+      )}
+    </Box>
   );
 };
 
