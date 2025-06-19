@@ -31,7 +31,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import axiosInstance from '../config/axios';
 import { getCategoryName } from '../helpers/mappings';
 import { useImage } from '../hooks/useImage';
-import TeamCard from './TeamCard';
+import TeamCardGlass from '../components/TeamCardGlass';
 
 // FUNCIÓN HELPER UNIFICADA para URLs de imágenes
 const getImageUrl = (imagen) => {
@@ -920,14 +920,14 @@ export const Home = () => {
                                  maxWidth: '100%'
                                }}
                              >
-                               <TeamCard 
-                                 equipo={equipo} 
-                                 usuario={{
-                                   ...usuario,
-                                   numeroJugador: equipo.numeroUsuario
-                                 }}
-                                 torneoId={torneoSeleccionado} // Pasar torneoId
-                               />
+                               <TeamCardGlass 
+                                  equipo={equipo} 
+                                  usuario={{
+                                    ...usuario,
+                                    numeroJugador: equipo.numeroUsuario
+                                  }}
+                                  torneoId={torneoSeleccionado}
+                                />
                              </motion.div>
                            ))}
                          </Box>
