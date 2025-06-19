@@ -512,14 +512,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
           timer: 4000,
           showConfirmButton: true
         });
-      } else {
-        Swal.fire({
-          icon: 'success',
-          title: '¡Jugada registrada!',
-          text: `${jugadaSeleccionada.label} registrado correctamente`,
-          timer: 2000,
-          showConfirmButton: false
-        });
       }
 
     } catch (error) {
