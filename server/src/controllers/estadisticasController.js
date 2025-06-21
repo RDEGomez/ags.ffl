@@ -331,7 +331,7 @@ exports.obtenerTendenciaPuntos = async (req, res) => {
   }
 };
 
-// 📊 3. LÍDERES POR ESTADÍSTICA (TOP 3 JUGADORES DE UN EQUIPO) - VERSIÓN FINAL COMPLETA
+// 🏆 LÍDERES POR ESTADÍSTICA (TOP 3 JUGADORES DE UN EQUIPO) - VERSIÓN SIMPLIFICADA CON LÓGICA DE CLASIFICACIÓN GENERAL
 exports.obtenerLideresEstadisticas = async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log(`\n🏆 [${timestamp}] INICIO - Obtener líderes estadísticas`);
@@ -407,209 +407,169 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
       }
     });
 
-    console.log('\n🔍 === APLICANDO LÓGICA CORRECTA + QB RATING ===');
     console.log(`📊 Procesando ${partidos.length} partidos para equipo: ${equipoId}`);
 
-    let totalJugadasProcesadas = 0;
     let totalPuntosCalculados = 0;
 
-    // 🔥 PROCESAR TODOS LOS PARTIDOS CON LÓGICA CORRECTA
+    // 🔥 PROCESAR TODOS LOS PARTIDOS CON LÓGICA EXACTA DE CLASIFICACIÓN GENERAL
     partidos.forEach(partido => {
       if (!partido.jugadas || partido.jugadas.length === 0) return;
 
       partido.jugadas.forEach(jugada => {
-        totalJugadasProcesadas++;
+        // 🔥 FUNCIÓN PARA PROCESAR CADA JUGADOR - EXACTA DE CLASIFICACIÓN GENERAL
+        const procesarJugador = (jugador, esSecundario) => {
+          if (!jugador || !jugador._id) return;
 
-        // 🔥 FILTRO POR EQUIPO: Solo procesar jugadas donde el equipo seleccionado está en posesión
-        const equipoEnPosesionId = jugada.equipoEnPosesion?._id?.toString() || jugada.equipoEnPosesion?.toString();
-        
-        if (equipoEnPosesionId === equipoId.toString()) {
+          const jugadorId = jugador._id.toString();
           
-          // 🔥 FUNCIÓN HELPER PARA PROCESAR CADA JUGADOR (LÓGICA CORRECTA)
-          const procesarJugadorEnJugada = (jugador, rol) => {
-            if (!jugador || !jugador._id) return;
+          // Solo procesar jugadores que pertenecen al equipo seleccionado
+          if (!numerosJugadores.has(jugadorId)) return;
 
-            const jugadorId = jugador._id.toString();
-            
-            // Solo procesar jugadores que pertenecen al equipo seleccionado
-            if (!numerosJugadores.has(jugadorId)) return;
+          // Inicializar si no existe
+          if (!estadisticasJugadores.has(jugadorId)) {
+            estadisticasJugadores.set(jugadorId, {
+              jugador: {
+                _id: jugador._id,
+                nombre: jugador.nombre,
+                numero: numerosJugadores.get(jugadorId) || 0,
+                imagen: jugador.imagen
+              },
+              pases: { intentos: 0, completados: 0, touchdowns: 0, intercepciones: 0 },
+              puntos: 0,
+              tackleos: 0,
+              intercepciones: 0,
+              sacks: 0,
+              recepciones: 0,
+              qbRating: 0
+            });
+          }
 
-            // Inicializar si no existe
-            if (!estadisticasJugadores.has(jugadorId)) {
-              estadisticasJugadores.set(jugadorId, {
+          const stats = estadisticasJugadores.get(jugadorId);
+
+          // 🔥 SWITCH EXACTO DE CLASIFICACIÓN GENERAL
+          switch (jugada.tipoJugada) {
+            case 'pase_completo':
+              if (!esSecundario) {
+                stats.pases.intentos++;
+                stats.pases.completados++;
+                if (jugada.resultado?.touchdown) {
+                  stats.pases.touchdowns++;
+                }
+              } else {
+                stats.recepciones++;
+                if (jugada.resultado?.touchdown) {
+                  stats.puntos += 6;
+                  totalPuntosCalculados += 6;
+                }
+              }
+              break;
+              
+            case 'corrida':
+              if (!esSecundario) {
+                if (jugada.resultado?.touchdown) {
+                  stats.puntos += 6;
+                  totalPuntosCalculados += 6;
+                }
+              } else {
+                // 🔥 TACKLEADOR en corrida - EXACTO DE CLASIFICACIÓN GENERAL
+                stats.tackleos++;
+              }
+              break;
+              
+            case 'intercepcion':
+              if (!esSecundario) {
+                stats.intercepciones++;
+                if (jugada.resultado?.touchdown) {
+                  stats.puntos += 6;
+                  totalPuntosCalculados += 6;
+                }
+              } else {
+                // QB interceptado
+                stats.pases.intentos++;
+                stats.pases.intercepciones++;
+              }
+              break;
+              
+            case 'tackleo':
+              if (!esSecundario) {
+                stats.tackleos++;
+              }
+              break;
+              
+            case 'sack':
+              if (!esSecundario) {
+                stats.sacks++;
+              }
+              break;
+              
+            case 'pase_incompleto':
+              if (!esSecundario) {
+                stats.pases.intentos++;
+              }
+              break;
+              
+            case 'conversion_1pt':
+            case 'conversion_2pt':
+              const puntosConversion = jugada.tipoJugada === 'conversion_1pt' ? 1 : 2;
+              if (!esSecundario) {
+                stats.pases.intentos++;
+                stats.pases.completados++;
+                stats.pases.touchdowns++;
+              } else {
+                stats.recepciones++;
+                stats.puntos += puntosConversion;
+                totalPuntosCalculados += puntosConversion;
+              }
+              break;
+              
+            case 'safety':
+              if (!esSecundario) {
+                stats.puntos += 2;
+                totalPuntosCalculados += 2;
+              }
+              break;
+          }
+        };
+
+        // Procesar jugador principal y secundario
+        if (jugada.jugadorPrincipal) {
+          procesarJugador(jugada.jugadorPrincipal, false);
+        }
+        if (jugada.jugadorSecundario) {
+          procesarJugador(jugada.jugadorSecundario, true);
+        }
+        
+        // 🔥 PROCESAR jugadorTouchdown si existe (para intercepción y otros TDs)
+        if (jugada.jugadorTouchdown && jugada.resultado.touchdown) {
+          const jugadorTouchdownId = jugada.jugadorTouchdown._id.toString();
+          if (numerosJugadores.has(jugadorTouchdownId)) {
+            if (!estadisticasJugadores.has(jugadorTouchdownId)) {
+              estadisticasJugadores.set(jugadorTouchdownId, {
                 jugador: {
-                  _id: jugador._id,
-                  nombre: jugador.nombre,
-                  numero: numerosJugadores.get(jugadorId) || 0,
-                  imagen: jugador.imagen
+                  _id: jugada.jugadorTouchdown._id,
+                  nombre: jugada.jugadorTouchdown.nombre,
+                  numero: numerosJugadores.get(jugadorTouchdownId) || 0,
+                  imagen: jugada.jugadorTouchdown.imagen
                 },
-                // 🔥 ESTRUCTURA PLANA COMO EN EL ORIGINAL
                 pases: { intentos: 0, completados: 0, touchdowns: 0, intercepciones: 0 },
                 puntos: 0,
                 tackleos: 0,
                 intercepciones: 0,
                 sacks: 0,
                 recepciones: 0,
-                qbRating: 0 // Se calculará después
+                qbRating: 0
               });
             }
 
-            const esPrincipal = rol === 'Principal';
-            const esSecundario = rol === 'Secundario';
-            const esJugadorTouchdown = rol === 'JugadorTouchdown';
-
-            const stats = estadisticasJugadores.get(jugadorId);
-
-            // 🔥 EXACTAMENTE LA MISMA LÓGICA QUE obtenerClasificacionGeneral
-            switch (jugada.tipoJugada) {
-              case 'pase_completo':
-                if (esPrincipal) {
-                  stats.pases.intentos++;
-                  stats.pases.completados++;
-                  if (jugada.resultado?.touchdown) {
-                    stats.pases.touchdowns++;
-                    // ⚠️ NO PUNTOS AL QB en pases TD
-                  }
-                } else if (esSecundario) {
-                  stats.recepciones++;
-                  if (jugada.resultado?.touchdown) {
-                    stats.puntos += 6;
-                    totalPuntosCalculados += 6;
-                  }
-                } else if (esJugadorTouchdown && jugada.resultado?.touchdown) {
-                  stats.puntos += 6;
-                  totalPuntosCalculados += 6;
-                }
-                break;
-
-              case 'pase_incompleto':
-                if (esPrincipal) {
-                  stats.pases.intentos++;
-                }
-                break;
-
-              case 'recepcion':
-                if (esPrincipal) {
-                  stats.recepciones++;
-                  if (jugada.resultado?.touchdown) {
-                    stats.puntos += 6;
-                    totalPuntosCalculados += 6;
-                  }
-                } else if (esJugadorTouchdown && jugada.resultado?.touchdown) {
-                  stats.puntos += 6;
-                  totalPuntosCalculados += 6;
-                }
-                break;
-
-              case 'corrida':
-                if (esPrincipal) {
-                  if (jugada.resultado?.touchdown) {
-                    stats.puntos += 6;
-                    totalPuntosCalculados += 6;
-                  }
-                } else {
-                  stats.tackleos++;
-                }
-                break;
-
-              case 'intercepcion':
-                if (esPrincipal) {
-                  // INTERCEPTOR: Solo estadística defensiva + posibles puntos de Pick-6
-                  stats.intercepciones++;
-                  if (jugada.resultado?.touchdown) {
-                    stats.puntos += 6;
-                    totalPuntosCalculados += 6;
-                  }
-                } else if (esSecundario) {
-                  // QB INTERCEPTADO: Cuenta como intercepción lanzada
-                  stats.pases.intentos++;
-                  stats.pases.intercepciones++;
-                }
-                // 🏆 PICK-6: Si hay jugadorTouchdown específico
-                if (esJugadorTouchdown && jugada.resultado?.touchdown) {
-                  stats.puntos += 6;
-                  totalPuntosCalculados += 6;
-                }
-                break;
-
-              case 'sack':
-                if (esPrincipal) {
-                  stats.sacks++;
-                }
-                break;
-
-              case 'tackleo':
-                if (esPrincipal) {
-                  stats.tackleos++;
-                }
-                break;
-
-              case 'safety':
-                if (esPrincipal) {
-                  stats.puntos += 2;
-                  totalPuntosCalculados += 2;
-                }
-                break;
-
-              case 'touchdown':
-                if (esPrincipal || esJugadorTouchdown) {
-                  stats.puntos += 6;
-                  totalPuntosCalculados += 6;
-                }
-                break;
-
-              case 'conversion_1pt':
-                if (esPrincipal) {
-                  // QB: Solo stats de pase, NO puntos
-                  stats.pases.intentos++;
-                  stats.pases.completados++;
-                  stats.pases.touchdowns++;
-                } else if (esSecundario) {
-                  // Receptor: Recepción + PUNTOS
-                  stats.recepciones++;
-                  stats.puntos += 1;
-                  totalPuntosCalculados += 1;
-                } else if (esJugadorTouchdown) {
-                  stats.puntos += 1;
-                  totalPuntosCalculados += 1;
-                }
-                break;
-
-              case 'conversion_2pt':
-                if (esPrincipal) {
-                  // QB: Solo stats de pase, NO puntos
-                  stats.pases.intentos++;
-                  stats.pases.completados++;
-                  stats.pases.touchdowns++;
-                } else if (esSecundario) {
-                  // Receptor: Recepción + PUNTOS
-                  stats.recepciones++;
-                  stats.puntos += 2;
-                  totalPuntosCalculados += 2;
-                } else if (esJugadorTouchdown) {
-                  stats.puntos += 2;
-                  totalPuntosCalculados += 2;
-                }
-                break;
-            }
-          };
-
-          // Procesar cada jugador según su rol (IGUAL QUE debugJugadorJugadas)
-          if (jugada.jugadorPrincipal) {
-            procesarJugadorEnJugada(jugada.jugadorPrincipal, 'Principal');
-          }
-          if (jugada.jugadorSecundario) {
-            procesarJugadorEnJugada(jugada.jugadorSecundario, 'Secundario');
-          }
-          if (jugada.jugadorTouchdown) {
-            procesarJugadorEnJugada(jugada.jugadorTouchdown, 'JugadorTouchdown');
+            const statsAnotador = estadisticasJugadores.get(jugadorTouchdownId);
+            statsAnotador.puntos += 6;
+            totalPuntosCalculados += 6;
           }
         }
       });
     });
 
     console.log(`📈 Procesados ${estadisticasJugadores.size} jugadores del equipo`);
-    console.log(`🎮 Total jugadas procesadas: ${totalJugadasProcesadas}`);
     console.log(`💰 Total puntos calculados: ${totalPuntosCalculados}`);
 
     // 🔥 CALCULAR QB RATING PARA CADA JUGADOR
@@ -647,11 +607,9 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
     switch (tipo) {
       case 'qbrating':
         jugadoresArray.sort((a, b) => {
-          // Ordenar por QB Rating descendente
           if (a.qbRating !== b.qbRating) {
             return b.qbRating - a.qbRating;
           }
-          // En caso de empate, por más pases completados
           return b.pases.completados - a.pases.completados;
         });
         break;
@@ -675,7 +633,7 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
     // Tomar solo el top 3
     const top3 = jugadoresArray.slice(0, 3);
 
-    // 🔥 FORMATEAR RESPUESTA CON QB RATING COMPLETO
+    // 🔥 FORMATEAR RESPUESTA
     const lideres = top3.map((jugadorStats, index) => ({
       posicion: index + 1,
       jugador: {
@@ -683,37 +641,33 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
         imagen: getImageUrlServer(jugadorStats.jugador.imagen, req)
       },
       estadisticas: jugadorStats,
-      // 🔥 VALOR PRINCIPAL SEGÚN TIPO (INCLUYE QB RATING)
       valor: tipo === 'qbrating' ? jugadorStats.qbRating :
             tipo === 'puntos' ? jugadorStats.puntos :
             tipo === 'tackleos' ? jugadorStats.tackleos :
             tipo === 'intercepciones' ? jugadorStats.intercepciones :
             tipo === 'sacks' ? jugadorStats.sacks :
             tipo === 'recepciones' ? jugadorStats.recepciones : 0,
-      // 🔥 QB RATING DATA SIEMPRE INCLUIDO (PARA FUTURAS REFERENCIAS)
       qbRatingData: {
         intentos: jugadorStats.pases.intentos,
         completados: jugadorStats.pases.completados,
-        porcentajeComplecion: jugadorStats.pases.intentos > 0 ? 
+        porcentajeComplecion: jugadorStats.pases.intentos > 0 ?
           Math.round((jugadorStats.pases.completados / jugadorStats.pases.intentos) * 100) : 0,
         touchdowns: jugadorStats.pases.touchdowns,
         intercepciones: jugadorStats.pases.intercepciones,
-        rating: jugadorStats.qbRating,
-        // Campos preparados para futuro
-        yardas: 0,
-        esElegible: jugadorStats.pases.intentos >= 5
+        rating: jugadorStats.qbRating
       }
     }));
 
+    console.log(`🏆 Top 3 ${tipo}:`);
+    lideres.forEach((lider, index) => {
+      console.log(`  ${index + 1}. ${lider.jugador.nombre} (#${lider.jugador.numero}) - ${lider.valor} ${tipo}`);
+    });
+
     console.log('📤 Enviando líderes de estadísticas');
-    console.log(`  🏆 Líder ${tipo}: ${lideres[0]?.jugador.nombre || 'N/A'} (#${lideres[0]?.jugador.numero || 'N/A'})`);
-    if (tipo === 'qbrating' && lideres[0]) {
-      console.log(`  🏈 QB Rating: ${lideres[0].qbRatingData.rating} (${lideres[0].qbRatingData.completados}/${lideres[0].qbRatingData.intentos})`);
-    }
-    console.log(`  📊 Total con estadísticas: ${jugadoresArray.length}`);
     console.log(`✅ [${new Date().toISOString()}] FIN - Líderes obtenidos\n`);
 
     res.json({
+      mensaje: 'Líderes de estadísticas obtenidos correctamente',
       lideres,
       tipo,
       equipo: {
@@ -721,14 +675,18 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
         nombre: equipo.nombre,
         imagen: getImageUrlServer(equipo.imagen, req)
       },
-      totalJugadoresConStats: jugadoresArray.length,
+      torneo: {
+        _id: torneo._id,
+        nombre: torneo.nombre
+      },
+      totalJugadores: jugadoresArray.length,
       fechaConsulta: new Date().toISOString()
     });
 
   } catch (error) {
     console.log(`❌ [${new Date().toISOString()}] ERROR al obtener líderes estadísticas:`);
     console.error('💥 Error completo:', error);
-    console.log(`❌ [${new Date().toISOString()}] FIN - Líderes fallido\n`);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Líderes estadísticas fallido\n`);
     
     res.status(500).json({ 
       mensaje: 'Error al obtener líderes de estadísticas', 
