@@ -502,12 +502,13 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
                 break;
 
               case 'corrida':
-                if (esPrincipal && jugada.resultado?.touchdown) {
-                  stats.puntos += 6;
-                  totalPuntosCalculados += 6;
-                } else if (esJugadorTouchdown && jugada.resultado?.touchdown) {
-                  stats.puntos += 6;
-                  totalPuntosCalculados += 6;
+                if (esPrincipal) {
+                  if (jugada.resultado?.touchdown) {
+                    stats.puntos += 6;
+                    totalPuntosCalculados += 6;
+                  }
+                } else {
+                  stats.tackleos++;
                 }
                 break;
 
@@ -1114,10 +1115,17 @@ exports.obtenerEstadisticasTarjetaEquipo = async (req, res) => {
                   
                 case 'corrida':
                   if (!esSecundario) {
-                    // CORREDOR: Si hay TD, recibe los puntos
+                    // 🔥 CORREDOR (jugador principal)
+                    stats.corridas = (stats.corridas || 0) + 1;
+                    // stats.yardasCorrida = (stats.yardasCorrida || 0) + (jugada.yardas || 0); // Si tienes yardas
+                    
                     if (jugada.resultado.touchdown) {
                       stats.puntos += 6;
+                      stats.touchdownsCorrida = (stats.touchdownsCorrida || 0) + 1;
                     }
+                  } else {
+                    // 🔥 TACKLEADOR (jugador secundario en corrida)
+                    stats.tackleos = (stats.tackleos || 0) + 1;
                   }
                   break;
                   
@@ -1442,12 +1450,15 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
               break;
 
             case 'corrida':
-              if (esPrincipal && jugada.resultado?.touchdown) {
-                playerStats.stats.puntos.total += 6;
-                playerStats.stats.puntos.touchdowns++;
-              } else if (esJugadorTouchdown && jugada.resultado?.touchdown) {
-                playerStats.stats.puntos.total += 6;
-                playerStats.stats.puntos.touchdowns++;
+              if (esPrincipal) {
+                playerStats.stats.corridas = (playerStats.stats.corridas || 0) + 1;
+                
+                if (jugada.resultado?.touchdown) {
+                  playerStats.stats.puntos.total += 6;
+                  playerStats.stats.puntos.touchdowns++;
+                }
+              } else if (esSecundario) {
+                playerStats.stats.tackleos.total++;
               }
               break;
 
@@ -1852,14 +1863,14 @@ exports.debugJugadorJugadas = async (req, res) => {
             break;
 
           case 'corrida':
-            if (esPrincipal && jugada.resultado?.touchdown) {
-              jugadaAnalisis.puntosOtorgados = 6;
-              totalPuntosCalculados += 6;
-              jugadaAnalisis.estadisticasOtorgadas.push('puntos.total += 6', 'puntos.touchdowns++');
-            } else if (esJugadorTouchdown && jugada.resultado?.touchdown) {
-              jugadaAnalisis.puntosOtorgados = 6;
-              totalPuntosCalculados += 6;
-              jugadaAnalisis.estadisticasOtorgadas.push('🎯 PUNTOS AL JUGADOR_TOUCHDOWN', 'puntos.total += 6', 'puntos.touchdowns++');
+            if (esPrincipal) {
+              if (jugada.resultado?.touchdown) {
+                jugadaAnalisis.puntosOtorgados = 6;
+                totalPuntosCalculados += 6;
+                jugadaAnalisis.estadisticasOtorgadas.push('puntos.total += 6', 'puntos.touchdowns++');
+              }
+            } else {
+              jugadaAnalisis.estadisticasOtorgadas.push('tackleos.total++');
             }
             break;
 
@@ -2126,7 +2137,7 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
           const procesarJugador = (jugadorObj, esSecundario) => {
             if (jugadorObj && jugadorObj._id) {
               const jugadorId = jugadorObj._id.toString();
-              const numero = obtenerNumeroJugador(jugadorObj._id, equipoId) || null;
+              const numero = numerosJugadores.get(jugadorId) || null; // ✅ Usar el Map correcto
               
               if (!estadisticasJugadores.has(jugadorId)) {
                 estadisticasJugadores.set(jugadorId, {
@@ -2137,11 +2148,12 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
                     numero: numero
                   },
                   pases: { intentos: 0, completados: 0, touchdowns: 0, intercepciones: 0 },
-                  puntos: 0,
-                  tackleos: 0,
+                  puntos: 0,        // ✅ Número simple
+                  tackleos: 0,      // ✅ Número simple
                   intercepciones: 0,
                   sacks: 0,
-                  recepciones: 0
+                  recepciones: 0,
+                  corridas: 0       // ✅ Agregar corridas
                 });
               }
 
@@ -2154,29 +2166,55 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
                     stats.pases.intentos++;
                     stats.pases.completados++;
                     if (jugada.resultado.touchdown) {
+                      stats.pases.touchdowns++;
                       stats.puntos += 6;
                     }
                   } else {
                     stats.recepciones++;
-                  }
-                  break;
-                  
-                case 'corrida':
-                  if (!esSecundario) {
                     if (jugada.resultado.touchdown) {
                       stats.puntos += 6;
                     }
                   }
                   break;
                   
+                case 'corrida':
+                  if (!esSecundario) {  // ✅ Usar !esSecundario (corredor = principal)
+                    stats.corridas++;
+                    
+                    if (jugada.resultado?.touchdown) {
+                      stats.puntos += 6;  // ✅ Número simple
+                    }
+                  } else {
+                    // 🔥 TACKLEADOR en corrida - AQUÍ ESTÁ EL FIX PARA TU PROBLEMA
+                    stats.tackleos++;
+                  }
+                  break;
+                  
                 case 'intercepcion':
                   if (!esSecundario) {
-                    // INTERCEPTOR: Solo estadística defensiva
                     stats.intercepciones++;
-                    // ❌ NO AGREGAR PUNTOS AQUÍ - van al jugadorTouchdown
+                    // Los puntos van al jugadorTouchdown, no al interceptor
                   } else {
-                    // QB INTERCEPTADO: Cuenta como intercepción lanzada
+                    // QB interceptado
                     stats.pases.intercepciones++;
+                  }
+                  break;
+                  
+                case 'tackleo':
+                  if (!esSecundario) {
+                    stats.tackleos++;
+                  }
+                  break;
+                  
+                case 'sack':
+                  if (!esSecundario) {
+                    stats.sacks++;
+                  }
+                  break;
+                  
+                case 'pase_incompleto':
+                  if (!esSecundario) {
+                    stats.pases.intentos++;
                   }
                   break;
                   
@@ -2190,24 +2228,6 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
                   } else {
                     stats.recepciones++;
                     stats.puntos += puntosConversion;
-                  }
-                  break;
-                  
-                case 'pase_incompleto':
-                  if (!esSecundario) {
-                    stats.pases.intentos++;
-                  }
-                  break;
-                  
-                case 'sack':
-                  if (!esSecundario) {
-                    stats.sacks++;
-                  }
-                  break;
-                  
-                case 'tackleo':
-                  if (!esSecundario) {
-                    stats.tackleos++;
                   }
                   break;
                   

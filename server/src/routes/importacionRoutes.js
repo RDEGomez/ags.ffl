@@ -333,7 +333,7 @@ router.post('/validar',
           const numeroJugadorPrincipal = fila.numero_jugador_principal;
           if (numeroJugadorPrincipal) {
             const numero = parseInt(numeroJugadorPrincipal);
-            if (isNaN(numero) || numero <= 0) {
+            if (isNaN(numero) || numero < 0) {
               erroresNumeros.push(`Fila ${index + 2}: "${numeroJugadorPrincipal}" no es un número válido`);
             }
           }

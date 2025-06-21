@@ -416,7 +416,7 @@ const JugadoresModalList = ({ jugadores, equipo }) => {
                     </Typography>
                     
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                      {jugador.numero && jugador.numero !== '?' && (
+                      {jugador.numero?.toString() && jugador.numero !== '?' && (
                         <Chip 
                           label={`#${jugador.numero}`}
                           size="small"

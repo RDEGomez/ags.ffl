@@ -397,9 +397,12 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     try {
       setLoading(true);
 
-      // ✅ VALIDACIÓN CORRECTA POR TIPO DE JUGADA:
+      // ✅ VALIDACIÓN CORRECTA POR TIPO DE JUGADA (CON FIX PARA NÚMERO 0):
       // Validar campos requeridos según el tipo específico de jugada
       let camposFaltantes = [];
+
+      // 🔥 HELPER PARA VALIDAR CAMPOS (PERMITE NÚMERO 0)
+      const campoEstaVacio = (valor) => valor === undefined || valor === null || valor === '';
 
       switch (jugadaSeleccionada.id) {
         case 'pase_completo':
@@ -407,34 +410,36 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         case 'conversion_1pt':
         case 'conversion_2pt':
           // Requieren pasador Y receptor
-          if (!formularioData.pasador) camposFaltantes.push('Pasador');
-          if (!formularioData.receptor) camposFaltantes.push('Receptor');
+          if (campoEstaVacio(formularioData.pasador)) camposFaltantes.push('Pasador');
+          if (campoEstaVacio(formularioData.receptor)) camposFaltantes.push('Receptor');
           break;
           
         case 'pase_incompleto':
           // Solo requiere pasador
-          if (!formularioData.pasador) camposFaltantes.push('Pasador');
+          if (campoEstaVacio(formularioData.pasador)) camposFaltantes.push('Pasador');
           break;
           
         case 'intercepcion':
           // Requiere interceptor Y QB interceptado
-          if (!formularioData.interceptor) camposFaltantes.push('Interceptor');
-          if (!formularioData.qb_interceptado) camposFaltantes.push('QB Interceptado');
+          if (campoEstaVacio(formularioData.interceptor)) camposFaltantes.push('Interceptor');
+          if (campoEstaVacio(formularioData.qb_interceptado)) camposFaltantes.push('QB Interceptado');
           break;
           
         case 'corrida':
           // Solo requiere corredor (tackleador es opcional)
-          if (!formularioData.corredor) camposFaltantes.push('Corredor');
+          if (campoEstaVacio(formularioData.corredor)) {
+            camposFaltantes.push('Corredor');
+          }
           break;
           
         case 'sack':
           // Solo requiere tackleador
-          if (!formularioData.tackleador) camposFaltantes.push('Jugador que hace Sack');
+          if (campoEstaVacio(formularioData.tackleador)) camposFaltantes.push('Jugador que hace Sack');
           break;
 
         case 'tackleo':
           // Solo requiere tackleador
-          if (!formularioData.tackleador) camposFaltantes.push('Jugador que Tacklea');
+          if (campoEstaVacio(formularioData.tackleador)) camposFaltantes.push('Jugador que Tacklea');
           break;
           
         case 'safety':
@@ -444,12 +449,12 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         default:
           // Para otros tipos, usar validación genérica
           const camposRequeridosGenericos = jugadaSeleccionada.campos.filter(c => c.requerido);
-          camposFaltantes = camposRequeridosGenericos.filter(c => !formularioData[c.nombre] || formularioData[c.nombre] === '').map(c => c.label);
+          camposFaltantes = camposRequeridosGenericos.filter(c => campoEstaVacio(formularioData[c.nombre])).map(c => c.label);
       }
 
       // 🔥 NUEVA VALIDACIÓN: No permitir tackleador si hay touchdown
       if ((jugadaSeleccionada.id === 'intercepcion' || jugadaSeleccionada.id === 'corrida') && 
-          touchdownMarcado && formularioData.tackleador) {
+          touchdownMarcado && !campoEstaVacio(formularioData.tackleador)) {
         Swal.fire({
           icon: 'warning',
           title: 'Jugada inconsistente',
@@ -467,6 +472,9 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         return;
       }
 
+      // 🔥 HELPER PARA VERIFICAR SI UN CAMPO TIENE VALOR (PERMITE NÚMERO 0)
+      const tieneValor = (valor) => valor !== undefined && valor !== null && valor !== '';
+
       // Preparar datos de la jugada
       const jugadaData = {
         tipoJugada: jugadaSeleccionada.id,
@@ -474,15 +482,22 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         descripcion: formularioData.descripcion || `${jugadaSeleccionada.label}`,
         
         // Enviar números de jugadores en lugar de IDs
-        numeroJugadorPrincipal: parseInt(formularioData.pasador) || parseInt(formularioData.corredor) || 
-                              parseInt(formularioData.interceptor) || parseInt(formularioData.tackleador),
+        numeroJugadorPrincipal: parseInt(formularioData.pasador ?? formularioData.corredor ?? formularioData.interceptor ?? formularioData.tackleador) || 0,
         
-        // 🔥 SOLO enviar jugador secundario si existe y tiene valor
-        ...(formularioData.receptor && { numeroJugadorSecundario: parseInt(formularioData.receptor) }),
-        ...(formularioData.qb_interceptado && { numeroJugadorSecundario: parseInt(formularioData.qb_interceptado) }),
+        // 🔥 FIX COMPLETO: Usar validación robusta para todos los campos secundarios (PERMITE NÚMERO 0)
+        ...(tieneValor(formularioData.receptor) && { 
+          numeroJugadorSecundario: parseInt(formularioData.receptor) 
+        }),
+        ...(tieneValor(formularioData.qb_interceptado) && { 
+          numeroJugadorSecundario: parseInt(formularioData.qb_interceptado) 
+        }),
+        ...(tieneValor(formularioData.tackleador) && jugadaSeleccionada.id === 'corrida' && { 
+          numeroJugadorSecundario: parseInt(formularioData.tackleador) 
+        }),
         
-        // 🔥 NUEVO: Campo extra para touchdown en intercepción
-        ...(touchdownMarcado && jugadaSeleccionada.campoTouchdownExtra && formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre] && {
+        // 🔥 CAMPO EXTRA PARA TOUCHDOWN EN INTERCEPCIÓN (CON FIX PARA NÚMERO 0)
+        ...(touchdownMarcado && jugadaSeleccionada.campoTouchdownExtra && 
+            tieneValor(formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre]) && {
           numeroJugadorTouchdown: parseInt(formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre])
         }),
         
@@ -694,7 +709,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         </CardContent>
       </Card>
 
-      {/* 🎯 TABLA DE JUGADAS RECIENTES - VERSION ACTUALIZADA */}
+      {/* 🎯 TABLA DE JUGADAS RECIENTES - VERSION CORREGIDA */}
       <Card sx={{
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         borderRadius: 3,
@@ -716,7 +731,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugada</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Equipo</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugador Principal</TableCell>
-                    <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugador Secundario</TableCell> {/* 🔥 NUEVA COLUMNA */}
+                    <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Jugador Secundario</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Puntos</TableCell>
                     <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 'bold' }}>Acciones</TableCell>
                   </TableRow>
@@ -743,7 +758,10 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           {jugada.equipoEnPosesion?.nombre || 'N/A'}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {(jugada.jugadorPrincipal?.numero && jugada.jugadorPrincipal?.nombre) ? (
+                          {/* 🔥 FIX PARA NÚMERO 0 - Verificar que el jugador existe Y que el número sea válido */}
+                          {(jugada.jugadorPrincipal?.numero !== undefined && 
+                            jugada.jugadorPrincipal?.numero !== null && 
+                            jugada.jugadorPrincipal?.nombre) ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Avatar 
                                 src={jugada.jugadorPrincipal?.imagen} 
@@ -772,7 +790,10 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           )}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {(jugada.jugadorSecundario?.numero && jugada.jugadorSecundario?.nombre) ? (
+                          {/* 🔥 FIX PARA NÚMERO 0 - Verificar que el jugador existe Y que el número sea válido */}
+                          {(jugada.jugadorSecundario?.numero !== undefined && 
+                            jugada.jugadorSecundario?.numero !== null && 
+                            jugada.jugadorSecundario?.nombre) ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Avatar 
                                 src={jugada.jugadorSecundario?.imagen} 
@@ -1095,7 +1116,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                         value={formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre] || ''}
                         onChange={(e) => manejarCambioFormulario(jugadaSeleccionada.campoTouchdownExtra.nombre, e.target.value)}
                         inputProps={{ 
-                          min: 1, 
+                          min: 0, 
                           max: 99,
                           style: { textAlign: 'center', fontSize: '1.1rem', fontWeight: 'bold' }
                         }}
@@ -1146,7 +1167,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           value={formularioData[campo.nombre] || ''}
                           onChange={(e) => manejarCambioFormulario(campo.nombre, e.target.value)}
                           inputProps={{ 
-                            min: 1, 
+                            min: 0, 
                             max: 99,
                             style: { textAlign: 'center', fontSize: '1.1rem', fontWeight: 'bold' }
                           }}

@@ -250,7 +250,7 @@ const EquipoUsuarioItem = ({ equipoObj, index, usuarioId }) => {
     equipoId: equipo._id,
     nombre: equipoNombre,
     categoria: categoriaNombre,
-    numero: numero
+    numero: numero?.toString() || '?',
   });
   
   return (
@@ -336,7 +336,7 @@ const EquipoUsuarioItem = ({ equipoObj, index, usuarioId }) => {
               boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
             }}
           >
-            {numero || '?'}
+            {numero}
           </Box>
         </Box>
       </Box>
