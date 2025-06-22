@@ -1,9 +1,10 @@
+// 🔥 DetallePartido.jsx - LAYOUT PERFECTO CON FLEXBOX
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import axiosInstance from '../../config/axios';
 import { useAuth } from '../../context/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LideresPartido } from '../../components/LideresPartido';
 
 import {
@@ -13,17 +14,16 @@ import {
   Tab,
   Card,
   CardContent,
-  Grid,
   Alert,
   CircularProgress,
   Breadcrumbs,
   Button,
   Chip,
   Avatar,
-  Divider,
   IconButton,
   Tooltip,
-  Paper
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 
 import {
@@ -33,14 +33,16 @@ import {
   Edit as EditIcon,
   PlayArrow as PlayArrowIcon,
   Stop as StopIcon,
-  Schedule as ScheduleIcon,
   Group as GroupIcon,
   Gavel as GavelIcon,
   Assessment as AssessmentIcon,
   Info as InfoIcon,
   Timeline as TimelineIcon,
   LocalFireDepartment as Fire,
-  Sports as SportsIcon
+  Sports as SportsIcon,
+  LocationOn as LocationIcon,
+  CalendarToday as CalendarIcon,
+  EmojiEvents as TrophyIcon
 } from '@mui/icons-material';
 
 // Importar los paneles existentes
@@ -53,33 +55,502 @@ import EstadoPartido from './EstadoPartido';
 import RegistroJugadas from './RegistroJugadas';
 
 const TabPanel = ({ children, value, index, ...other }) => (
-  <div
+  <motion.div
     role="tabpanel"
     hidden={value !== index}
     id={`partido-tabpanel-${index}`}
     aria-labelledby={`partido-tab-${index}`}
     {...other}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: value === index ? 1 : 0, y: value === index ? 0 : 20 }}
+    transition={{ duration: 0.4 }}
+    style={{ width: '100%' }}
   >
     {value === index && (
-      <Box sx={{ py: 3 }}>
+      <Box sx={{ 
+        py: { xs: 2, md: 3 },
+        width: '100%',
+        overflow: 'hidden' // Evita que el contenido se salga
+      }}>
         {children}
       </Box>
     )}
-  </div>
+  </motion.div>
 );
 
+// 🔥 COMPONENTE: Header con navegación mejorado
+const NavigationHeader = ({ partidoId, navigate, puedeGestionarTorneos, onEdit }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  return (
+    <Box sx={{ 
+      mb: 4,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      px: { xs: 2, md: 0 }
+    }}>
+      {/* Breadcrumbs */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <IconButton
+            onClick={() => navigate('/partidos')}
+            sx={{ 
+              background: 'linear-gradient(135deg, rgba(100, 181, 246, 0.2) 0%, rgba(100, 181, 246, 0.1) 100%)',
+              border: '1px solid rgba(100, 181, 246, 0.3)',
+              color: '#64b5f6',
+              '&:hover': {
+                background: 'linear-gradient(135deg, rgba(100, 181, 246, 0.3) 0%, rgba(100, 181, 246, 0.2) 100%)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 25px rgba(100, 181, 246, 0.3)'
+              }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        </motion.div>
+
+        <Breadcrumbs 
+          separator={<NavigateNextIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />}
+        >
+          <Link 
+            to="/partidos" 
+            style={{ 
+              color: '#64b5f6', 
+              textDecoration: 'none',
+              fontSize: '0.9rem',
+              fontWeight: 500
+            }}
+          >
+            Partidos
+          </Link>
+          <Typography sx={{ color: 'white', fontSize: '0.9rem', fontWeight: 600 }}>
+            #{partidoId?.slice(-8)}
+          </Typography>
+        </Breadcrumbs>
+      </Box>
+
+      {/* Botón de editar */}
+      {puedeGestionarTorneos && (
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={onEdit}
+            sx={{
+              background: 'linear-gradient(135deg, #9c27b0 0%, #673ab7 100%)',
+              color: 'white',
+              borderRadius: '12px',
+              px: 3,
+              py: 1,
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #ad32c4 0%, #7c4dff 100%)',
+                boxShadow: '0 6px 20px rgba(156, 39, 176, 0.4)',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            {isMobile ? 'Editar' : 'Editar Partido'}
+          </Button>
+        </motion.div>
+      )}
+    </Box>
+  );
+};
+
+// 🔥 COMPONENTE: Información principal del partido - FLEXBOX CENTRADO
+const PartidoMainInfo = ({ partido }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const formatearFecha = (fecha) => {
+    return new Date(fecha).toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const formatearHora = (fecha) => {
+    return new Date(fecha).toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+    >
+      <Card sx={{
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '24px',
+        mb: 4,
+        overflow: 'hidden',
+        width: '100%'
+      }}>
+        <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+          {/* 🔥 LAYOUT PRINCIPAL CON FLEXBOX */}
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', lg: 'row' },
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: { xs: 4, lg: 6 },
+            width: '100%'
+          }}>
+            
+            {/* 🔥 EQUIPO LOCAL */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              flex: { xs: 'none', lg: 1 },
+              width: { xs: '100%', lg: 'auto' },
+              maxWidth: { xs: '300px', lg: '400px' }
+            }}>
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <Avatar
+                  src={partido.equipoLocal?.imagen}
+                  alt={`Logo de ${partido.equipoLocal?.nombre}`}
+                  sx={{ 
+                    width: { xs: 100, md: 140 }, 
+                    height: { xs: 100, md: 140 },
+                    mb: 2,
+                    border: '4px solid rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                  }}
+                >
+                  <GroupIcon sx={{ fontSize: { xs: 50, md: 70 }, color: '#64b5f6' }} />
+                </Avatar>
+              </motion.div>
+
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 700,
+                  mb: 1,
+                  fontSize: { xs: '1.5rem', md: '2rem' },
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                  wordBreak: 'break-word'
+                }}
+              >
+                {partido.equipoLocal?.nombre || 'Equipo Local'}
+              </Typography>
+
+              <Chip
+                label="Local"
+                sx={{
+                  backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                  color: '#4caf50',
+                  border: '1px solid rgba(76, 175, 80, 0.3)',
+                  fontWeight: 600,
+                  mb: 2
+                }}
+              />
+
+              {/* Marcador Local */}
+              <motion.div
+                animate={{ 
+                  scale: partido.estado === 'en_curso' ? [1, 1.05, 1] : 1,
+                  textShadow: partido.estado === 'en_curso' ? 
+                    ['0 0 10px #64b5f6', '0 0 20px #64b5f6', '0 0 10px #64b5f6'] : 
+                    '0 0 10px #64b5f6'
+                }}
+                transition={{ duration: 2, repeat: partido.estado === 'en_curso' ? Infinity : 0 }}
+              >
+                <Typography 
+                  variant="h1" 
+                  sx={{ 
+                    fontSize: { xs: '4rem', md: '6rem' },
+                    fontWeight: 900,
+                    color: '#64b5f6',
+                    lineHeight: 1,
+                    textShadow: '0 0 20px rgba(100, 181, 246, 0.5)',
+                    fontFamily: 'monospace'
+                  }}
+                >
+                  {partido.marcador?.local || 0}
+                </Typography>
+              </motion.div>
+            </Box>
+
+            {/* 🔥 SECCIÓN CENTRAL VS */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 3,
+              flex: { xs: 'none', lg: 0 },
+              width: { xs: '100%', lg: 'auto' },
+              order: { xs: isMobile ? 1 : 0, lg: 0 }
+            }}>
+              <Typography 
+                variant="h3" 
+                sx={{ 
+                  color: 'rgba(255, 255, 255, 0.3)',
+                  fontWeight: 300,
+                  fontSize: { xs: '2rem', md: '3rem' },
+                  letterSpacing: '0.1em'
+                }}
+              >
+                VS
+              </Typography>
+              
+              <EstadoPartido estado={partido.estado} />
+            </Box>
+
+            {/* 🔥 EQUIPO VISITANTE */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              flex: { xs: 'none', lg: 1 },
+              width: { xs: '100%', lg: 'auto' },
+              maxWidth: { xs: '300px', lg: '400px' }
+            }}>
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <Avatar
+                  src={partido.equipoVisitante?.imagen}
+                  alt={`Logo de ${partido.equipoVisitante?.nombre}`}
+                  sx={{ 
+                    width: { xs: 100, md: 140 }, 
+                    height: { xs: 100, md: 140 },
+                    mb: 2,
+                    border: '4px solid rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                  }}
+                >
+                  <GroupIcon sx={{ fontSize: { xs: 50, md: 70 }, color: '#64b5f6' }} />
+                </Avatar>
+              </motion.div>
+
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 700,
+                  mb: 1,
+                  fontSize: { xs: '1.5rem', md: '2rem' },
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                  wordBreak: 'break-word'
+                }}
+              >
+                {partido.equipoVisitante?.nombre || 'Equipo Visitante'}
+              </Typography>
+
+              <Chip
+                label="Visitante"
+                sx={{
+                  backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                  color: '#ff9800',
+                  border: '1px solid rgba(255, 152, 0, 0.3)',
+                  fontWeight: 600,
+                  mb: 2
+                }}
+              />
+
+              {/* Marcador Visitante */}
+              <motion.div
+                animate={{ 
+                  scale: partido.estado === 'en_curso' ? [1, 1.05, 1] : 1,
+                  textShadow: partido.estado === 'en_curso' ? 
+                    ['0 0 10px #64b5f6', '0 0 20px #64b5f6', '0 0 10px #64b5f6'] : 
+                    '0 0 10px #64b5f6'
+                }}
+                transition={{ duration: 2, repeat: partido.estado === 'en_curso' ? Infinity : 0, delay: 0.1 }}
+              >
+                <Typography 
+                  variant="h1" 
+                  sx={{ 
+                    fontSize: { xs: '4rem', md: '6rem' },
+                    fontWeight: 900,
+                    color: '#64b5f6',
+                    lineHeight: 1,
+                    textShadow: '0 0 20px rgba(100, 181, 246, 0.5)',
+                    fontFamily: 'monospace'
+                  }}
+                >
+                  {partido.marcador?.visitante || 0}
+                </Typography>
+              </motion.div>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+// 🔥 COMPONENTE: Información adicional con flexbox
+const InfoAdicional = ({ partido }) => {
+  const formatearFecha = (fecha) => {
+    return new Date(fecha).toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const formatearHora = (fecha) => {
+    return new Date(fecha).toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.4 }}
+    >
+      <Card sx={{
+        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '20px',
+        p: 3,
+        mb: 4,
+        width: '100%'
+      }}>
+        {/* 🔥 FLEXBOX PARA INFO ADICIONAL */}
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: { xs: 3, md: 6 },
+          flexWrap: 'wrap'
+        }}>
+          {/* Fecha */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
+            textAlign: 'center',
+            minWidth: '150px'
+          }}>
+            <CalendarIcon sx={{ fontSize: 32, color: '#64b5f6' }} />
+            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+              {formatearFecha(partido.fechaHora)}
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              {formatearHora(partido.fechaHora)}
+            </Typography>
+          </Box>
+
+          {/* Torneo */}
+          {partido.torneo && (
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              textAlign: 'center',
+              minWidth: '150px'
+            }}>
+              <TrophyIcon sx={{ fontSize: 32, color: '#9c27b0' }} />
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                {partido.torneo.nombre}
+              </Typography>
+              <Chip
+                label="Torneo"
+                size="small"
+                sx={{
+                  backgroundColor: 'rgba(156, 39, 176, 0.2)',
+                  color: '#9c27b0',
+                  border: '1px solid rgba(156, 39, 176, 0.3)'
+                }}
+              />
+            </Box>
+          )}
+
+          {/* Sede */}
+          {partido.sede && (
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              textAlign: 'center',
+              minWidth: '150px'
+            }}>
+              <LocationIcon sx={{ fontSize: 32, color: '#ff9800' }} />
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                {partido.sede.nombre || 'Sede TBD'}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                {partido.sede.direccion || 'Dirección pendiente'}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Categoría */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
+            textAlign: 'center',
+            minWidth: '150px'
+          }}>
+            <SportsFootballIcon sx={{ fontSize: 32, color: '#4caf50' }} />
+            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+              {partido.categoria?.toUpperCase() || 'CATEGORÍA'}
+            </Typography>
+            <Chip
+              label="Categoría"
+              size="small"
+              sx={{
+                backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                color: '#4caf50',
+                border: '1px solid rgba(76, 175, 80, 0.3)'
+              }}
+            />
+          </Box>
+        </Box>
+      </Card>
+    </motion.div>
+  );
+};
+
+// 🔥 COMPONENTE PRINCIPAL MEJORADO
 export const DetallePartido = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { puedeGestionarTorneos, usuario } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Estados
   const [partido, setPartido] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tabActual, setTabActual] = useState(0);
-  const [actualizandoEstado, setActualizandoEstado] = useState(false);
-  const [mostrarLideres, setMostrarLideres] = useState(true);
 
   // Obtener partido
   const obtenerPartido = async () => {
@@ -90,139 +561,24 @@ export const DetallePartido = () => {
       setError('');
     } catch (error) {
       console.error('Error al obtener partido:', error);
-      setError('No se pudo cargar la información del partido');
-      
-      if (error.response?.status === 404) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Partido no encontrado',
-          text: 'El partido que buscas no existe o ha sido eliminado'
-        }).then(() => {
-          navigate('/partidos');
-        });
-      }
+      setError(error.response?.data?.mensaje || 'Error al cargar el partido');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (id) {
-      obtenerPartido();
-    }
+    obtenerPartido();
   }, [id]);
 
-  // Cambiar estado del partido
-  const cambiarEstadoPartido = async (nuevoEstado) => {
-    if (!puedeGestionarTorneos()) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Sin permisos',
-        text: 'No tienes permisos para cambiar el estado del partido'
-      });
-      return;
-    }
-
-    try {
-      const { value: motivo } = await Swal.fire({
-        title: `¿Cambiar estado a "${nuevoEstado}"?`,
-        input: 'textarea',
-        inputLabel: 'Motivo del cambio (opcional)',
-        inputPlaceholder: 'Describe el motivo del cambio de estado...',
-        showCancelButton: true,
-        confirmButtonText: 'Cambiar Estado',
-        cancelButtonText: 'Cancelar'
-      });
-
-      if (motivo !== undefined) {
-        setActualizandoEstado(true);
-        
-        await axiosInstance.patch(`/partidos/${id}/estado`, {
-          estado: nuevoEstado,
-          motivo: motivo || undefined
-        });
-
-        await obtenerPartido(); // Refrescar datos
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'Estado actualizado',
-          text: `El partido ahora está "${nuevoEstado}"`,
-          timer: 2000,
-          showConfirmButton: false
-        });
-      }
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.mensaje || 'No se pudo cambiar el estado del partido'
-      });
-    } finally {
-      setActualizandoEstado(false);
-    }
-  };
-
-  // Obtener acciones rápidas según el estado
-  const getAccionesRapidas = () => {
-    if (!puedeGestionarTorneos() && usuario?.rol !== 'arbitro') return [];
-
-    const acciones = [];
-    
-    switch (partido?.estado) {
-      case 'programado':
-        acciones.push({
-          label: 'Iniciar Partido',
-          color: 'success',
-          icon: <PlayArrowIcon />,
-          action: () => cambiarEstadoPartido('en_curso')
-        });
-        break;
-      
-      case 'en_curso':
-        acciones.push({
-          label: 'Medio Tiempo',
-          color: 'warning',
-          icon: <StopIcon />,
-          action: () => cambiarEstadoPartido('medio_tiempo')
-        });
-        acciones.push({
-          label: 'Finalizar',
-          color: 'info',
-          icon: <StopIcon />,
-          action: () => cambiarEstadoPartido('finalizado')
-        });
-        break;
-      
-      case 'medio_tiempo':
-        acciones.push({
-          label: 'Reanudar',
-          color: 'success',
-          icon: <PlayArrowIcon />,
-          action: () => cambiarEstadoPartido('en_curso')
-        });
-        acciones.push({
-          label: 'Finalizar',
-          color: 'info',
-          icon: <StopIcon />,
-          action: () => cambiarEstadoPartido('finalizado')
-        });
-        break;
-    }
-
-    return acciones;
-  };
-
-  // Configuración de tabs
+  // Configuración de tabs modernos
   const tabs = [
-    { label: 'Información', icon: <InfoIcon />, index: 0 },
-    { label: 'Registro Jugadas', icon: <TimelineIcon />, index: 1, requierePartidoEnCurso: true },
-    { label: 'Estadísticas', icon: <AssessmentIcon />, index: 2 },
-    { label: 'Árbitros', icon: <GavelIcon />, index: 3 },
-    { label: 'Jugadas', icon: <SportsIcon />, index: 4 },
-    { label: 'Líderes Partido', icon: <Fire />, index: 5 },
-    { label: 'Detalles', icon: <InfoIcon />, index: 6 }
+    { label: 'Info', icon: <InfoIcon />, index: 0, color: '#64b5f6' },
+    { label: 'Registro', icon: <TimelineIcon />, index: 1, color: '#4caf50', requierePartidoEnCurso: true },
+    { label: 'Stats', icon: <AssessmentIcon />, index: 2, color: '#ff9800' },
+    { label: 'Árbitros', icon: <GavelIcon />, index: 3, color: '#9c27b0' },
+    { label: 'Jugadas', icon: <SportsIcon />, index: 4, color: '#f44336' },
+    { label: 'Líderes', icon: <Fire />, index: 5, color: '#ff5722' }
   ];
 
   if (loading) {
@@ -231,10 +587,17 @@ export const DetallePartido = () => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center',
-        minHeight: '400px'
+        minHeight: '100vh',
+        flexDirection: 'column',
+        gap: 3
       }}>
-        <CircularProgress size={60} />
-        <Typography sx={{ ml: 2, color: 'white' }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        >
+          <SportsFootballIcon sx={{ fontSize: 60, color: '#64b5f6' }} />
+        </motion.div>
+        <Typography sx={{ color: 'white', fontSize: '1.2rem' }}>
           Cargando información del partido...
         </Typography>
       </Box>
@@ -243,33 +606,67 @@ export const DetallePartido = () => {
 
   if (error) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-        <Button
-          variant="contained"
-          onClick={obtenerPartido}
-          startIcon={<SportsFootballIcon />}
+      <Box sx={{ 
+        maxWidth: '600px', 
+        mx: 'auto', 
+        py: 8, 
+        px: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          style={{ width: '100%' }}
         >
-          Reintentar
-        </Button>
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 3,
+              borderRadius: '16px',
+              backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              border: '1px solid rgba(244, 67, 54, 0.3)'
+            }}
+          >
+            {error}
+          </Alert>
+          <Button
+            variant="contained"
+            onClick={obtenerPartido}
+            startIcon={<SportsFootballIcon />}
+            fullWidth
+            sx={{
+              borderRadius: '12px',
+              py: 1.5,
+              fontSize: '1.1rem',
+              background: 'linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%)'
+            }}
+          >
+            Reintentar
+          </Button>
+        </motion.div>
       </Box>
     );
   }
 
   if (!partido) {
     return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="white">
+      <Box sx={{ 
+        maxWidth: '600px', 
+        mx: 'auto', 
+        py: 8, 
+        textAlign: 'center',
+        px: 2
+      }}>
+        <Typography variant="h5" color="white" sx={{ mb: 2 }}>
           No se encontró información del partido
         </Typography>
         <Button
-          component={Link}
-          to="/partidos"
           variant="outlined"
-          sx={{ mt: 2 }}
-          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/partidos')}
+          sx={{ color: '#64b5f6', borderColor: '#64b5f6' }}
         >
           Volver a Partidos
         </Button>
@@ -279,309 +676,483 @@ export const DetallePartido = () => {
 
   return (
     <Box sx={{ 
-      width: '100%', 
-      p: { xs: 2, md: 4 },
-      backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
-      minHeight: 'calc(100vh - 64px)',
-      borderRadius: 2
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
+      py: { xs: 2, md: 4 },
+      px: { xs: 1, md: 2 },
+      width: '100%',
+      overflow: 'hidden'
     }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        {/* Breadcrumbs */}
-        <Breadcrumbs 
-          separator={<NavigateNextIcon fontSize="small" />}
-          sx={{ mb: 3, color: 'rgba(255,255,255,0.7)' }}
+      {/* 🔥 CONTENEDOR PRINCIPAL CENTRADO CON FLEXBOX */}
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: '1400px',
+        mx: 'auto'
+      }}>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          style={{ width: '100%' }}
         >
-          <Typography 
-            component={Link}
-            to="/partidos"
-            sx={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', cursor: 'pointer' }}
-          >
-            Partidos
-          </Typography>
-          <Typography color="primary">
-            {partido.equipoLocal?.nombre} vs {partido.equipoVisitante?.nombre}
-          </Typography>
-        </Breadcrumbs>
+          {/* Header de navegación */}
+          <NavigationHeader 
+            partidoId={partido._id}
+            navigate={navigate}
+            puedeGestionarTorneos={puedeGestionarTorneos}
+            onEdit={() => navigate(`/partidos/${partido._id}/editar`)}
+          />
 
-        {/* Header del partido */}
-        <Card sx={{
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          borderRadius: 3,
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          mb: 3
-        }}>
-          <CardContent sx={{ p: 4 }}>
-            {/* Título y acciones */}
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'flex-start',
-              mb: 3,
-              flexWrap: 'wrap',
-              gap: 2
+          {/* Información principal del partido */}
+          <PartidoMainInfo partido={partido} />
+
+          {/* Información adicional */}
+          <InfoAdicional partido={partido} />
+
+          {/* 🔥 TABS CONTAINER CON FLEXBOX COMPLETO */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            style={{ width: '100%' }}
+          >
+            <Card sx={{
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              width: '100%'
             }}>
-              <Box>
-                <Typography variant="h4" sx={{ 
-                  color: 'white', 
-                  fontWeight: 'bold',
-                  mb: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2
-                }}>
-                  <SportsFootballIcon sx={{ color: '#64b5f6' }} />
-                  Partido #{partido._id}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <EstadoPartido estado={partido.estado} variant="compacto" />
-                  
-                  {partido.torneo && (
-                    <Chip
-                      label={partido.torneo.nombre}
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                    />
-                  )}
-                  
-                  {partido.categoria && (
-                    <Chip
-                      label={partido.categoria.toUpperCase()}
-                      color="secondary"
-                      variant="outlined"
-                      size="small"
-                    />
-                  )}
-                </Box>
+              {/* Tabs Header */}
+              <Box sx={{ 
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'rgba(0, 0, 0, 0.2)',
+                width: '100%'
+              }}>
+                <Tabs 
+                  value={tabActual} 
+                  onChange={(e, newValue) => setTabActual(newValue)}
+                  variant="fullWidth"
+                  sx={{
+                    width: '100%',
+                    '& .MuiTabs-indicator': {
+                      background: 'linear-gradient(90deg, #64b5f6 0%, #42a5f5 100%)',
+                      height: 3,
+                      borderRadius: '2px'
+                    },
+                    '& .MuiTabs-flexContainer': {
+                      display: 'flex',
+                      width: '100%'
+                    }
+                  }}
+                >
+                  {tabs.map((tab) => {
+                    const disabled = tab.requierePartidoEnCurso && 
+                      !['en_curso', 'medio_tiempo'].includes(partido.estado);
+                    
+                    return (
+                      <Tab
+                        key={tab.index}
+                        icon={isMobile ? tab.icon : undefined}
+                        label={isMobile ? undefined : tab.label}
+                        iconPosition={isMobile ? "top" : "start"}
+                        disabled={disabled}
+                        sx={{
+                          opacity: disabled ? 0.4 : 1,
+                          '& .MuiTab-iconWrapper': {
+                            color: tab.color,
+                            marginBottom: { xs: 0.5, md: 0 },
+                            marginRight: { xs: 0, md: 1 }
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </Tabs>
               </Box>
 
-              {/* Botones de acción */}
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Tooltip title="Volver a lista">
-                  <IconButton
-                    component={Link}
-                    to="/partidos"
-                    sx={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      color: 'white',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)'
-                      }
-                    }}
-                  >
-                    <ArrowBackIcon />
-                  </IconButton>
-                </Tooltip>
-
-                {puedeGestionarTorneos() && (
-                  <Tooltip title="Editar partido">
-                    <IconButton
-                      component={Link}
-                      to={`/partidos/editar/${id}`}
-                      sx={{
-                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                        color: '#2196f3',
-                        '&:hover': {
-                          backgroundColor: 'rgba(33, 150, 243, 0.2)'
-                        }
-                      }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
+              {/* 🔥 CONTENIDO DE TABS CON WRAPPER CONTROLADO */}
+              <Box sx={{ 
+                width: '100%',
+                overflow: 'hidden',
+                minHeight: '400px'
+              }}>
+                {/* Tab 0: Información general */}
+                {tabActual === 0 && (
+                  <TabPanel value={tabActual} index={0} key="tab-info">
+                    <Box sx={{ 
+                      px: { xs: 2, md: 4 },
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: { xs: 'column', md: 'row' },
+                      gap: 3,
+                      justifyContent: 'center'
+                    }}>
+                      <Box sx={{ flex: 1, width: '100%' }}>
+                        <EquipoInfo 
+                          equipo={partido.equipoLocal} 
+                          esLocal={true}
+                          marcador={partido.marcador?.local}
+                          variant="detallado"
+                        />
+                      </Box>
+                      <Box sx={{ flex: 1, width: '100%' }}>
+                        <EquipoInfo 
+                          equipo={partido.equipoVisitante} 
+                          esLocal={false}
+                          marcador={partido.marcador?.visitante}
+                          variant="detallado"
+                        />
+                      </Box>
+                    </Box>
+                  </TabPanel>
                 )}
 
-                {/* Acciones rápidas de estado */}
-                {getAccionesRapidas().map((accion, index) => (
-                  <Button
-                    key={index}
-                    variant="contained"
-                    color={accion.color}
-                    startIcon={accion.icon}
-                    onClick={accion.action}
-                    disabled={actualizandoEstado}
-                    sx={{ minWidth: 120 }}
-                  >
-                    {actualizandoEstado ? <CircularProgress size={16} /> : accion.label}
-                  </Button>
-                ))}
-              </Box>
-            </Box>
-
-            {/* Información del enfrentamiento */}
-            <Grid container spacing={3} alignItems="center">
-              {/* Equipo Local */}
-              <Grid item xs={12} md={4}>
-                <EquipoInfo 
-                  equipo={partido.equipoLocal} 
-                  esLocal={true}
-                  marcador={partido.marcador?.local}
-                  variant="horizontal"
-                />
-              </Grid>
-
-              {/* VS y marcador */}
-              <Grid item xs={12} md={4}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h3" sx={{ 
-                    color: '#64b5f6', 
-                    fontWeight: 'bold',
-                    mb: 1
-                  }}>
-                    VS
-                  </Typography>
-                  
-                  {partido.fechaHora && (
-                    <Box>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        {new Date(partido.fechaHora).toLocaleDateString('es-ES', {
-                          weekday: 'long',
-                          day: '2-digit',
-                          month: 'long'
-                        })}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        {new Date(partido.fechaHora).toLocaleTimeString('es-ES', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </Typography>
+                {/* Tab 1: Registro de jugadas */}
+                {tabActual === 1 && (
+                  <TabPanel value={tabActual} index={1} key="tab-registro">
+                    <Box sx={{ 
+                      px: { xs: 2, md: 4 },
+                      width: '100%'
+                    }}>
+                      <RegistroJugadas 
+                        partido={partido} 
+                        onActualizar={obtenerPartido}
+                      />
                     </Box>
-                  )}
-                </Box>
-              </Grid>
+                  </TabPanel>
+                )}
 
-              {/* Equipo Visitante */}
-              <Grid item xs={12} md={4}>
-                <EquipoInfo 
-                  equipo={partido.equipoVisitante} 
-                  esLocal={false}
-                  marcador={partido.marcador?.visitante}
-                  variant="horizontal"
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
+                {/* Tab 2: Estadísticas */}
+                {tabActual === 2 && (
+                  <TabPanel value={tabActual} index={2} key="tab-stats">
+                    <Box sx={{ 
+                      px: { xs: 1, md: 2 },
+                      width: '100%',
+                      maxWidth: '100%',
+                      overflow: 'hidden'
+                    }}>
+                      {/* 🔥 CONTAINER FORZADO PARA ESTADÍSTICAS */}
+                      <Box sx={{
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflow: 'auto',
+                        boxSizing: 'border-box',
+                        '& > *': {
+                          maxWidth: '100% !important',
+                          overflow: 'hidden !important',
+                          boxSizing: 'border-box !important'
+                        },
+                        '& .MuiGrid-container': {
+                          maxWidth: '100% !important',
+                          overflow: 'hidden !important'
+                        },
+                        '& .MuiGrid-item': {
+                          maxWidth: '100% !important',
+                          overflow: 'hidden !important'
+                        },
+                        '& .MuiCard-root': {
+                          maxWidth: '100% !important',
+                          overflow: 'hidden !important'
+                        },
+                        '& .MuiBox-root': {
+                          maxWidth: '100% !important',
+                          overflow: 'hidden !important'
+                        },
+                        '&::-webkit-scrollbar': {
+                          width: '8px',
+                          height: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          backgroundColor: 'rgba(255, 152, 0, 0.6)',
+                          borderRadius: '4px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 152, 0, 0.8)'
+                          }
+                        },
+                        '&::-webkit-scrollbar-corner': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                        }
+                      }}>
+                        <Box sx={{ 
+                          minWidth: 0,
+                          width: '100%',
+                          maxWidth: '100%',
+                          overflow: 'hidden'
+                        }}>
+                          <EstadisticasPanel partido={partido} />
+                        </Box>
+                      </Box>
+                    </Box>
+                  </TabPanel>
+                )}
 
-        {/* Tabs de navegación */}
-        <Card sx={{
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          borderRadius: 3,
-          border: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-            <Tabs 
-              value={tabActual} 
-              onChange={(e, newValue) => setTabActual(newValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                '& .MuiTab-root': {
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  '&.Mui-selected': {
-                    color: '#64b5f6'
-                  }
-                },
-                '& .MuiTabs-indicator': {
-                  backgroundColor: '#64b5f6'
-                }
+                {/* Tab 3: Árbitros */}
+                {tabActual === 3 && (
+                  <TabPanel value={tabActual} index={3} key="tab-arbitros">
+                    <Box sx={{ 
+                      px: { xs: 2, md: 4 },
+                      width: '100%'
+                    }}>
+                      <ArbitrosPanel partido={partido} />
+                    </Box>
+                  </TabPanel>
+                )}
+
+                {/* Tab 4: Jugadas registradas */}
+                {tabActual === 4 && (
+                  <TabPanel value={tabActual} index={4} key="tab-jugadas">
+                    <Box sx={{ 
+                      px: { xs: 2, md: 4 },
+                      width: '100%',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflow: 'auto',
+                        '& > *': {
+                          maxWidth: '100% !important'
+                        },
+                        '&::-webkit-scrollbar': {
+                          width: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          backgroundColor: 'rgba(244, 67, 54, 0.6)',
+                          borderRadius: '4px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(244, 67, 54, 0.8)'
+                          }
+                        }
+                      }}>
+                        <JugadasPanel partido={partido} />
+                      </Box>
+                    </Box>
+                  </TabPanel>
+                )}
+
+                {/* Tab 5: Líderes del partido */}
+                {tabActual === 5 && (
+                  <TabPanel value={tabActual} index={5} key="tab-lideres">
+                    <Box sx={{ 
+                      px: { xs: 1, md: 2 },
+                      width: '100%',
+                      maxWidth: '100%',
+                      overflow: 'hidden'
+                    }}>
+                      {partido && (partido.estado === 'finalizado' || partido.jugadas?.length > 0) ? (
+                        <Box sx={{
+                          width: '100%',
+                          maxWidth: '100%',
+                          overflow: 'auto',
+                          boxSizing: 'border-box',
+                          // 🔥 CONTROL AGRESIVO PARA LÍDERES
+                          '& *': {
+                            maxWidth: '100% !important',
+                            overflow: 'hidden !important',
+                            boxSizing: 'border-box !important'
+                          },
+                          '& .MuiGrid-container': {
+                            maxWidth: '100% !important',
+                            width: '100% !important',
+                            margin: '0 !important',
+                            overflow: 'hidden !important'
+                          },
+                          '& .MuiGrid-item': {
+                            maxWidth: '100% !important',
+                            paddingLeft: '8px !important',
+                            paddingRight: '8px !important',
+                            overflow: 'hidden !important'
+                          },
+                          '& .MuiCard-root': {
+                            maxWidth: '100% !important',
+                            overflow: 'hidden !important',
+                            wordBreak: 'break-word !important'
+                          },
+                          '& .MuiBox-root': {
+                            maxWidth: '100% !important',
+                            overflow: 'hidden !important'
+                          },
+                          '& .MuiTypography-root': {
+                            maxWidth: '100% !important',
+                            overflow: 'hidden !important',
+                            textOverflow: 'ellipsis !important',
+                            whiteSpace: 'nowrap !important'
+                          },
+                          '& .MuiAvatar-root': {
+                            flexShrink: '0 !important'
+                          },
+                          // 🔥 FLEXBOX FORZADO PARA CONTENIDO
+                          '& > div': {
+                            display: 'flex !important',
+                            flexDirection: 'column !important',
+                            maxWidth: '100% !important',
+                            overflow: 'hidden !important'
+                          },
+                          // 🔥 GRID RESPONSIVE FORZADO
+                          '& .MuiGrid-container > .MuiGrid-item': {
+                            flexBasis: {
+                              xs: '100% !important',
+                              sm: '50% !important', 
+                              md: '33.333% !important',
+                              lg: '25% !important'
+                            },
+                            maxWidth: {
+                              xs: '100% !important',
+                              sm: '50% !important',
+                              md: '33.333% !important', 
+                              lg: '25% !important'
+                            },
+                            width: {
+                              xs: '100% !important',
+                              sm: '50% !important',
+                              md: '33.333% !important',
+                              lg: '25% !important'
+                            }
+                          },
+                          '&::-webkit-scrollbar': {
+                            width: '8px',
+                            height: '8px'
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px'
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: 'rgba(255, 87, 34, 0.6)',
+                            borderRadius: '4px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 87, 34, 0.8)'
+                            }
+                          },
+                          '&::-webkit-scrollbar-corner': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                          }
+                        }}>
+                          {/* 🔥 WRAPPER ADICIONAL CON CONSTRAINTS */}
+                          <Box sx={{ 
+                            minWidth: 0,
+                            width: '100%',
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}>
+                            <LideresPartido partidoId={partido._id} />
+                          </Box>
+                        </Box>
+                      ) : (
+                        <Box sx={{ 
+                          textAlign: 'center', 
+                          py: 8,
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <Fire sx={{ fontSize: 60, mb: 2, opacity: 0.3 }} />
+                          <Typography variant="h6" sx={{ mb: 1 }}>
+                            Sin datos de líderes
+                          </Typography>
+                          <Typography variant="body2">
+                            Los líderes se mostrarán cuando el partido esté finalizado o tenga jugadas registradas
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </TabPanel>
+                )}
+              </Box>
+            </Card>
+          </motion.div>
+
+          {/* 🔥 BOTONES FLOTANTES PARA MÓVIL */}
+          {isMobile && puedeGestionarTorneos && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 1 }}
+              style={{
+                position: 'fixed',
+                bottom: 20,
+                right: 20,
+                zIndex: 1000
               }}
             >
-              {tabs.map((tab) => {
-                // Deshabilitar tab de registro si el partido no está en curso
-                const disabled = tab.requierePartidoEnCurso && 
-                  !['en_curso', 'medio_tiempo'].includes(partido.estado);
-                
-                return (
-                  <Tab
-                    key={tab.index}
-                    icon={tab.icon}
-                    label={tab.label}
-                    iconPosition="start"
-                    disabled={disabled}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Botón de acciones según estado */}
+                {partido.estado === 'programado' && (
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <IconButton
+                      sx={{
+                        background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
+                        color: 'white',
+                        width: 56,
+                        height: 56,
+                        boxShadow: '0 8px 25px rgba(76, 175, 80, 0.4)',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #66bb6a 0%, #4caf50 100%)',
+                        }
+                      }}
+                      onClick={() => {
+                        Swal.fire({
+                          title: '¿Iniciar partido?',
+                          text: 'El partido cambiará a estado "En Curso"',
+                          icon: 'question',
+                          showCancelButton: true,
+                          confirmButtonText: 'Iniciar',
+                          cancelButtonText: 'Cancelar',
+                          background: '#1a1a2e',
+                          color: 'white'
+                        }).then((result) => {
+                          if (result.isConfirmed) {
+                            // Lógica para cambiar estado del partido
+                          }
+                        });
+                      }}
+                    >
+                      <PlayArrowIcon />
+                    </IconButton>
+                  </motion.div>
+                )}
+
+                {/* Botón de editar */}
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <IconButton
                     sx={{
-                      minHeight: 64,
-                      opacity: disabled ? 0.5 : 1
+                      background: 'linear-gradient(135deg, #9c27b0 0%, #673ab7 100%)',
+                      color: 'white',
+                      width: 56,
+                      height: 56,
+                      boxShadow: '0 8px 25px rgba(156, 39, 176, 0.4)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #ad32c4 0%, #7c4dff 100%)',
+                      }
                     }}
-                  />
-                );
-              })}
-            </Tabs>
-          </Box>
-
-          {/* Contenido de las tabs */}
-          <CardContent sx={{ p: 0 }}>
-            {/* Tab 0: Información general */}
-            <TabPanel value={tabActual} index={0}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <EquipoInfo 
-                    equipo={partido.equipoLocal} 
-                    esLocal={true}
-                    marcador={partido.marcador?.local}
-                    variant="detallado"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <EquipoInfo 
-                    equipo={partido.equipoVisitante} 
-                    esLocal={false}
-                    marcador={partido.marcador?.visitante}
-                    variant="detallado"
-                  />
-                </Grid>
-              </Grid>
-            </TabPanel>
-
-            {/* Tab 1: Registro de jugadas */}
-            <TabPanel value={tabActual} index={1}>
-              <RegistroJugadas 
-                partido={partido} 
-                onActualizar={obtenerPartido}
-              />
-            </TabPanel>
-
-            {/* Tab 2: Estadísticas */}
-            <TabPanel value={tabActual} index={2}>
-              <EstadisticasPanel partido={partido} />
-            </TabPanel>
-
-            {/* Tab 3: Árbitros */}
-            <TabPanel value={tabActual} index={3}>
-              <ArbitrosPanel partido={partido} />
-            </TabPanel>
-
-            {/* Tab 4: Jugadas registradas */}
-            <TabPanel value={tabActual} index={4}>
-              <JugadasPanel partido={partido} />
-            </TabPanel>
-
-            {/* Mostrar líderes del partido si corresponde */}
-            <TabPanel value={tabActual} index={5}>
-              {partido && (partido.estado === 'finalizado' || partido.jugadas?.length > 0) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <LideresPartido partidoId={partido._id} />
+                    onClick={() => navigate(`/partidos/${partido._id}/editar`)}
+                  >
+                    <EditIcon />
+                  </IconButton>
                 </motion.div>
-              )}
-            </TabPanel>
-
-            {/* Tab 5: Detalles */}
-            <TabPanel value={tabActual} index={6}>
-              <DetallesPanel partido={partido} />
-            </TabPanel>
-          </CardContent>
-        </Card>
-      </motion.div>
+              </Box>
+            </motion.div>
+          )}
+        </motion.div>
+      </Box>
     </Box>
   );
 };

@@ -809,67 +809,6 @@ export const Equipos = () => {
           </Box>
         </motion.div>
 
-        {/* Estadísticas generales */}
-        <motion.div variants={itemVariants}>
-          <Grid container spacing={2} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={cardStyle}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <GroupsIcon sx={{ fontSize: 40, color: '#2196f3', mb: 1 }} />
-                  <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-                    {stats.total}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Equipos
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={cardStyle}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <PersonAddIcon sx={{ fontSize: 40, color: '#4caf50', mb: 1 }} />
-                  <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-                    {stats.totalJugadores}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Jugadores
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={cardStyle}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <SportsIcon sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-                  <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-                    {stats.conJugadores}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Con Jugadores
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={cardStyle}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <EmojiEventsIcon sx={{ fontSize: 40, color: '#f44336', mb: 1 }} />
-                  <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-                    {Object.keys(stats.categorias).length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Categorías
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </motion.div>
-
         {/* Barra de búsqueda y controles */}
         <motion.div variants={itemVariants}>
           <Card sx={{ ...cardStyle, mb: 3 }}>
