@@ -338,9 +338,9 @@ export const LideresPartido = ({ partidoId }) => {
   const [categoriasExpandidas, setCategoriasExpandidas] = useState({
     puntos: true,
     qbrating: true, // 🔥 Expandir QB rating por defecto para testing
-    recepciones: false,
-    tackleos: false,
-    intercepciones: false
+    recepciones: true,
+    tackleos: true,
+    intercepciones: true
   });
 
   const { lideres, loading, error, recargar } = useLideresPartido(partidoId);
