@@ -641,7 +641,7 @@ exports.actualizarPartido = async (req, res) => {
         'medio_tiempo': ['en_curso', 'finalizado', 'suspendido'],
         'suspendido': ['programado', 'en_curso', 'cancelado'],
         'cancelado': [], // No se puede cambiar desde cancelado
-        'finalizado': [] // No se puede cambiar desde finalizado
+        'finalizado': ['en_curso'] // No se puede cambiar desde finalizado
       };
 
       if (!transicionesValidas[partido.estado].includes(req.body.estado)) {
@@ -1089,7 +1089,7 @@ exports.cambiarEstado = async (req, res) => {
       'medio_tiempo': ['en_curso', 'finalizado', 'suspendido'],
       'suspendido': ['programado', 'en_curso', 'cancelado'],
       'cancelado': [], // No se puede cambiar desde cancelado
-      'finalizado': [] // No se puede cambiar desde finalizado
+      'finalizado': ['en_curso'] // No se puede cambiar desde finalizado
     };
 
     if (!transicionesValidas[partido.estado].includes(estado)) {
@@ -1552,7 +1552,7 @@ exports.eliminarJugada = async (req, res) => {
   console.log(`\n🗑️ [${timestamp}] INICIO - Eliminar jugada por ID`);
   
   try {
-    const { id: partidoId, jugadaId } = req.params;
+    const { partidoId, jugadaId } = req.params;
     console.log('🎯 Partido ID:', partidoId);
     console.log('🎯 Jugada ID:', jugadaId);
     

@@ -38,7 +38,7 @@ const reglasCategorias = {
     tipoBase: 'var'
   },
   varmast: {
-    sexoPermitido: ['M'],
+    sexoPermitido: ['M', 'F'],
     edadMin: 33,
     edadMax: 99,
     tipoBase: 'varmas'
