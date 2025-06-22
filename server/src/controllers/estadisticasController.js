@@ -1096,6 +1096,7 @@ exports.obtenerEstadisticasTarjetaEquipo = async (req, res) => {
                     }
                   } else {
                     // 🔥 QB INTERCEPTADO: Cuenta como intercepción lanzada
+                    stats.pases.intentos++;
                     stats.pases.intercepciones++;
                   }
                   break;
@@ -2088,15 +2089,15 @@ exports.obtenerLideresPartido = async (req, res) => {
               break;
 
             case 'intercepcion':
-              // 🔥 CAMBIO CLAVE: equipoEnPosesion = equipo DEFENSIVO que interceptó
               if (esPrincipal) {
-                // Jugador que interceptó (del equipo defensivo)
                 playerStats.stats.intercepciones.total++;
                 if (jugada.resultado?.touchdown) {
                   playerStats.stats.puntos.total += 6;
                   playerStats.stats.puntos.touchdowns++;
                 }
-                console.log(`🛡️ Interceptor: ${jugador.nombre} - intercepción`);
+              } else if (esSecundario) {
+                playerStats.stats.pases.intentos++;
+                playerStats.stats.pases.intercepciones++;
               }
               break;
 
@@ -2128,15 +2129,6 @@ exports.obtenerLideresPartido = async (req, res) => {
                   playerStats.stats.puntos.touchdowns++;
                 }
                 console.log(`📡 Receptor: ${jugador.nombre} - recepción directa`);
-              }
-              break;
-
-            case 'touchdown':
-              // equipoEnPosesion = equipo que anotó
-              if (esPrincipal || esJugadorTouchdown) {
-                playerStats.stats.puntos.total += 6;
-                playerStats.stats.puntos.touchdowns++;
-                console.log(`🏆 Anotador: ${jugador.nombre} - touchdown`);
               }
               break;
 
@@ -2217,6 +2209,13 @@ exports.obtenerLideresPartido = async (req, res) => {
       if (intentos > 0) {
         console.log(`🏈 ${stats.jugador.nombre}: ${completados}/${intentos}, ${touchdowns} TDs, ${intercepciones} INTs → Rating: ${stats.qbRating}`);
       }
+
+      console.log(`🏈 QB RATING DEBUG - ${stats.jugador.nombre}:`);
+      console.log(`  Intentos: ${stats.stats.pases.intentos}`);
+      console.log(`  Completados: ${stats.stats.pases.completados}`);
+      console.log(`  TDs: ${stats.stats.pases.touchdowns}`);
+      console.log(`  INTs: ${stats.stats.pases.intercepciones}`);
+      console.log(`  Rating calculado: ${stats.qbRating}`);
     });
 
     // 🔥 CORREGIR EQUIPOS DESPUÉS DEL PROCESAMIENTO
@@ -2565,6 +2564,7 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
                     // Los puntos van al jugadorTouchdown, no al interceptor
                   } else {
                     // QB interceptado
+                    stats.pases.intentos++;
                     stats.pases.intercepciones++;
                   }
                   break;
