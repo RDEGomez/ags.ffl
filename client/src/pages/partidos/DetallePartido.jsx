@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import axiosInstance from '../../config/axios';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
+import { LideresPartido } from '../../components/LideresPartido';
 
 import {
   Box,
@@ -38,6 +39,7 @@ import {
   Assessment as AssessmentIcon,
   Info as InfoIcon,
   Timeline as TimelineIcon,
+  LocalFireDepartment as Fire,
   Sports as SportsIcon
 } from '@mui/icons-material';
 
@@ -77,6 +79,7 @@ export const DetallePartido = () => {
   const [error, setError] = useState('');
   const [tabActual, setTabActual] = useState(0);
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
+  const [mostrarLideres, setMostrarLideres] = useState(true);
 
   // Obtener partido
   const obtenerPartido = async () => {
@@ -218,7 +221,8 @@ export const DetallePartido = () => {
     { label: 'Estadísticas', icon: <AssessmentIcon />, index: 2 },
     { label: 'Árbitros', icon: <GavelIcon />, index: 3 },
     { label: 'Jugadas', icon: <SportsIcon />, index: 4 },
-    { label: 'Detalles', icon: <InfoIcon />, index: 5 }
+    { label: 'Líderes Partido', icon: <Fire />, index: 5 },
+    { label: 'Detalles', icon: <InfoIcon />, index: 6 }
   ];
 
   if (loading) {
@@ -558,8 +562,21 @@ export const DetallePartido = () => {
               <JugadasPanel partido={partido} />
             </TabPanel>
 
-            {/* Tab 5: Detalles */}
+            {/* Mostrar líderes del partido si corresponde */}
             <TabPanel value={tabActual} index={5}>
+              {partido && (partido.estado === 'finalizado' || partido.jugadas?.length > 0) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <LideresPartido partidoId={partido._id} />
+                </motion.div>
+              )}
+            </TabPanel>
+
+            {/* Tab 5: Detalles */}
+            <TabPanel value={tabActual} index={6}>
               <DetallesPanel partido={partido} />
             </TabPanel>
           </CardContent>

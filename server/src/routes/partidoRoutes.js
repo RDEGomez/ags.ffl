@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { check, body, param, query } = require('express-validator');
 const partidoController = require('../controllers/partidoController');
+const estadisticasController = require('../controllers/estadisticasController');
 const { auth, checkRole } = require('../middleware/authMiddleware');
 
 // 🎲 GENERADOR DE ROL AUTOMÁTICO - FUNCIONALIDAD PRINCIPAL

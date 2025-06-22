@@ -17,6 +17,7 @@ import { Partidos, CrearPartido } from '../pages/partidos';
 import { DetallePartido } from '../pages/partidos/DetallePartido';
 import { ImportacionMasiva } from '../pages/partidos/importacion/ImportacionMasiva';
 import { DashboardEstadisticas } from '../pages/estadisticas/DashboardEstadisticas';
+import { EditarPartido } from '../pages/partidos/EditarPartido';
 
 // Componente ProtectedRoute para proteger rutas
 export const ProtectedRoute = () => {
@@ -53,6 +54,7 @@ export const AppRouter = () => {
           <Route path="partidos" element={<Partidos />} />
           <Route path="partidos/crear" element={<CrearPartido />} /> {/* 🔥 Nueva ruta */}
           <Route path="partidos/:id" element={<DetallePartido />} /> {/* 🔥 Nueva ruta */}
+          <Route path="partidos/editar/:id" element={ <EditarPartido /> } />
           <Route path="perfil" element={<EditarPerfil />} />
           <Route path="perfil/:id" element={<EditarPerfil />} />
           <Route path="importacion" element={<ImportacionMasiva />} /> {/* 🔥 Nueva ruta para importación masiva */ }

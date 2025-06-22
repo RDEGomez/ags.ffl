@@ -31,7 +31,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'], 
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'], 
   allowedHeaders: ['Content-Type', 'Authorization', 'Content-Disposition'],
   credentials: true,
   maxAge: 86400 // ✅ NUEVO: Cache preflight 24h

@@ -545,4 +545,15 @@ router.get('/debug-jugador/:partidoId/:numeroJugador',
   estadisticasController.debugJugadorJugadas
 );
 
+// 🏆 NUEVA RUTA: LÍDERES DE ESTADÍSTICAS POR PARTIDO ESPECÍFICO
+router.get('/lideres-partido/:partidoId',
+  [
+    auth,
+    [
+      param('partidoId', 'ID de partido debe ser válido').isMongoId()
+    ]
+  ],
+  estadisticasController.obtenerLideresPartido
+);
+
 module.exports = router;

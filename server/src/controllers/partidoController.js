@@ -302,19 +302,25 @@ exports.generarRolTorneo = async (req, res) => {
 };
 // 📁 controllers/partidoController.js - PARTE 2/4 - CRUD DE PARTIDOS
 
-// 📋 OBTENER PARTIDOS CON FILTROS
+// 📋 OBTENER PARTIDOS CON FILTROS - ACTUALIZADO CON SOPORTE PARA TEMPORADA
 exports.obtenerPartidos = async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log(`\n📋 [${timestamp}] INICIO - Obtener partidos`);
 
   try {
-    const { torneo, equipo, categoria, estado, fecha, page = 1, limit = 20 } = req.query;
+    const { torneo, equipo, categoria, estado, fecha, temporada, page = 1, limit = 20 } = req.query;
     
     console.log('🔍 Construyendo filtros de búsqueda...');
     const filtro = {};
     if (torneo) filtro.torneo = torneo;
     if (categoria) filtro.categoria = categoria;
     if (estado) filtro.estado = estado;
+    
+    // 🔥 NUEVO: Filtro por temporada
+    if (temporada) {
+      filtro.temporada = temporada;
+    }
+    
     if (equipo) {
       filtro.$or = [
         { equipoLocal: equipo },
@@ -339,7 +345,7 @@ exports.obtenerPartidos = async (req, res) => {
     const partidos = await Partido.find(filtro)
       .populate('equipoLocal', 'nombre imagen categoria')
       .populate('equipoVisitante', 'nombre imagen categoria')
-      .populate('torneo', 'nombre')
+      .populate('torneo', 'nombre temporada') // 🔥 AGREGAR temporada al populate
       .populate({
         path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
         populate: {
@@ -362,23 +368,32 @@ exports.obtenerPartidos = async (req, res) => {
       partidosEnriquecidos.push(partidoEnriquecido);
     }
 
-    console.log('📤 Enviando lista de partidos');
-    console.log(`✅ [${new Date().toISOString()}] FIN - Partidos obtenidos\n`);
+    console.log('📤 Enviando respuesta exitosa');
+    console.log(`✅ [${timestamp}] FIN - Partidos obtenidos\n`);
 
     res.json({
+      mensaje: 'Partidos obtenidos exitosamente',
       partidos: partidosEnriquecidos,
       paginacion: {
         paginaActual: parseInt(page),
         totalPaginas: Math.ceil(total / parseInt(limit)),
         totalPartidos: total,
         partidosPorPagina: parseInt(limit)
+      },
+      filtrosAplicados: {
+        torneo: torneo || null,
+        equipo: equipo || null,
+        categoria: categoria || null,
+        estado: estado || null,
+        fecha: fecha || null,
+        temporada: temporada || null // 🔥 NUEVO: Incluir en respuesta
       }
     });
 
   } catch (error) {
-    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener partidos:`);
+    console.log(`❌ [${timestamp}] ERROR al obtener partidos:`);
     console.error('💥 Error completo:', error);
-    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener partidos fallido\n`);
+    console.log(`❌ [${timestamp}] FIN - Obtener partidos fallido\n`);
     
     res.status(500).json({ 
       mensaje: 'Error al obtener partidos', 
@@ -568,7 +583,7 @@ exports.crearPartido = async (req, res) => {
   }
 };
 
-// ✏️ ACTUALIZAR PARTIDO
+// ✏️ ACTUALIZAR PARTIDO - MEJORADO PARA EDITARPARTIDO
 exports.actualizarPartido = async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log(`\n✏️ [${timestamp}] INICIO - Actualizar partido`);
@@ -594,20 +609,56 @@ exports.actualizarPartido = async (req, res) => {
 
     console.log('✅ Partido encontrado:', partido.equipoLocal, 'vs', partido.equipoVisitante);
 
-    // Validar permisos para editar según estado
-    if (['en_curso', 'finalizado'].includes(partido.estado)) {
-      if (usuarioLogueado.rol !== 'admin') {
-        console.log('❌ ERROR: Sin permisos para editar partido en curso/finalizado');
-        return res.status(403).json({ 
-          mensaje: 'Solo administradores pueden editar partidos que ya comenzaron o finalizaron' 
+    // 🔥 MEJORA: Validaciones de permisos más granulares
+    const puedeEditarBasico = usuarioLogueado.rol === 'admin' || 
+                              (usuarioLogueado.rol === 'arbitro' && partido.estado === 'programado');
+    
+    const puedeEditarAvanzado = usuarioLogueado.rol === 'admin';
+
+    // Validar permisos según tipo de cambio
+    const camposAvanzados = ['estado', 'marcador'];
+    const tieneCardosAvanzados = camposAvanzados.some(campo => req.body[campo] !== undefined);
+
+    if (!puedeEditarBasico) {
+      console.log('❌ ERROR: Sin permisos básicos para editar');
+      return res.status(403).json({ 
+        mensaje: 'No tienes permisos para editar este partido' 
+      });
+    }
+
+    if (tieneCardosAvanzados && !puedeEditarAvanzado) {
+      console.log('❌ ERROR: Sin permisos avanzados para cambiar estado/marcador');
+      return res.status(403).json({ 
+        mensaje: 'Solo administradores pueden cambiar el estado o marcador del partido' 
+      });
+    }
+
+    // 🔥 MEJORA: Validar transiciones de estado si se está cambiando
+    if (req.body.estado && req.body.estado !== partido.estado) {
+      const transicionesValidas = {
+        'programado': ['en_curso', 'suspendido', 'cancelado'],
+        'en_curso': ['medio_tiempo', 'finalizado', 'suspendido'],
+        'medio_tiempo': ['en_curso', 'finalizado', 'suspendido'],
+        'suspendido': ['programado', 'en_curso', 'cancelado'],
+        'cancelado': [], // No se puede cambiar desde cancelado
+        'finalizado': [] // No se puede cambiar desde finalizado
+      };
+
+      if (!transicionesValidas[partido.estado].includes(req.body.estado)) {
+        console.log(`❌ ERROR: Transición no válida de ${partido.estado} a ${req.body.estado}`);
+        return res.status(400).json({ 
+          mensaje: `No se puede cambiar el estado de ${partido.estado} a ${req.body.estado}`,
+          transicionesPermitidas: transicionesValidas[partido.estado]
         });
       }
     }
 
-    console.log('💾 Actualizando partido...');
+    console.log('💾 Preparando actualización...');
+    
+    // 🔥 MEJORA: Campos permitidos más específicos
     const camposPermitidos = [
       'equipoLocal', 'equipoVisitante', 'fechaHora', 'categoria', 
-      'sede', 'duracionMinutos', 'arbitros', 'observaciones'
+      'sede', 'duracionMinutos', 'arbitros', 'observaciones', 'estado'
     ];
 
     const datosActualizados = {};
@@ -617,12 +668,40 @@ exports.actualizarPartido = async (req, res) => {
       }
     });
 
-    // Actualizar metadatos
+    // 🔥 NUEVO: Manejar actualización de marcador por separado
+    if (req.body.marcador && puedeEditarAvanzado) {
+      console.log('🎯 Actualizando marcador:', req.body.marcador);
+      datosActualizados.marcador = {
+        local: parseInt(req.body.marcador.local) || 0,
+        visitante: parseInt(req.body.marcador.visitante) || 0
+      };
+      
+      // Registrar cambio de marcador en observaciones
+      const cambioMarcador = `[${timestamp}] Marcador actualizado por ${usuarioLogueado.nombre}: ${datosActualizados.marcador.local}-${datosActualizados.marcador.visitante}`;
+      datosActualizados.observaciones = partido.observaciones 
+        ? `${partido.observaciones}\n${cambioMarcador}`
+        : cambioMarcador;
+    }
+
+    // 🔥 MEJORA: Auditoría más detallada
     datosActualizados.ultimaActualizacion = {
       fecha: new Date(),
-      por: usuarioLogueado._id
+      por: usuarioLogueado._id,
+      tipo: req.body.marcador ? 'marcador' : req.body.estado ? 'estado' : 'general'
     };
 
+    // 🔥 MEJORA: Validación de fechas
+    if (datosActualizados.fechaHora) {
+      const nuevaFecha = new Date(datosActualizados.fechaHora);
+      const ahora = new Date();
+      
+      if (nuevaFecha < ahora && partido.estado === 'programado') {
+        console.log('⚠️ ADVERTENCIA: Fecha en el pasado para partido programado');
+        // No bloquear, solo advertir
+      }
+    }
+
+    console.log('💾 Actualizando partido en base de datos...');
     const partidoActualizado = await Partido.findByIdAndUpdate(
       partidoId,
       { $set: datosActualizados },
@@ -630,25 +709,35 @@ exports.actualizarPartido = async (req, res) => {
     ).populate([
       { path: 'equipoLocal', select: 'nombre imagen categoria' },
       { path: 'equipoVisitante', select: 'nombre imagen categoria' },
-      { path: 'torneo', select: 'nombre' }
+      { path: 'torneo', select: 'nombre temporada' },
+      { path: 'ultimaActualizacion.por', select: 'nombre email' }
     ]);
 
     console.log('✅ Partido actualizado exitosamente');
 
+    // 🔥 MEJORA: Respuesta más rica con información de cambios
+    const cambiosRealizados = Object.keys(datosActualizados).filter(key => key !== 'ultimaActualizacion');
+    
     const partidoEnriquecido = await enriquecerPartidoConUrls(partidoActualizado, req);
 
     console.log('📤 Enviando respuesta exitosa');
-    console.log(`✅ [${new Date().toISOString()}] FIN - Partido actualizado\n`);
+    console.log(`✅ [${timestamp}] FIN - Partido actualizado\n`);
 
     res.json({ 
       mensaje: 'Partido actualizado exitosamente', 
-      partido: partidoEnriquecido 
+      partido: partidoEnriquecido,
+      cambiosRealizados,
+      actualizadoPor: {
+        usuario: usuarioLogueado.nombre,
+        rol: usuarioLogueado.rol,
+        fecha: new Date().toISOString()
+      }
     });
 
   } catch (error) {
-    console.log(`❌ [${new Date().toISOString()}] ERROR al actualizar partido:`);
+    console.log(`❌ [${timestamp}] ERROR al actualizar partido:`);
     console.error('💥 Error completo:', error);
-    console.log(`❌ [${new Date().toISOString()}] FIN - Actualizar partido fallido\n`);
+    console.log(`❌ [${timestamp}] FIN - Actualizar partido fallido\n`);
     
     if (error.kind === 'ObjectId') {
       return res.status(404).json({ mensaje: 'ID de partido no válido' });
@@ -659,6 +748,215 @@ exports.actualizarPartido = async (req, res) => {
       error: error.message 
     });
   }
+};
+
+// 🎯 NUEVA FUNCIÓN: ACTUALIZAR MARCADOR ESPECÍFICAMENTE
+exports.actualizarMarcador = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🎯 [${timestamp}] INICIO - Actualizar marcador`);
+  console.log('🆔 Partido ID:', req.params.id);
+  console.log('📊 Nuevo marcador:', JSON.stringify(req.body, null, 2));
+
+  try {
+    const errores = validationResult(req);
+    if (!errores.isEmpty()) {
+      console.log('❌ ERROR: Errores de validación:', errores.array());
+      return res.status(400).json({ errores: errores.array() });
+    }
+
+    const partidoId = req.params.id;
+    const usuarioLogueado = req.usuario;
+    const { local, visitante, motivo } = req.body;
+
+    // Solo administradores pueden actualizar marcador
+    if (usuarioLogueado.rol !== 'admin') {
+      console.log('❌ ERROR: Sin permisos para actualizar marcador');
+      return res.status(403).json({ 
+        mensaje: 'Solo administradores pueden actualizar el marcador' 
+      });
+    }
+
+    console.log('🔍 Buscando partido...');
+    const partido = await Partido.findById(partidoId)
+      .populate('equipoLocal', 'nombre')
+      .populate('equipoVisitante', 'nombre');
+
+    if (!partido) {
+      console.log('❌ ERROR: Partido no encontrado');
+      return res.status(404).json({ mensaje: 'Partido no encontrado' });
+    }
+
+    console.log(`🔄 Cambiando marcador: ${partido.marcador.local}-${partido.marcador.visitante} → ${local}-${visitante}`);
+
+    // Validar marcadores
+    const marcadorLocal = parseInt(local);
+    const marcadorVisitante = parseInt(visitante);
+
+    if (isNaN(marcadorLocal) || isNaN(marcadorVisitante) || 
+        marcadorLocal < 0 || marcadorVisitante < 0) {
+      console.log('❌ ERROR: Marcadores inválidos');
+      return res.status(400).json({ 
+        mensaje: 'Los marcadores deben ser números enteros no negativos' 
+      });
+    }
+
+    // Guardar marcador anterior para auditoría
+    const marcadorAnterior = { ...partido.marcador };
+
+    // Actualizar marcador
+    partido.marcador = {
+      local: marcadorLocal,
+      visitante: marcadorVisitante
+    };
+
+    // 🔥 ACTUALIZAR ESTADÍSTICAS AUTOMÁTICAMENTE
+    // Nota: En una implementación completa, aquí recalcularíamos las estadísticas
+    // basándose en las jugadas registradas vs el nuevo marcador
+
+    // Registrar cambio en observaciones
+    const registroAuditoria = `[${timestamp}] MARCADOR ACTUALIZADO por ${usuarioLogueado.nombre}:\n` +
+                             `Anterior: ${marcadorAnterior.local}-${marcadorAnterior.visitante}\n` +
+                             `Nuevo: ${marcadorLocal}-${marcadorVisitante}` +
+                             (motivo ? `\nMotivo: ${motivo}` : '');
+
+    partido.observaciones = partido.observaciones 
+      ? `${partido.observaciones}\n\n${registroAuditoria}`
+      : registroAuditoria;
+
+    // Actualizar metadatos
+    partido.ultimaActualizacion = {
+      fecha: new Date(),
+      por: usuarioLogueado._id,
+      tipo: 'marcador'
+    };
+
+    await partido.save();
+
+    console.log(`✅ Marcador actualizado exitosamente: ${marcadorLocal}-${marcadorVisitante}`);
+
+    const partidoEnriquecido = await enriquecerPartidoConUrls(partido, req);
+
+    console.log('📤 Enviando respuesta exitosa');
+    console.log(`✅ [${timestamp}] FIN - Marcador actualizado\n`);
+
+    res.json({ 
+      mensaje: 'Marcador actualizado exitosamente',
+      partido: partidoEnriquecido,
+      cambio: {
+        marcadorAnterior,
+        marcadorNuevo: { local: marcadorLocal, visitante: marcadorVisitante },
+        actualizadoPor: usuarioLogueado.nombre,
+        fecha: new Date().toISOString(),
+        motivo: motivo || 'No especificado'
+      }
+    });
+
+  } catch (error) {
+    console.log(`❌ [${timestamp}] ERROR al actualizar marcador:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${timestamp}] FIN - Actualizar marcador fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al actualizar marcador', 
+      error: error.message 
+    });
+  }
+};
+
+// 🔄 NUEVA FUNCIÓN: OBTENER HISTORIAL DE CAMBIOS
+exports.obtenerHistorialPartido = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n📋 [${timestamp}] INICIO - Obtener historial de partido`);
+  console.log('🆔 Partido ID:', req.params.id);
+
+  try {
+    const partidoId = req.params.id;
+
+    console.log('🔍 Buscando partido con historial...');
+    const partido = await Partido.findById(partidoId)
+      .populate('creadoPor', 'nombre email')
+      .populate('ultimaActualizacion.por', 'nombre email')
+      .select('observaciones creadoPor createdAt ultimaActualizacion');
+
+    if (!partido) {
+      console.log('❌ ERROR: Partido no encontrado');
+      return res.status(404).json({ mensaje: 'Partido no encontrado' });
+    }
+
+    // Parsear observaciones para extraer historial
+    const observaciones = partido.observaciones || '';
+    const lineasHistorial = observaciones.split('\n').filter(linea => 
+      linea.includes('[2024') || linea.includes('[2025') // Filtrar líneas con timestamps
+    );
+
+    const historial = [
+      {
+        fecha: partido.createdAt,
+        accion: 'Partido creado',
+        usuario: partido.creadoPor?.nombre || 'Sistema',
+        tipo: 'creacion'
+      }
+    ];
+
+    // Agregar eventos del historial parseado
+    lineasHistorial.forEach(linea => {
+      const match = linea.match(/\[([^\]]+)\]\s*(.+)/);
+      if (match) {
+        historial.push({
+          fecha: new Date(match[1]),
+          accion: match[2],
+          usuario: 'Admin', // En implementación completa, extraer del texto
+          tipo: linea.includes('MARCADOR') ? 'marcador' : 'general'
+        });
+      }
+    });
+
+    // Agregar última actualización si existe
+    if (partido.ultimaActualizacion) {
+      historial.push({
+        fecha: partido.ultimaActualizacion.fecha,
+        accion: `Última actualización (${partido.ultimaActualizacion.tipo})`,
+        usuario: partido.ultimaActualizacion.por?.nombre || 'Usuario desconocido',
+        tipo: partido.ultimaActualizacion.tipo || 'general'
+      });
+    }
+
+    // Ordenar por fecha
+    historial.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+    console.log(`✅ Historial obtenido: ${historial.length} eventos`);
+
+    console.log('📤 Enviando historial');
+    console.log(`✅ [${timestamp}] FIN - Historial obtenido\n`);
+
+    res.json({
+      mensaje: 'Historial obtenido exitosamente',
+      historial,
+      total: historial.length
+    });
+
+  } catch (error) {
+    console.log(`❌ [${timestamp}] ERROR al obtener historial:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${timestamp}] FIN - Obtener historial fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener historial del partido', 
+      error: error.message 
+    });
+  }
+};
+
+// 🔢 HELPER: CALCULAR QB RATING (REUTILIZAR DEL CÓDIGO EXISTENTE)
+const calcularQBRating = (completados, intentos, touchdowns, intercepciones) => {
+  if (intentos === 0) return 0;
+
+  const a = Math.max(0, Math.min(2.375, (completados / intentos - 0.3) * 5));
+  const b = Math.max(0, Math.min(2.375, (touchdowns / intentos) * 20));
+  const c = Math.max(0, Math.min(2.375, 2.375 - (intercepciones / intentos) * 25));
+  const d = Math.max(0, Math.min(2.375, 2.375)); // Simplificado sin yardas
+
+  return Math.round(((a + b + c + d) / 6) * 100 * 10) / 10;
 };
 
 // 🗑️ ELIMINAR PARTIDO
