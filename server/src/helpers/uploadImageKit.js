@@ -48,49 +48,33 @@ const imagekitStorage = {
           const uploadResponse = await imagekit.upload({
             file: buffer,
             fileName: fileName,
-            folder: folderPath,
-            // 🔥 TRANSFORMACIONES AUTOMÁTICAS (equivalentes a Cloudinary)
-            transformation: [
-              {
-                height: 800,          // Alto máximo 800px
-                width: 800,           // Ancho máximo 800px
-                crop: 'at_max',       // Solo redimensionar si es más grande
-                quality: 80,          // Calidad optimizada
-                format: 'webp',       // Formato WebP para mejor compresión
-                progressive: true     // Carga progresiva
-              }
-            ],
-            // Metadata adicional
-            customMetadata: {
-              uploadedBy: 'laces-system',
-              originalName: file.originalname,
-              uploadDate: new Date().toISOString()
-            }
+            folder: folderPath
+            // ✅ Sin transformaciones por ahora - se pueden aplicar después via URL
           });
 
-          console.log('✅ Imagen subida exitosamente a ImageKit:', {
+          console.log('✅ Upload exitoso a ImageKit:', {
             fileId: uploadResponse.fileId,
             url: uploadResponse.url,
             size: uploadResponse.size,
-            filePath: uploadResponse.filePath
+            name: uploadResponse.name
           });
 
-          // Estructura de respuesta compatible con Cloudinary
-          const fileInfo = {
+          // 🔥 CONFIGURAR req.file COMPATIBLE CON CONTROLADORES
+          cb(null, {
+            fieldname: file.fieldname,
+            originalname: file.originalname,
+            encoding: file.encoding,
+            mimetype: uploadResponse.fileType || file.mimetype,
             filename: uploadResponse.name,
-            path: uploadResponse.url,           // URL completa de ImageKit
-            url: uploadResponse.url,            // Alias para consistencia
+            path: uploadResponse.url,          // ← CRÍTICO: URL completa de ImageKit
             size: uploadResponse.size,
-            format: uploadResponse.fileType,
+            fileId: uploadResponse.fileId,
+            url: uploadResponse.url,           // Alias para compatibilidad
             width: uploadResponse.width,
             height: uploadResponse.height,
-            type: 'imagekit',
-            fileId: uploadResponse.fileId,      // ID único de ImageKit
-            filePath: uploadResponse.filePath,  // Path interno de ImageKit
-            publicId: uploadResponse.fileId     // Alias para compatibilidad
-          };
-
-          cb(null, fileInfo);
+            format: uploadResponse.fileType?.split('/')[1] || 'webp',
+            type: 'imagekit'                   // Identificador del tipo
+          });
 
         } catch (uploadError) {
           console.error('❌ Error subiendo a ImageKit:', uploadError);

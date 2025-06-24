@@ -287,16 +287,19 @@ exports.actualizarPerfil = async (req, res) => {
         mimetype: req.file.mimetype
       });
 
-      console.log('🔍 Detectando tipo de upload...');
       if (req.file.path && req.file.path.includes('cloudinary.com')) {
         console.log('☁️ CLOUDINARY detectado - Imagen subida a Cloudinary');
         console.log('🌐 URL de Cloudinary:', req.file.path);
+        datosActualizados.imagen = req.file.path;
+      } else if (req.file.path && req.file.path.includes('ik.imagekit.io')) {
+        console.log('🚀 IMAGEKIT detectado - Imagen subida a ImageKit');
+        console.log('🌐 URL de ImageKit:', req.file.path);
         datosActualizados.imagen = req.file.path;
       } else {
         console.log('💾 LOCAL detectado - Imagen subida localmente');
         console.log('📁 Path local:', req.file.path);
         datosActualizados.imagen = req.file.filename;
-      }
+      } 
 
       const usuarioExistente = await Usuario.findById(usuarioId);
 
@@ -312,13 +315,18 @@ exports.actualizarPerfil = async (req, res) => {
 
       // Guardar según el tipo de upload
       if (req.file.path && req.file.path.includes('cloudinary.com')) {
-        console.log('☁️ Imagen subida a Cloudinary');
+        console.log('☁️ CLOUDINARY detectado');
         datosActualizados.imagen = req.file.path;
+      } else if (req.file.path && req.file.path.includes('ik.imagekit.io')) {
+        console.log('🚀 IMAGEKIT detectado');
+        datosActualizados.imagen = req.file.path;  // ← Guardar URL completa
       } else {
-        console.log('💾 Imagen subida localmente');
+        console.log('💾 LOCAL detectado');
         datosActualizados.imagen = req.file.filename;
       }
     }
+
+    console.log('🔍 DEBUG req.file completo:', JSON.stringify(req.file, null, 2));
 
     console.log('💾 Actualizando usuario en base de datos...');
     const usuario = await Usuario.findByIdAndUpdate(
