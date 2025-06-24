@@ -13,10 +13,10 @@ const imagekit = new ImageKit({
 });
 
 // Modelos
-const Usuario = require('../server/src/models/Usuario');
-const Equipo = require('../server/src/models/Equipo');
-const Torneo = require('../server/src/models/Torneo');
-const Arbitro = require('../server/src/models/Arbitro');
+const Usuario = require('../src/models/Usuario');
+const Equipo = require('../src/models/Equipo');
+const Torneo = require('../src/models/Torneo');
+const Arbitro = require('../src/models/Arbitro');
 
 async function limpiarImagenesHuerfanas() {
   console.log('🧹 LIMPIEZA DE IMÁGENES HUÉRFANAS EN IMAGEKIT');
