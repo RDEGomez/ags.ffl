@@ -1,8 +1,24 @@
-// scripts/migracionCorregida.js
+// scripts/migrateToImageKit.js - MIGRACIÓN COMPLETA Cloudinary → ImageKit
+const cloudinary = require('cloudinary').v2;
+const ImageKit = require('imagekit');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 require('dotenv').config();
+
+// Configuraciones
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const imagekit = new ImageKit({
+  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+});
 
 // Modelos
 const Usuario = require('../src/models/Usuario');
@@ -10,414 +26,446 @@ const Equipo = require('../src/models/Equipo');
 const Torneo = require('../src/models/Torneo');
 const Arbitro = require('../src/models/Arbitro');
 
-function normalizarUrlCloudinary(url) {
-  try {
-    // Validar que la URL existe y es string
-    if (!url || typeof url !== 'string') {
-      console.log(`      ⚠️ URL inválida: ${url}`);
-      return null;
-    }
-    
-    // 1. Remover transformaciones complejas si las tiene
-    // Patrón: /c_limit,f_auto,fl_progressive,h_800,q_auto:good,w_800/
-    let urlLimpia = url.replace(/\/c_[^\/]+\//, '/');
-    
-    console.log(`      🔧 URL original: ${url.substring(0, 100)}...`);
-    console.log(`      🔧 URL limpia: ${urlLimpia.substring(0, 100)}...`);
-    
-    // 2. Extraer componentes principales
-    const match = urlLimpia.match(/https:\/\/res\.cloudinary\.com\/([^\/]+)\/image\/upload\/(v\d+)\/(.+)/);
-    if (!match) {
-      console.log(`      ⚠️ URL no coincide con patrón Cloudinary: ${urlLimpia}`);
-      return null;
-    }
-    
-    const [, cloudName, version, path] = match;
-    
-    // 3. El path contiene: laces-uploads/timestamp-filename.ext.ext
-    const pathParts = path.split('/');
-    if (!pathParts || pathParts.length < 2) {
-      console.log(`      ⚠️ Path insuficiente: ${path}`);
-      return null;
-    }
-    
-    const folder = pathParts[0]; // laces-uploads
-    const filename = pathParts.slice(1).join('/'); // timestamp-filename.ext.ext
-    
-    // 4. Extraer timestamp del filename - puede ser v1749224505076 o v1749224505
-    const versionNumber = version.replace('v', '');
-    
-    // Buscar el timestamp en el filename que puede coincidir con el version
-    const timestampMatch = filename.match(/^(\d+)-(.+)/);
-    if (!timestampMatch) {
-      console.log(`      ⚠️ No se pudo extraer timestamp de: ${filename}`);
-      return null;
-    }
-    
-    const [, timestamp, resto] = timestampMatch;
-    
-    console.log(`      🔍 Version: ${versionNumber}, Timestamp: ${timestamp}`);
-    
-    return {
-      originalUrl: url,
-      urlLimpia,
-      cloudName,
-      version,
-      versionNumber,
-      folder,
-      timestamp,
-      filename,
-      restoFilename: resto
-    };
-  } catch (error) {
-    console.log(`      ❌ Error procesando URL ${url}: ${error.message}`);
-    return null;
-  }
-}
+async function migrarImagenes() {
+  console.log('🚀 INICIANDO MIGRACIÓN COMPLETA: Cloudinary → ImageKit');
+  console.log('⚠️  ATENCIÓN: Esta migración HARÁ CAMBIOS REALES');
+  console.log('=' * 70);
+  console.log('⏱️ Inicio:', new Date().toISOString());
+  
+  const resultados = {
+    timestamp: new Date().toISOString(),
+    estadisticas: {
+      totalImagenes: 0,
+      migradas: 0,
+      errores: 0,
+      urlsActualizadas: 0
+    },
+    mapeoUrls: [], // URL original → URL nueva
+    errores: [],
+    log: []
+  };
 
-function buscarEnMapeo(urlInfo, mapeoUrls) {
-  // Validar inputs
-  if (!urlInfo || !mapeoUrls || !Array.isArray(mapeoUrls)) {
-    console.log(`      ⚠️ Datos inválidos para búsqueda`);
-    return { encontrado: null, estrategia: 'error_datos' };
-  }
-  
-  const { timestamp, restoFilename, versionNumber } = urlInfo;
-  
-  if (!timestamp || !restoFilename) {
-    console.log(`      ⚠️ Timestamp o filename faltante`);
-    return { encontrado: null, estrategia: 'datos_incompletos' };
-  }
-  
   try {
-    console.log(`      🔍 Buscando: timestamp=${timestamp}, version=${versionNumber}, archivo=${restoFilename}`);
+    // PASO 1: Verificaciones previas
+    console.log('\n🔍 PASO 1: Verificaciones previas');
+    console.log('-'.repeat(40));
     
-    // Estrategia 1: Buscar por timestamp exacto + nombre de archivo
-    let encontrado = mapeoUrls.find(mapeo => {
-      return mapeo && mapeo.cloudinary && 
-             mapeo.cloudinary.includes(timestamp) && 
-             mapeo.cloudinary.includes(restoFilename);
-    });
-    
-    if (encontrado) {
-      console.log(`      ✅ Encontrado con timestamp exacto`);
-      return { encontrado, estrategia: 'timestamp_exacto_y_nombre' };
-    }
-    
-    // Estrategia 2: Buscar por timestamp parcial (los primeros dígitos)
-    const timestampCorto = timestamp.substring(0, 10); // Primeros 10 dígitos
-    encontrado = mapeoUrls.find(mapeo => {
-      return mapeo && mapeo.cloudinary && 
-             mapeo.cloudinary.includes(timestampCorto) && 
-             mapeo.cloudinary.includes(restoFilename);
-    });
-    
-    if (encontrado) {
-      console.log(`      ✅ Encontrado con timestamp parcial`);
-      return { encontrado, estrategia: 'timestamp_parcial_y_nombre' };
-    }
-    
-    // Estrategia 3: Buscar solo por timestamp exacto
-    encontrado = mapeoUrls.find(mapeo => {
-      return mapeo && mapeo.cloudinary && mapeo.cloudinary.includes(timestamp);
-    });
-    
-    if (encontrado) {
-      console.log(`      ✅ Encontrado solo por timestamp`);
-      return { encontrado, estrategia: 'solo_timestamp' };
-    }
-    
-    // Estrategia 4: Buscar por nombre de archivo (sin timestamp)
-    const nombreBase = restoFilename.split('.')[0]; // sin extensiones
-    if (nombreBase && nombreBase.length > 3) { // Solo buscar si el nombre es significativo
-      encontrado = mapeoUrls.find(mapeo => {
-        return mapeo && mapeo.cloudinary && mapeo.cloudinary.includes(nombreBase);
-      });
-      
-      if (encontrado) {
-        console.log(`      ✅ Encontrado por nombre de archivo`);
-        return { encontrado, estrategia: 'solo_nombre' };
-      }
-    }
-    
-    // Estrategia 5: Buscar por version number del mapeo
-    if (versionNumber) {
-      encontrado = mapeoUrls.find(mapeo => {
-        return mapeo && mapeo.cloudinary && mapeo.cloudinary.includes(`v${versionNumber}`);
-      });
-      
-      if (encontrado) {
-        console.log(`      ✅ Encontrado por version number`);
-        return { encontrado, estrategia: 'version_number' };
-      }
-    }
-    
-    return { encontrado: null, estrategia: 'no_encontrado' };
-  } catch (error) {
-    console.log(`      ❌ Error en búsqueda: ${error.message}`);
-    return { encontrado: null, estrategia: 'error_busqueda' };
-  }
-}
+    await verificacionesIniciales();
+    console.log('✅ Verificaciones completadas');
 
-function aplicarTransformacionesImageKit(urlImageKit, urlCloudinaryOriginal) {
-  const match = urlCloudinaryOriginal.match(/\/c_([^\/]+)\//);
-  if (!match) return urlImageKit;
-  
-  const transformaciones = match[1];
-  console.log(`      🎨 Transformaciones originales: ${transformaciones}`);
-  
-  // Convertir transformaciones específicas de tu sistema:
-  // c_limit,f_auto,fl_progressive,h_800,q_auto:good,w_800
-  let transformacionesImageKit = transformaciones
-    .replace(/c_limit/g, 'c-at_max')
-    .replace(/c_fill/g, 'c-maintain_ratio')
-    .replace(/c_fit/g, 'c-at_max')
-    .replace(/w_(\d+)/g, 'w-$1')
-    .replace(/h_(\d+)/g, 'h-$1')
-    .replace(/q_auto:good/g, 'q-80')
-    .replace(/q_auto/g, 'q-auto')
-    .replace(/f_auto/g, 'f-auto')
-    .replace(/fl_progressive/g, 'pr-true');
-  
-  console.log(`      🎨 Transformaciones ImageKit: ${transformacionesImageKit}`);
-  
-  // Insertar transformaciones en ImageKit
-  const partes = urlImageKit.split('/');
-  const baseIndex = partes.findIndex(parte => parte === 'laces-uploads');
-  
-  if (baseIndex > 0) {
-    partes.splice(baseIndex, 0, `tr:${transformacionesImageKit}`);
-    return partes.join('/');
-  }
-  
-  return urlImageKit;
-}
-
-async function migracionCorregida() {
-  try {
-    console.log('🔄 MIGRACIÓN CORREGIDA PARA DOBLES EXTENSIONES');
-    console.log('=' * 60);
+    // PASO 2: Conectar a MongoDB
+    console.log('\n🔌 PASO 2: Conectar a base de datos');
+    console.log('-'.repeat(40));
     
     await mongoose.connect(process.env.MONGODB_URI || process.env.DATABASE_URL);
-    console.log('✅ Conectado a:', mongoose.connection.db.databaseName);
+    console.log('✅ Conectado a MongoDB');
+
+    // PASO 3: Crear backup de seguridad
+    console.log('\n💾 PASO 3: Crear backup de seguridad');
+    console.log('-'.repeat(40));
     
-    // Cargar mapeo del archivo correcto (no el de transformaciones)
-    const reportesDir = path.join(process.cwd(), 'migration-reports');
-    const reportFiles = fs.readdirSync(reportesDir)
-      .filter(f => f.startsWith('migracion-') && f.endsWith('.json') && !f.includes('transformaciones'))
-      .sort()
-      .reverse();
+    await crearBackupCompleto();
+    console.log('✅ Backup creado exitosamente');
+
+    // PASO 4: Obtener lista de imágenes a migrar
+    console.log('\n📊 PASO 4: Obtener imágenes de Cloudinary');
+    console.log('-'.repeat(40));
     
-    if (reportFiles.length === 0) {
-      throw new Error('No se encontró el reporte original de migración');
+    const imagenes = await obtenerImagenesAMigrar();
+    resultados.estadisticas.totalImagenes = imagenes.length;
+    console.log(`📁 ${imagenes.length} imágenes encontradas para migrar`);
+
+    if (imagenes.length === 0) {
+      console.log('⚠️ No se encontraron imágenes para migrar');
+      return resultados;
     }
+
+    // PASO 5: Migrar imágenes una por una
+    console.log('\n🔄 PASO 5: Migrar imágenes');
+    console.log('-'.repeat(40));
+    console.log('⏱️ Iniciando migración...');
     
-    const reportePath = path.join(reportesDir, reportFiles[0]);
-    console.log(`📄 Usando reporte: ${reportFiles[0]}`);
-    
-    const reporte = JSON.parse(fs.readFileSync(reportePath, 'utf8'));
-    const mapeoUrls = reporte.mapeoUrls;
-    
-    if (!mapeoUrls || !Array.isArray(mapeoUrls)) {
-      throw new Error('El reporte no contiene mapeoUrls válido');
-    }
-    
-    console.log(`📄 Usando reporte: ${reportFiles[0]}`);
-    console.log(`🔗 Mapeo disponible: ${mapeoUrls.length} URLs`);
-    
-    let totalActualizadas = 0;
-    let estrategias = {
-      timestamp_exacto_y_nombre: 0,
-      timestamp_parcial_y_nombre: 0,
-      solo_timestamp: 0,
-      solo_nombre: 0,
-      version_number: 0,
-      no_encontrado: 0,
-      error_datos: 0,
-      datos_incompletos: 0,
-      error_busqueda: 0
-    };
-    let noEncontradas = [];
-    
-    async function procesarModelo(modelo, nombreModelo) {
-      console.log(`\n🔄 Procesando ${nombreModelo.toUpperCase()}...`);
+    for (let i = 0; i < imagenes.length; i++) {
+      const imagen = imagenes[i];
+      const progreso = ((i + 1) / imagenes.length * 100).toFixed(1);
       
-      const documentos = await modelo.find({ imagen: { $regex: 'cloudinary' } });
-      console.log(`   📊 ${documentos.length} documentos con URLs de Cloudinary`);
+      console.log(`\n📸 [${i + 1}/${imagenes.length}] (${progreso}%) ${imagen.public_id}`);
       
-      for (const doc of documentos) {
-        try {
-          console.log(`\n   👤 ${doc.nombre || doc._id}`);
-          console.log(`      URL original: ${doc.imagen}`);
-          
-          // Validar que el documento tiene imagen
-          if (!doc.imagen) {
-            console.log(`      ⚠️ Documento sin imagen, saltando...`);
-            continue;
-          }
-          
-          // Normalizar la URL
-          const urlInfo = normalizarUrlCloudinary(doc.imagen);
-          
-          if (!urlInfo) {
-            console.log(`      ❌ No se pudo normalizar la URL, saltando...`);
-            noEncontradas.push({
-              modelo: nombreModelo,
-              id: doc._id,
-              nombre: doc.nombre || 'Sin nombre',
-              url: doc.imagen,
-              error: 'url_no_normalizable'
-            });
-            continue;
-          }
-          
-          console.log(`      Timestamp extraído: ${urlInfo.timestamp}`);
-          console.log(`      Archivo: ${urlInfo.restoFilename}`);
-          
-          // Buscar en mapeo
-          const { encontrado, estrategia } = buscarEnMapeo(urlInfo, mapeoUrls);
-          estrategias[estrategia] = (estrategias[estrategia] || 0) + 1;
-          
-          if (encontrado) {
-            console.log(`      ✅ Encontrado (${estrategia})`);
-            console.log(`      Mapeo: ${encontrado.cloudinary.substring(0, 80)}...`);
-            
-            let nuevaUrl = encontrado.imagekit;
-            
-            // Validar que tenemos la URL de ImageKit
-            if (!nuevaUrl) {
-              console.log(`      ❌ URL de ImageKit faltante en mapeo`);
-              continue;
-            }
-            
-            // Aplicar transformaciones si las tenía
-            const tieneTransformaciones = /\/c_[^\/]+\//.test(doc.imagen);
-            if (tieneTransformaciones) {
-              nuevaUrl = aplicarTransformacionesImageKit(nuevaUrl, doc.imagen);
-              console.log(`      🎨 Transformaciones aplicadas`);
-            }
-            
-            console.log(`      Nueva URL: ${nuevaUrl.substring(0, 80)}...`);
-            
-            // Actualizar
-            const resultado = await modelo.findByIdAndUpdate(
-              doc._id,
-              { imagen: nuevaUrl },
-              { new: true }
-            );
-            
-            if (resultado) {
-              totalActualizadas++;
-              console.log(`      ✅ ACTUALIZADO`);
-            } else {
-              console.log(`      ❌ Error en actualización de BD`);
-            }
-          } else {
-            console.log(`      ❌ NO ENCONTRADO (${estrategia})`);
-            noEncontradas.push({
-              modelo: nombreModelo,
-              id: doc._id,
-              nombre: doc.nombre || 'Sin nombre',
-              url: doc.imagen,
-              timestamp: urlInfo.timestamp,
-              archivo: urlInfo.restoFilename,
-              estrategia
-            });
-          }
-        } catch (error) {
-          console.log(`      💥 Error procesando documento ${doc._id}: ${error.message}`);
-          noEncontradas.push({
-            modelo: nombreModelo,
-            id: doc._id,
-            nombre: doc.nombre || 'Sin nombre',
-            url: doc.imagen || 'URL faltante',
-            error: error.message
+      try {
+        const resultado = await migrarImagenIndividual(imagen);
+        
+        if (resultado.success) {
+          resultados.estadisticas.migradas++;
+          resultados.mapeoUrls.push({
+            cloudinary: resultado.cloudinary_url,
+            imagekit: resultado.imagekit_url,
+            public_id: imagen.public_id,
+            file_id: resultado.file_id
           });
+          console.log(`   ✅ Migrada → ${resultado.file_id}`);
+        } else {
+          resultados.estadisticas.errores++;
+          resultados.errores.push({
+            public_id: imagen.public_id,
+            url: imagen.secure_url,
+            error: resultado.error
+          });
+          console.log(`   ❌ Error: ${resultado.error}`);
         }
+        
+      } catch (error) {
+        resultados.estadisticas.errores++;
+        resultados.errores.push({
+          public_id: imagen.public_id,
+          url: imagen.secure_url,
+          error: error.message
+        });
+        console.error(`   💥 Error fatal: ${error.message}`);
+      }
+      
+      // Pausa entre imágenes para no sobrecargar APIs
+      if (i < imagenes.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
       }
     }
+
+    // PASO 6: Actualizar URLs en base de datos
+    console.log('\n📝 PASO 6: Actualizar URLs en base de datos');
+    console.log('-'.repeat(40));
     
-    // Procesar todos los modelos
-    await procesarModelo(Usuario, 'usuarios');
-    await procesarModelo(Equipo, 'equipos');
-    await procesarModelo(Torneo, 'torneos');
+    const urlsActualizadas = await actualizarUrlsEnBD(resultados.mapeoUrls);
+    resultados.estadisticas.urlsActualizadas = urlsActualizadas;
+    console.log(`✅ ${urlsActualizadas} URLs actualizadas en BD`);
+
+    // PASO 7: Guardar reporte final
+    console.log('\n📊 PASO 7: Guardar reporte');
+    console.log('-'.repeat(40));
     
-    // Verificación final
-    console.log('\n📊 RESUMEN FINAL');
-    console.log('=' * 40);
-    
-    const usuariosCloudinaryFinal = await Usuario.countDocuments({ imagen: { $regex: 'cloudinary' } });
-    const equiposCloudinaryFinal = await Equipo.countDocuments({ imagen: { $regex: 'cloudinary' } });
-    const torneosCloudinaryFinal = await Torneo.countDocuments({ imagen: { $regex: 'cloudinary' } });
-    
-    const usuariosImageKitFinal = await Usuario.countDocuments({ imagen: { $regex: 'imagekit' } });
-    const equiposImageKitFinal = await Equipo.countDocuments({ imagen: { $regex: 'imagekit' } });
-    const torneosImageKitFinal = await Torneo.countDocuments({ imagen: { $regex: 'imagekit' } });
-    
-    console.log(`📈 Estadísticas finales:`);
-    console.log(`   👥 Usuarios    - Cloudinary: ${usuariosCloudinaryFinal} | ImageKit: ${usuariosImageKitFinal}`);
-    console.log(`   ⚽ Equipos     - Cloudinary: ${equiposCloudinaryFinal} | ImageKit: ${equiposImageKitFinal}`);
-    console.log(`   🏆 Torneos     - Cloudinary: ${torneosCloudinaryFinal} | ImageKit: ${torneosImageKitFinal}`);
-    
-    console.log(`\n🎯 Estrategias utilizadas:`);
-    Object.entries(estrategias).forEach(([estrategia, count]) => {
-      console.log(`   ${estrategia}: ${count}`);
-    });
-    
-    console.log(`\n📊 Resultados:`);
-    console.log(`   ✅ URLs actualizadas: ${totalActualizadas}`);
-    console.log(`   ❌ URLs no encontradas: ${noEncontradas.length}`);
-    
-    // Guardar reporte
-    if (noEncontradas.length > 0 || totalActualizadas > 0) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const reporteCorregido = {
-        timestamp: new Date().toISOString(),
-        estadisticas: {
-          actualizadas: totalActualizadas,
-          estrategias,
-          noEncontradas: noEncontradas.length
-        },
-        urlsNoEncontradas: noEncontradas
-      };
-      
-      const reportePath = path.join(reportesDir, `migracion-corregida-${timestamp}.json`);
-      fs.writeFileSync(reportePath, JSON.stringify(reporteCorregido, null, 2));
-      console.log(`\n📄 Reporte guardado: ${reportePath}`);
-    }
-    
-    console.log('\n🎉 Migración corregida completada');
-    
-    const totalCloudinary = usuariosCloudinaryFinal + equiposCloudinaryFinal + torneosCloudinaryFinal;
-    if (totalCloudinary === 0) {
-      console.log('🏆 ¡ÉXITO TOTAL! Todas las URLs han sido migradas a ImageKit');
-    } else {
-      console.log(`⚠️  Quedan ${totalCloudinary} URLs de Cloudinary`);
-      
-      if (noEncontradas.length > 0) {
-        console.log('\n🔍 URLs no encontradas - posibles causas:');
-        console.log('   - Imágenes agregadas después de la migración original');
-        console.log('   - Diferencias en nombres de archivos');
-        console.log('   - Timestamps que no coinciden');
-      }
-    }
-    
+    await guardarReporteFinal(resultados);
+
+    // PASO 8: Mostrar resumen
+    mostrarResumenMigracion(resultados);
+
     await mongoose.disconnect();
+    console.log('\n🎉 ¡MIGRACIÓN COMPLETADA!');
     
+    return resultados;
+
   } catch (error) {
-    console.error('❌ Error:', error.message);
-    console.error(error.stack);
-    process.exit(1);
+    console.error('\n💥 ERROR FATAL EN MIGRACIÓN:', error.message);
+    resultados.errores.push({ fatal: true, error: error.message });
+    
+    // Intentar guardar reporte de error
+    try {
+      await guardarReporteFinal(resultados);
+    } catch (e) {
+      console.error('❌ No se pudo guardar reporte de error:', e.message);
+    }
+    
+    throw error;
   }
 }
 
-// Ejecutar si es llamado directamente
+async function verificacionesIniciales() {
+  console.log('🔍 Verificando credenciales y conexiones...');
+  
+  // Verificar Cloudinary
+  try {
+    await cloudinary.api.ping();
+    console.log('   ✅ Cloudinary: Conectado');
+  } catch (error) {
+    throw new Error(`Cloudinary no accesible: ${error.message}`);
+  }
+  
+  // Verificar ImageKit
+  try {
+    await imagekit.listFiles({ limit: 1 });
+    console.log('   ✅ ImageKit: Conectado');
+  } catch (error) {
+    throw new Error(`ImageKit no accesible: ${error.message}`);
+  }
+  
+  // Verificar MongoDB URI
+  if (!process.env.MONGODB_URI && !process.env.DATABASE_URL) {
+    throw new Error('MONGODB_URI o DATABASE_URL no configurado');
+  }
+  console.log('   ✅ MongoDB: URI configurado');
+  
+  console.log('✅ Todas las verificaciones pasaron');
+}
+
+async function obtenerImagenesAMigrar() {
+  console.log('🔍 Obteniendo lista de imágenes de Cloudinary...');
+  
+  let allImages = [];
+  let nextCursor = null;
+  let pageCount = 0;
+
+  do {
+    pageCount++;
+    console.log(`   📄 Procesando página ${pageCount}...`);
+    
+    const options = {
+      type: 'upload',
+      max_results: 500,
+      resource_type: 'image'
+    };
+    
+    if (nextCursor) {
+      options.next_cursor = nextCursor;
+    }
+
+    const result = await cloudinary.api.resources(options);
+    
+    // Filtrar solo imágenes del proyecto
+    const projectImages = result.resources.filter(img => 
+      img.public_id.includes('laces-uploads') || 
+      img.folder === 'laces-uploads'
+    );
+    
+    allImages = allImages.concat(projectImages);
+    nextCursor = result.next_cursor;
+    
+    console.log(`      📊 ${projectImages.length} imágenes del proyecto en página ${pageCount}`);
+    
+  } while (nextCursor);
+
+  console.log(`📁 Total de imágenes del proyecto: ${allImages.length}`);
+  return allImages;
+}
+
+async function migrarImagenIndividual(imagen) {
+  try {
+    // Descargar de Cloudinary
+    const buffer = await descargarImagen(imagen.secure_url);
+    
+    // Generar nombre para ImageKit
+    const timestamp = Date.now();
+    const originalName = imagen.public_id.split('/').pop();
+    const fileName = `${timestamp}-${originalName}`;
+    
+    // Subir a ImageKit
+    const uploadResult = await imagekit.upload({
+      file: buffer,
+      fileName: fileName,
+      folder: 'laces-uploads'
+    });
+
+    return {
+      success: true,
+      cloudinary_url: imagen.secure_url,
+      imagekit_url: uploadResult.url,
+      file_id: uploadResult.fileId,
+      size_original: imagen.bytes,
+      size_nueva: uploadResult.size
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      cloudinary_url: imagen.secure_url
+    };
+  }
+}
+
+function descargarImagen(url) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Timeout descargando imagen'));
+    }, 30000); // 30 segundos timeout
+
+    https.get(url, (response) => {
+      clearTimeout(timeout);
+      
+      if (response.statusCode !== 200) {
+        reject(new Error(`HTTP ${response.statusCode} al descargar imagen`));
+        return;
+      }
+
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    }).on('error', (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+}
+
+async function crearBackupCompleto() {
+  const backupDir = path.join(process.cwd(), 'migration-reports', 'backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  
+  console.log('💾 Creando backup de URLs en BD...');
+  
+  // Backup de usuarios
+  const usuarios = await Usuario.find({ imagen: { $exists: true } }, 'imagen nombre').lean();
+  const equipos = await Equipo.find({ imagen: { $exists: true } }, 'imagen nombre').lean();
+  const torneos = await Torneo.find({ imagen: { $exists: true } }, 'imagen nombre').lean();
+  const arbitros = await Arbitro.find({}).populate('usuario', 'imagen nombre').lean();
+  
+  const backup = {
+    timestamp: new Date().toISOString(),
+    usuarios: usuarios.length,
+    equipos: equipos.length,
+    torneos: torneos.length,
+    arbitros: arbitros.length,
+    data: {
+      usuarios,
+      equipos,
+      torneos,
+      arbitros
+    }
+  };
+  
+  const backupPath = path.join(backupDir, `backup-completo-${timestamp}.json`);
+  fs.writeFileSync(backupPath, JSON.stringify(backup, null, 2));
+  
+  console.log(`📄 Backup guardado: ${backupPath}`);
+  console.log(`📊 Respaldados: ${usuarios.length + equipos.length + torneos.length + arbitros.length} registros`);
+}
+
+async function actualizarUrlsEnBD(mapeoUrls) {
+  console.log(`🔄 Actualizando ${mapeoUrls.length} URLs en base de datos...`);
+  
+  let totalActualizadas = 0;
+  
+  for (const mapeo of mapeoUrls) {
+    try {
+      // Actualizar en todas las colecciones
+      const [usuarios, equipos, torneos, arbitros] = await Promise.all([
+        Usuario.updateMany({ imagen: mapeo.cloudinary }, { imagen: mapeo.imagekit }),
+        Equipo.updateMany({ imagen: mapeo.cloudinary }, { imagen: mapeo.imagekit }),
+        Torneo.updateMany({ imagen: mapeo.cloudinary }, { imagen: mapeo.imagekit }),
+        Usuario.updateMany(
+          { imagen: mapeo.cloudinary, _id: { $in: await Arbitro.distinct('usuario') } },
+          { imagen: mapeo.imagekit }
+        )
+      ]);
+      
+      const actualizacionesEsteMapeo = usuarios.modifiedCount + equipos.modifiedCount + 
+                                      torneos.modifiedCount + arbitros.modifiedCount;
+      totalActualizadas += actualizacionesEsteMapeo;
+      
+      if (actualizacionesEsteMapeo > 0) {
+        console.log(`   ✅ ${mapeo.file_id}: ${actualizacionesEsteMapeo} registros actualizados`);
+      }
+      
+    } catch (error) {
+      console.error(`   ❌ Error actualizando ${mapeo.file_id}: ${error.message}`);
+    }
+  }
+  
+  return totalActualizadas;
+}
+
+async function guardarReporteFinal(resultados) {
+  const reportsDir = path.join(process.cwd(), 'migration-reports');
+  if (!fs.existsSync(reportsDir)) {
+    fs.mkdirSync(reportsDir, { recursive: true });
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  
+  // Reporte JSON completo
+  const reportePath = path.join(reportsDir, `migracion-${timestamp}.json`);
+  fs.writeFileSync(reportePath, JSON.stringify(resultados, null, 2));
+  
+  // CSV con mapeo de URLs
+  if (resultados.mapeoUrls.length > 0) {
+    const csvContent = [
+      ['URL Cloudinary', 'URL ImageKit', 'Public ID', 'File ID'],
+      ...resultados.mapeoUrls.map(m => [m.cloudinary, m.imagekit, m.public_id, m.file_id])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    
+    const csvPath = path.join(reportsDir, `mapeo-urls-${timestamp}.csv`);
+    fs.writeFileSync(csvPath, csvContent);
+    console.log(`📊 Mapeo CSV: ${csvPath}`);
+  }
+  
+  console.log(`📄 Reporte completo: ${reportePath}`);
+}
+
+function mostrarResumenMigracion(resultados) {
+  console.log('\n🎯 RESUMEN FINAL DE MIGRACIÓN');
+  console.log('=' * 50);
+  console.log(`📊 Total de imágenes: ${resultados.estadisticas.totalImagenes}`);
+  console.log(`✅ Migradas exitosamente: ${resultados.estadisticas.migradas}`);
+  console.log(`❌ Errores: ${resultados.estadisticas.errores}`);
+  console.log(`📝 URLs actualizadas en BD: ${resultados.estadisticas.urlsActualizadas}`);
+  
+  const porcentajeExito = resultados.estadisticas.totalImagenes > 0 
+    ? ((resultados.estadisticas.migradas / resultados.estadisticas.totalImagenes) * 100).toFixed(1)
+    : '0';
+  console.log(`📈 Porcentaje de éxito: ${porcentajeExito}%`);
+  
+  if (resultados.errores.length > 0) {
+    console.log('\n⚠️ ERRORES ENCONTRADOS:');
+    resultados.errores.slice(0, 3).forEach((error, i) => {
+      console.log(`   ${i + 1}. ${error.public_id || 'Unknown'}: ${error.error}`);
+    });
+    if (resultados.errores.length > 3) {
+      console.log(`   ... y ${resultados.errores.length - 3} errores más (ver reporte completo)`);
+    }
+  }
+  
+  console.log('\n🚀 PRÓXIMOS PASOS:');
+  if (resultados.estadisticas.migradas > 0) {
+    console.log('   1. ✅ Migración completada - imágenes en ImageKit');
+    console.log('   2. 🧪 Probar la aplicación en desarrollo');
+    console.log('   3. 🔧 Activar ImageKit: USE_IMAGEKIT=true en .env');
+    console.log('   4. 🚀 Deploy a producción cuando esté validado');
+    console.log('   5. 🧹 Opcional: Limpiar Cloudinary tras confirmación');
+  } else {
+    console.log('   ❌ No se migraron imágenes exitosamente');
+    console.log('   🔍 Revisar errores en el reporte');
+    console.log('   🔧 Corregir problemas y volver a intentar');
+  }
+  
+  console.log('\n🛡️ ROLLBACK DISPONIBLE:');
+  console.log('   • Backup de BD creado automáticamente');
+  console.log('   • Imágenes originales intactas en Cloudinary');
+  console.log('   • USE_CLOUDINARY=true para rollback inmediato');
+}
+
+// Ejecutar migración si es llamado directamente
 if (require.main === module) {
-  migracionCorregida();
+  console.log('🎬 MIGRACIÓN COMPLETA: CLOUDINARY → IMAGEKIT');
+  console.log('⚠️ ATENCIÓN: Esta operación MODIFICARÁ tu base de datos');
+  console.log('\n⏸️ Presiona Ctrl+C en los próximos 10 segundos para cancelar...\n');
+  
+  // Dar tiempo para cancelar
+  setTimeout(() => {
+    migrarImagenes()
+      .then((resultados) => {
+        const exito = resultados.estadisticas.errores === 0 && resultados.estadisticas.migradas > 0;
+        
+        if (exito) {
+          console.log('\n🎉 ¡MIGRACIÓN COMPLETADA EXITOSAMENTE!');
+          console.log('💡 Activa ImageKit con: USE_IMAGEKIT=true');
+          process.exit(0);
+        } else {
+          console.log('\n⚠️ MIGRACIÓN COMPLETADA CON PROBLEMAS');
+          console.log('📋 Revisa el reporte para detalles');
+          process.exit(1);
+        }
+      })
+      .catch((error) => {
+        console.error('\n💥 MIGRACIÓN FALLÓ:', error.message);
+        console.error('🔧 Revisa configuración y vuelve a intentar');
+        process.exit(1);
+      });
+  }, 10000); // 10 segundos de espera
 }
 
 module.exports = { 
-  migracionCorregida,
-  normalizarUrlCloudinary,
-  buscarEnMapeo
+  migrarImagenes,
+  migrarImagenIndividual,
+  obtenerImagenesAMigrar
 };
