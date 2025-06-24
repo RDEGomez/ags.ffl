@@ -6,77 +6,62 @@ import {
   Typography,
   Avatar,
   Chip,
-  Divider,
-  CircularProgress
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import {
-  Sports,
   EmojiEvents,
-  Shield,
-  Bolt,
-  PanTool,
-  SportsFootball,
-  Star,
-  AutoAwesome,
-  TrendingUp
+  Star as StarIcon,
+  Timeline as TimelineIcon,
+  Speed as SpeedIcon,
+  SportsTennis as TennisIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import axiosInstance from '../config/axios';
+import { useImage } from '../hooks/useImage';
 
-// 🔥 FUNCIÓN HELPER PARA IMÁGENES
-const getImageUrl = (imagen) => {
-  if (!imagen) return '';
-  if (typeof imagen !== 'string') return '';
-  
-  if (imagen.startsWith('http://') || imagen.startsWith('https://')) {
-    return imagen;
-  }
-  
-  const API_URL = import.meta.env.VITE_BACKEND_URL || '';
-  return `${API_URL}/uploads/${imagen}`;
-};
+// 🎯 TIPOS DE ESTADÍSTICAS DISPONIBLES
+const tiposEstadisticas = ['puntos', 'qbrating', 'recepciones', 'tackleos', 'intercepciones'];
 
-// 🎨 CONFIGURACIÓN DE ICONOS Y COLORES - ACTUALIZADA CON QB RATING
+// 🎨 CONFIGURACIÓN DE TIPOS
 const CONFIGURACION_TIPOS = {
-  qbrating: {
-    icono: <Sports />,
-    titulo: "MAESTRO QB",
-    color: "#3b82f6",
-    gradient: "linear-gradient(145deg, #1976d2, #42a5f5)",
-    label: "QB Rating"
-  },
   puntos: {
-    icono: <EmojiEvents />,
-    titulo: "REY DE PUNTOS", 
-    color: "#fbbf24",
-    gradient: "linear-gradient(145deg, #f57c00, #ffb74d)",
+    icono: <StarIcon />,
+    color: '#ffd700',
+    bgColor: 'rgba(255, 215, 0, 0.05)',
+    gradient: "linear-gradient(145deg, #ffd700, #ffed4e)",
+    titulo: "Rey de Puntos",
     label: "Puntos Totales"
   },
+  qbrating: {
+    icono: <SpeedIcon />,
+    color: '#2196f3',
+    bgColor: 'rgba(33, 150, 243, 0.05)',
+    gradient: "linear-gradient(145deg, #2196f3, #64b5f6)",
+    titulo: "Maestro QB",
+    label: "QB Rating"
+  },
   tackleos: {
-    icono: <Shield />,
-    titulo: "MURO DEFENSIVO",
-    color: "#10b981", 
-    gradient: "linear-gradient(145deg, #388e3c, #66bb6a)",
-    label: "Tackleos Exitosos"
+    icono: <SecurityIcon />,
+    color: '#9c27b0',
+    bgColor: 'rgba(156, 39, 176, 0.05)',
+    gradient: "linear-gradient(145deg, #9c27b0, #ba68c8)",
+    titulo: "Muro Defensivo",
+    label: "Tackleos"
   },
   intercepciones: {
-    icono: <PanTool />,
-    titulo: "CAZADOR DE PASES",
-    color: "#ef4444",
-    gradient: "linear-gradient(145deg, #d84315, #ff7043)", 
+    icono: <TimelineIcon />,
+    color: '#e91e63',
+    bgColor: 'rgba(233, 30, 99, 0.05)',
+    gradient: "linear-gradient(145deg, #e91e63, #f48fb1)",
+    titulo: "Interceptor",
     label: "Intercepciones"
   },
-  sacks: {
-    icono: <Bolt />,
-    titulo: "DEMOLEDOR QB",
-    color: "#8b5cf6",
-    gradient: "linear-gradient(145deg, #7b1fa2, #ba68c8)",
-    label: "Sacks Realizados"
-  },
   recepciones: {
-    icono: <SportsFootball />,
-    titulo: "MANOS SEGURAS",
-    color: "#f97316",
+    icono: <TennisIcon />,
+    color: '#f57c00',
+    bgColor: 'rgba(245, 124, 0, 0.05)',
     gradient: "linear-gradient(145deg, #f57c00, #ffb74d)",
     label: "Recepciones"
   }
@@ -107,7 +92,7 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
           border: `1px solid ${config.color}30`,
           borderRadius: 3,
           p: 3,
-          height: '320px',
+          height: '420px', // Altura aumentada para mostrar TOP 5
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -127,7 +112,7 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
           border: `1px solid ${config.color}30`,
           borderRadius: 3,
           p: 3,
-          height: '320px',
+          height: '420px', // Altura aumentada
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -137,15 +122,19 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
         {config.icono && React.cloneElement(config.icono, { 
           sx: { fontSize: '2rem', color: config.color, mb: 2, opacity: 0.5 } 
         })}
-        <Typography variant="h6" sx={{ color: config.color, textAlign: 'center', mb: 1 }}>
-          {config.titulo}
+        <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
+          Sin estadísticas
         </Typography>
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
-          Sin datos disponibles
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+          No hay datos de {config.label.toLowerCase()}
         </Typography>
       </Box>
     );
   }
+
+  // 🖼️ URLs de imágenes con hook
+  const liderImageUrl = useImage(lider.jugador?.imagen);
+  const equipoImageUrl = useImage(lider.equipo?.imagen);
 
   return (
     <motion.div
@@ -155,39 +144,35 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
     >
       <Box
         sx={{
-          background: `linear-gradient(145deg, ${config.color}25, ${config.color}10)`,
-          backdropFilter: 'blur(20px)',
-          border: `1px solid ${config.color}40`,
+          position: 'relative',
+          background: `linear-gradient(145deg, ${config.color}20, ${config.color}10)`,
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${config.color}30`,
           borderRadius: 3,
           p: 3,
-          // 🔧 ALTURA DE LA TARJETA - Ajustar aquí si necesitas más espacio para el Top 5
-          height: '520px', // Aumentado de 320px a 420px (+100px)
-          position: 'relative',
+          height: '420px', // Altura aumentada para mostrar TOP 5
           overflow: 'hidden',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: `0 12px 40px ${config.color}30`,
-            border: `1px solid ${config.color}60`
+            transform: 'translateY(-2px)',
+            transition: 'transform 0.3s ease',
+            boxShadow: `0 8px 25px ${config.color}40`
           }
         }}
       >
-        {/* 🔥 BACKGROUND DEL LOGO DEL EQUIPO - Atenuado y circular */}
-        {lider.equipo?.imagen && (
+        {/* Background sutil del logo del equipo - ESQUINA INFERIOR DERECHA */}
+        {equipoImageUrl && (
           <Box
+            component="img"
+            src={equipoImageUrl}
             sx={{
               position: 'absolute',
-              bottom: '20px', // 🔧 POSICIÓN VERTICAL - Esquina inferior
-              right: '20px',  // 🔧 POSICIÓN HORIZONTAL - Esquina derecha
-              width: '120px', // 🔧 TAMAÑO DEL CÍRCULO - Ajustar entre 80px-150px
-              height: '120px',
-              backgroundImage: `url(${getImageUrl(lider.equipo.imagen)})`,
-              backgroundSize: 'cover', // Cambiado de 'contain' a 'cover' para mejor ajuste circular
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center',
-              opacity: 0.12, // 🔧 TRANSPARENCIA - Aumentada un poco para mejor visibilidad
-              filter: 'grayscale(30%)', // Reducido para mantener algo de color
-              borderRadius: '50%', // 🔥 CÍRCULO PERFECTO - Elimina bordes cuadrados
+              bottom: 10,
+              right: 10,
+              width: '80px',
+              height: '80px',
+              opacity: 0.08,
+              filter: 'grayscale(30%)',
+              borderRadius: '50%',
               pointerEvents: 'none',
               zIndex: 0
             }}
@@ -232,7 +217,7 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar
-              src={getImageUrl(lider.jugador?.imagen)}
+              src={liderImageUrl}
               sx={{
                 width: 50,
                 height: 50,
@@ -258,14 +243,15 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                 <Chip
-                  label={`#${lider.jugador?.numero || 0}`}
+                  label={`#${lider.jugador?.numero || '?'}`}
                   size="small"
                   sx={{
                     height: 18,
                     fontSize: '0.7rem',
                     fontWeight: 700,
                     bgcolor: 'rgba(255,255,255,0.2)',
-                    color: 'white'
+                    color: 'white',
+                    minWidth: 28
                   }}
                 />
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -324,146 +310,127 @@ const TarjetaClasificacion = ({ tipo, lideresData, loading }) => {
               variant="caption" 
               sx={{ 
                 color: 'rgba(255,255,255,0.7)', 
-                fontWeight: 600,
+                fontWeight: 600, 
+                mb: 1, 
+                display: 'block',
                 textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                mb: 1,
-                display: 'block'
+                fontSize: '0.7rem'
               }}
             >
-              Top {restantes.length + 1}
+              TOP 5
             </Typography>
             
-            <AnimatePresence>
-              {restantes.map((jugador, index) => (
-                <motion.div
-                  key={jugador.jugador?._id || index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.4 }}
-                >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {restantes.map((jugador, index) => {
+                const jugadorImageUrl = useImage(jugador.jugador?.imagen);
+                const posicion = index + 2; // Posiciones 2, 3, 4, 5
+                
+                return (
                   <Box
+                    key={`${tipo}-${jugador.jugador?._id}-${index}`}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      py: 1,
-                      px: 1.5,
-                      mb: 1,
-                      background: `linear-gradient(90deg, ${config.color}15, transparent)`,
-                      borderRadius: 2,
-                      transition: 'all 0.3s ease',
+                      gap: 1,
+                      p: 1,
+                      borderRadius: 1,
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      transition: 'all 0.2s ease',
                       '&:hover': {
-                        background: `linear-gradient(90deg, ${config.color}25, ${config.color}10)`,
-                        transform: 'translateX(4px)'
+                        backgroundColor: 'rgba(255,255,255,0.1)'
                       }
                     }}
                   >
-                    {/* Posición */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      minWidth: 24,
-                      mr: 1
-                    }}>
-                      <Typography variant="caption" sx={{ 
-                        color: config.color,
-                        fontWeight: 900,
-                        fontSize: '0.8rem'
-                      }}>
-                        #{index + 2}
-                      </Typography>
-                    </Box>
-
-                    {/* Avatar pequeño */}
-                    <Avatar
-                      src={getImageUrl(jugador.jugador?.imagen)}
+                    {/* Posición con más ancho */}
+                    <Chip
+                      label={posicion}
+                      size="small"
                       sx={{
-                        width: 28,
-                        height: 28,
-                        mr: 1,
-                        border: `1px solid ${config.color}40`
+                        height: 20,
+                        width: 32, // Ancho aumentado
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        bgcolor: config.color,
+                        color: 'white',
+                        '& .MuiChip-label': {
+                          px: 0.5 // Padding reducido para centrar mejor
+                        }
+                      }}
+                    />
+
+                    {/* Avatar */}
+                    <Avatar
+                      src={jugadorImageUrl}
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        fontSize: '0.7rem',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)'
                       }}
                     >
                       {jugador.jugador?.nombre?.charAt(0) || '?'}
                     </Avatar>
 
-                    {/* Info del jugador */}
-                    <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                      <Typography variant="caption" sx={{ 
-                        color: 'white',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        display: 'block'
-                      }}>
+                    {/* Información con más espacio */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2
+                        }}
+                      >
                         {jugador.jugador?.nombre}
                       </Typography>
-                      <Typography variant="caption" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '0.65rem'
-                      }}>
-                        #{jugador.jugador?.numero}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'rgba(255,255,255,0.6)',
+                          fontSize: '0.65rem',
+                          display: 'block',
+                          lineHeight: 1
+                        }}
+                      >
+                        #{jugador.jugador?.numero || '?'}
                       </Typography>
                     </Box>
 
-                    {/* Valor - CON FORMATO ESPECIAL PARA QB RATING */}
-                    <Box sx={{ 
-                      background: `linear-gradient(145deg, ${config.color}40, ${config.color}20)`,
-                      borderRadius: '12px',
-                      px: 1.5,
-                      py: 0.5,
-                      flexShrink: 0
-                    }}>
-                      <Typography variant="body2" sx={{ 
-                        color: tipo === 'qbrating' ? obtenerColorQBRating(jugador.valor) : 'white',
-                        fontWeight: 900,
-                        fontSize: '0.85rem'
-                      }}>
-                        {/* 🔥 FORMATO ESPECIAL PARA QB RATING */}
+                    {/* Valor con más espacio */}
+                    <Box sx={{ minWidth: 40, textAlign: 'right' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: config.color,
+                          fontWeight: 700,
+                          fontSize: '0.75rem'
+                        }}
+                      >
                         {tipo === 'qbrating' ? Number(jugador.valor).toFixed(1) : jugador.valor}
                       </Typography>
                     </Box>
                   </Box>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                );
+              })}
+            </Box>
           </Box>
         )}
-
-        {/* Efecto de brillo sutil en el borde superior */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '2px',
-            background: `linear-gradient(90deg, transparent, ${config.color}80, transparent)`,
-            animation: 'glow 3s infinite',
-            '@keyframes glow': {
-              '0%': { transform: 'translateX(-100%)' },
-              '100%': { transform: 'translateX(100%)' }
-            }
-          }}
-        />
       </Box>
     </motion.div>
   );
 };
 
-// 🔥 COMPONENTE PRINCIPAL: CLASIFICACIÓN GENERAL
-export const ClasificacionGeneral = ({ torneoId, categoria }) => {
+// 🏆 COMPONENTE PRINCIPAL
+const ClasificacionGeneral = ({ torneoId, categoria }) => {
   const [clasificacion, setClasificacion] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 🔥 TIPOS DE ESTADÍSTICAS ACTUALIZADOS: 'pases' → 'qbrating'
-  const tiposEstadisticas = ['qbrating', 'puntos', 'recepciones', 'tackleos', 'intercepciones', 'sacks'];
-
-  // Cargar datos de clasificación
   useEffect(() => {
     const cargarClasificacion = async () => {
       if (!torneoId || !categoria) return;
@@ -504,27 +471,7 @@ export const ClasificacionGeneral = ({ torneoId, categoria }) => {
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 900,
-            background: 'linear-gradient(45deg, #ffd700, #ffed4e)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent',
-            mb: 1
-          }}
-        >
-          🏆 CLASIFICACIÓN GENERAL
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-          Top 5 líderes por categoría
-        </Typography>
-      </Box>
-
-      {/* Grid de tarjetas */}
+      {/* Grid de tarjetas - SIN HEADER */}
       <Box
         sx={{
           display: 'grid',

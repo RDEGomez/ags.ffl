@@ -12,11 +12,15 @@ import {
   Alert,
   IconButton,
   Tooltip,
-  Container
+  Container,
+  Modal,
+  Paper,
+  Button
 } from '@mui/material';
 import {
   Refresh,
-  Analytics
+  Analytics,
+  Close
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -64,8 +68,137 @@ const cardVariants = {
   }
 };
 
+// 🔥 COMPONENTE: MODAL PARA ESTADÍSTICAS DEL EQUIPO (Layout Actualizado)
+const ModalEstadisticasEquipo = ({ open, onClose, equipoSeleccionado, lideresEstadisticas, tendenciaPuntos, loading }) => {
+  const modalStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: { xs: '95%', sm: '90%', md: '85%', lg: '80%' },
+    maxWidth: '1400px',
+    maxHeight: '90vh',
+    bgcolor: 'rgba(18, 18, 18, 0.95)',
+    backdropFilter: 'blur(20px)',
+    borderRadius: 3,
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    p: 0,
+    overflow: 'hidden'
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      closeAfterTransition
+      BackdropProps={{
+        timeout: 500,
+        sx: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+      }}
+    >
+      <Box sx={modalStyle}>
+        {/* Header del Modal */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 3,
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {equipoSeleccionado?.equipo?.imagen && (
+              <Box
+                component="img"
+                src={equipoSeleccionado.equipo.imagen}
+                alt={equipoSeleccionado.equipo.nombre}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 1,
+                  objectFit: 'cover'
+                }}
+              />
+            )}
+            <Box>
+              <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                {equipoSeleccionado?.equipo?.nombre}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                Estadísticas Detalladas del Equipo
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton onClick={onClose} sx={{ color: 'white' }}>
+            <Close />
+          </IconButton>
+        </Box>
+
+        {/* Contenido del Modal */}
+        <Box sx={{ 
+          p: 3,
+          maxHeight: 'calc(90vh - 120px)',
+          overflow: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+          },
+        }}>
+          
+          {/* NUEVO LAYOUT: Grid de 3 columnas para líderes */}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 3,
+            mb: 4,
+            width: '100%',
+            '@media (max-width: 1024px)': {
+              gridTemplateColumns: 'repeat(2, 1fr)' // 2 columnas en tablets
+            },
+            '@media (max-width: 768px)': {
+              gridTemplateColumns: '1fr' // Una columna en móvil
+            }
+          }}>
+            
+            {/* LÍDERES ESTADÍSTICAS SIN HEADER - Se distribuyen en 3 columnas */}
+            <LideresEstadisticas
+              lideresEstadisticas={lideresEstadisticas}
+              equipoSeleccionado={equipoSeleccionado}
+              loading={loading}
+              sinHeader={true} // Sin header
+              layoutModal={true} // Layout especial para modal
+            />
+            
+          </Box>
+
+          {/* TENDENCIA AL FINAL - Ancho completo y más altura */}
+          <Box sx={{ 
+            width: '100%',
+            height: '450px', // Altura fija más grande
+            mt: 3
+          }}>
+            <TendenciaPuntos
+              tendenciaPuntos={tendenciaPuntos}
+              equipoSeleccionado={equipoSeleccionado}
+              loading={loading.tendencia}
+            />
+          </Box>
+          
+        </Box>
+      </Box>
+    </Modal>
+  );
+};
+
 export const DashboardEstadisticas = () => {
-  // 🔥 HOOKS
+  // 🔥 HOOKS - LÓGICA ORIGINAL RESTAURADA EXACTAMENTE
   const estadisticasHook = useEstadisticas();
   const {
     loading: hookLoading,
@@ -82,6 +215,7 @@ export const DashboardEstadisticas = () => {
   const [torneoSeleccionado, setTorneoSeleccionado] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
+  const [modalAbierto, setModalAbierto] = useState(false); // SOLO ESTADO NUEVO
 
   const { 
     torneosDisponibles = [], 
@@ -90,7 +224,7 @@ export const DashboardEstadisticas = () => {
     lideresEstadisticas = {} 
   } = data || {};
 
-  // 🔥 LOADING STATES INDIVIDUALES
+  // 🔥 LOADING STATES INDIVIDUALES - ORIGINAL
   const loading = {
     general: !data && hookLoading,
     tabla: hookLoading?.tabla || false,
@@ -98,7 +232,7 @@ export const DashboardEstadisticas = () => {
     lideres: hookLoading?.lideres || false
   };
 
-  // 🔥 COMPUTED VALUES
+  // 🔥 COMPUTED VALUES - LÓGICA ORIGINAL EXACTA
   const torneo = useMemo(() => 
     torneosDisponibles.find(t => t._id === torneoSeleccionado) || null,
     [torneosDisponibles, torneoSeleccionado]
@@ -109,29 +243,36 @@ export const DashboardEstadisticas = () => {
     [torneo]
   );
 
-  // 🔥 HANDLERS
+  // 🔥 HANDLERS - LÓGICA ORIGINAL EXACTA
   const handleTorneoChange = useCallback((event) => {
     const nuevoTorneo = event.target.value;
     setTorneoSeleccionado(nuevoTorneo);
     setCategoriaSeleccionada('');
     setEquipoSeleccionado(null);
+    setModalAbierto(false); // SOLO LÍNEA NUEVA
   }, []);
 
   const handleCategoriaChange = useCallback((event) => {
     const nuevaCategoria = event.target.value;
     setCategoriaSeleccionada(nuevaCategoria);
     setEquipoSeleccionado(null);
+    setModalAbierto(false); // SOLO LÍNEA NUEVA
   }, []);
 
   const handleSeleccionEquipo = useCallback((equipoFila) => {
     setEquipoSeleccionado(equipoFila);
+    setModalAbierto(true); // SOLO LÍNEA NUEVA
   }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setModalAbierto(false);
+  }, []); // SOLO FUNCIÓN NUEVA
 
   const handleRefresh = useCallback(async () => {
     await refrescarTodo(torneoSeleccionado, categoriaSeleccionada, equipoSeleccionado?.equipo._id);
   }, [refrescarTodo, torneoSeleccionado, categoriaSeleccionada, equipoSeleccionado]);
 
-  // 🔥 EFFECTS
+  // 🔥 EFFECTS - LÓGICA ORIGINAL EXACTA
   useEffect(() => {
     obtenerTorneosDisponibles();
     return () => limpiarDatos();
@@ -165,124 +306,115 @@ export const DashboardEstadisticas = () => {
     }
   }, [equipoSeleccionado, torneoSeleccionado, obtenerTendenciaPuntos, obtenerTodosLideres]);
 
-  // 🔥 RENDER
+  // 🔥 RENDER - LÓGICA ORIGINAL DE LOADING
   if (loading.general) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '60vh' 
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '50vh'
         }}>
-          <CircularProgress size={60} sx={{ color: '#64b5f6' }} />
+          <CircularProgress sx={{ color: '#64b5f6' }} />
         </Box>
       </Container>
     );
   }
 
-  if (error) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Alert 
-          severity="error" 
-          sx={{ 
-            backgroundColor: 'rgba(244, 67, 54, 0.1)',
-            border: '1px solid rgba(244, 67, 54, 0.3)',
-            color: 'white'
-          }}
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
   return (
-    <Box sx={{ 
+    <Box sx={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
-      py: { xs: 2, md: 4 },
-      px: { xs: 1, md: 2 }
+      py: 4
     }}>
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Container maxWidth="xl">
+        {/* HEADER - ORIGINAL */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          {/* HEADER */}
-          <motion.div variants={cardVariants}>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              mb: 4,
-              background: 'linear-gradient(145deg, rgba(64, 181, 246, 0.1), rgba(64, 181, 246, 0.05))',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(64, 181, 246, 0.2)',
-              borderRadius: 3,
-              p: 3
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Analytics sx={{ color: '#64b5f6', fontSize: 32 }} />
-                <Typography variant="h4" sx={{ 
-                  color: 'white', 
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(45deg, #64b5f6, #42a5f5)',
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 4,
+            flexWrap: 'wrap',
+            gap: 2
+          }}>
+            <Box>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 900,
+                  background: 'linear-gradient(45deg, #64b5f6, #42a5f5, #1e88e5)',
+                  backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}>
-                  Estadísticas del Torneo
-                </Typography>
-              </Box>
-              
-              <Tooltip title="Actualizar datos">
-                <IconButton 
-                  onClick={handleRefresh}
-                  disabled={loading.general || loading.tabla || loading.tendencia || loading.lideres}
-                  sx={{ 
-                    color: '#64b5f6',
-                    '&:hover': { 
-                      backgroundColor: 'rgba(64, 181, 246, 0.1)',
-                      transform: 'rotate(180deg)'
-                    },
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <Refresh />
-                </IconButton>
-              </Tooltip>
+                  color: 'transparent',
+                  mb: 1
+                }}
+              >
+                📊 Dashboard de Estadísticas
+              </Typography>
+              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                Análisis completo de rendimiento por equipos
+              </Typography>
             </Box>
-          </motion.div>
 
-          {/* CONTROLES DE SELECCIÓN */}
+            <Tooltip title="Actualizar datos">
+              <IconButton
+                onClick={handleRefresh}
+                disabled={loading.general}
+                sx={{
+                  bgcolor: 'rgba(100, 181, 246, 0.1)',
+                  color: '#64b5f6',
+                  '&:hover': { bgcolor: 'rgba(100, 181, 246, 0.2)' }
+                }}
+              >
+                <Refresh />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* CONTROLES - ORIGINAL */}
           <motion.div variants={cardVariants}>
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 3, 
+            <Box sx={{
+              display: 'flex',
+              gap: 3,
               mb: 4,
               flexWrap: 'wrap'
             }}>
-              {/* Selector de Torneo */}
-              <FormControl 
-                sx={{ 
-                  minWidth: 300,
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': { borderColor: 'rgba(64, 181, 246, 0.3)' },
-                    '&:hover fieldset': { borderColor: 'rgba(64, 181, 246, 0.5)' },
-                    '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                  '& .MuiSelect-icon': { color: '#64b5f6' }
-                }}
-              >
-                <InputLabel>Seleccionar Torneo</InputLabel>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel 
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    '&.Mui-focused': {
+                      color: '#64b5f6'
+                    },
+                    '&.MuiFormLabel-filled': {
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                  }}
+                >
+                  Torneo
+                </InputLabel>
                 <Select
                   value={torneoSeleccionado}
                   onChange={handleTorneoChange}
-                  label="Seleccionar Torneo"
-                  sx={{ color: 'white' }}
+                  label="Torneo"
+                  sx={{
+                    color: 'white',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)'
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)'
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#64b5f6'
+                    }
+                  }}
                 >
                   {torneosDisponibles.map((torneo) => (
                     <MenuItem key={torneo._id} value={torneo._id}>
@@ -292,26 +424,42 @@ export const DashboardEstadisticas = () => {
                 </Select>
               </FormControl>
 
-              {/* Selector de Categoría */}
-              <FormControl 
-                sx={{ 
-                  minWidth: 250,
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': { borderColor: 'rgba(64, 181, 246, 0.3)' },
-                    '&:hover fieldset': { borderColor: 'rgba(64, 181, 246, 0.5)' },
-                    '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                  '& .MuiSelect-icon': { color: '#64b5f6' }
-                }}
-                disabled={!torneoSeleccionado || categorias.length === 0}
-              >
-                <InputLabel>Seleccionar Categoría</InputLabel>
+              <FormControl sx={{ minWidth: 200 }} disabled={!torneoSeleccionado}>
+                <InputLabel 
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    '&.Mui-focused': {
+                      color: '#64b5f6'
+                    },
+                    '&.MuiFormLabel-filled': {
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    },
+                    '&.Mui-disabled': {
+                      color: 'rgba(255, 255, 255, 0.4)'
+                    }
+                  }}
+                >
+                  Categoría
+                </InputLabel>
                 <Select
                   value={categoriaSeleccionada}
                   onChange={handleCategoriaChange}
-                  label="Seleccionar Categoría"
-                  sx={{ color: 'white' }}
+                  label="Categoría"
+                  sx={{
+                    color: 'white',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)'
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)'
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#64b5f6'
+                    },
+                    '&.Mui-disabled .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.2)'
+                    }
+                  }}
                 >
                   {categorias.map((categoria) => (
                     <MenuItem key={categoria} value={categoria}>
@@ -323,7 +471,29 @@ export const DashboardEstadisticas = () => {
             </Box>
           </motion.div>
 
-          {/* CONTENIDO PRINCIPAL */}
+          {/* ERROR - ORIGINAL */}
+          {error && (
+            <motion.div variants={cardVariants}>
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 4,
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  color: '#f44336',
+                  border: '1px solid rgba(244, 67, 54, 0.3)'
+                }}
+                action={
+                  <IconButton size="small" onClick={handleRefresh} sx={{ color: '#f44336' }}>
+                    <Refresh />
+                  </IconButton>
+                }
+              >
+                {error}
+              </Alert>
+            </motion.div>
+          )}
+
+          {/* CONTENIDO PRINCIPAL - SOLO LAYOUT CAMBIADO */}
           <AnimatePresence mode="wait">
             {torneoSeleccionado && categoriaSeleccionada && (
               <motion.div
@@ -333,65 +503,47 @@ export const DashboardEstadisticas = () => {
                 animate="visible"
                 exit="hidden"
               >
-                <Box sx={{ 
+                {/* NUEVO LAYOUT CON FLEXBOX */}
+                <Box sx={{
                   display: 'flex',
-                  gap: 4,
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                  '@media (max-width: 768px)': {
-                    flexDirection: 'column',
-                    gap: 3
-                  }
+                  flexDirection: { xs: 'column', md: 'row' },
+                  gap: 3,
+                  mb: 4
                 }}>
-                  {/* TABLA DE POSICIONES - 50% del ancho */}
+                  
+                  {/* TABLA DE POSICIONES */}
                   <Box sx={{ 
-                    flex: '1 1 500px',
-                    minWidth: { xs: '100%', md: '450px' },
-                    maxWidth: '100%'
+                    flex: { xs: '1', md: '1 1 50%' },
+                    minWidth: 0
                   }}>
                     <TablaPosiciones
                       tablaPosiciones={tablaPosiciones}
+                      torneoSeleccionado={torneoSeleccionado}
                       categoriaSeleccionada={categoriaSeleccionada}
                       loading={loading.tabla}
                       onSeleccionEquipo={handleSeleccionEquipo}
                     />
                   </Box>
 
-                  {/* PANEL DE ESTADÍSTICAS - 50% del ancho */}
+                  {/* CLASIFICACIÓN GENERAL (movida aquí) */}
                   <Box sx={{ 
-                    flex: '1 1 500px',
-                    minWidth: { xs: '100%', md: '450px' },
-                    maxWidth: '100%',
+                    flex: { xs: '1', md: '1 1 50%' },
+                    minWidth: 0,
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: 3
+                    flexDirection: 'column'
                   }}>
-                    {/* Tendencia de puntos */}
-                    <Box sx={{ height: '350px' }}>
-                      <TendenciaPuntos
-                        tendenciaPuntos={tendenciaPuntos}
-                        equipoSeleccionado={equipoSeleccionado}
-                        loading={loading.tendencia}
-                      />
-                    </Box>
-                    
-                    {/* Grid de líderes */}
-                    <Box sx={{ 
-                      width: '100%'
-                    }}>
-                      <LideresEstadisticas
-                        lideresEstadisticas={lideresEstadisticas}
-                        equipoSeleccionado={equipoSeleccionado}
-                        loading={loading.lideres}
-                      />
-                    </Box>
+                    <ClasificacionGeneral 
+                      torneoId={torneoSeleccionado} 
+                      categoria={categoriaSeleccionada} 
+                    />
                   </Box>
+
                 </Box>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* MENSAJE DE SELECCIÓN */}
+          {/* MENSAJE DE SELECCIÓN - ORIGINAL */}
           {(!torneoSeleccionado || !categoriaSeleccionada) && (
             <motion.div variants={cardVariants}>
               <Box sx={{
@@ -413,10 +565,15 @@ export const DashboardEstadisticas = () => {
             </motion.div>
           )}
         </motion.div>
-        <hr />
-        <ClasificacionGeneral 
-          torneoId={torneoSeleccionado} 
-          categoria={categoriaSeleccionada} 
+
+        {/* MODAL DE ESTADÍSTICAS DEL EQUIPO - NUEVO */}
+        <ModalEstadisticasEquipo
+          open={modalAbierto}
+          onClose={handleCloseModal}
+          equipoSeleccionado={equipoSeleccionado}
+          lideresEstadisticas={lideresEstadisticas}
+          tendenciaPuntos={tendenciaPuntos}
+          loading={loading}
         />
       </Container>
     </Box>

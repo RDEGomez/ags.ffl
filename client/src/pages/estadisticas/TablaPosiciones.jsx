@@ -1,4 +1,4 @@
-// 📁 src/pages/estadisticas/components/TablaPosiciones.jsx
+// 📁 src/pages/estadisticas/TablaPosiciones.jsx
 
 import React from 'react';
 import {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Box,
@@ -57,6 +57,7 @@ import Swal from 'sweetalert2';
 import { getCategoryName } from '../../helpers/mappings';
 import { useImage } from '../../hooks/useImage';
 import { useAuth } from '../../context/AuthContext';
+import { useDebounce } from '../../hooks/useDebounce';
 
 // 🔥 FUNCIÓN DE LOGGING MEJORADA
 const debugLog = (context, data, level = 'INFO') => {
@@ -461,6 +462,9 @@ export const RegistrarJugadores = () => {
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [jugadorAEliminar, setJugadorAEliminar] = useState(null);
 
+  const debouncedFiltroUsuarios = useDebounce(filtroUsuarios, 300);
+
+
   // 🔥 LOGGING DE ESTADOS CRÍTICOS
   useEffect(() => {
     debugLog('ESTADO_CAMBIO', {
@@ -645,34 +649,47 @@ export const RegistrarJugadores = () => {
     }
   }, [id, puedeGestionarEquipos]);
 
+  const usuariosConIndices = useMemo(() => {
+    return usuarios.map(usuario => {
+      const searchIndex = [
+        usuario.nombre || '',
+        usuario.documento || '',
+        usuario.email || ''
+      ].join(' ').toLowerCase();
+      
+      return {
+        ...usuario,
+        _searchIndex: searchIndex,
+        _nombreLower: (usuario.nombre || '').toLowerCase(),
+        _documentoLower: (usuario.documento || '').toLowerCase()
+      };
+    });
+  }, [usuarios]);
+
   // Filtrar usuarios cuando cambia el texto de búsqueda
   useEffect(() => {
     debugLog('FILTRADO_USUARIOS', { 
-      filtroUsuarios, 
+      filtroUsuarios: debouncedFiltroUsuarios, 
       usuariosTotal: usuarios.length 
     });
     
-    if (filtroUsuarios.trim() === '') {
-      setUsuariosFiltrados(usuarios);
+    if (debouncedFiltroUsuarios.trim() === '') {
+      setUsuariosFiltrados(usuariosConIndices);
       return;
     }
 
-    const filtroLowerCase = filtroUsuarios.toLowerCase();
-    const resultado = usuarios.filter(usuario => {
-      // Validación segura para el filtrado
-      const nombre = usuario.nombre?.toLowerCase() || '';
-      const documento = usuario.documento?.toLowerCase() || '';
-      
-      return nombre.includes(filtroLowerCase) || documento.includes(filtroLowerCase);
-    });
+    const filtroLowerCase = debouncedFiltroUsuarios.toLowerCase().trim();
+    const resultado = usuariosConIndices.filter(usuario => 
+      usuario._searchIndex.includes(filtroLowerCase)
+    );
 
     debugLog('FILTRADO_RESULTADO', { 
-      filtro: filtroUsuarios, 
+      filtro: debouncedFiltroUsuarios, 
       resultados: resultado.length 
     });
     
     setUsuariosFiltrados(resultado);
-  }, [filtroUsuarios, usuarios]);
+  }, [debouncedFiltroUsuarios, usuariosConIndices]);
 
   // Agregar jugador a la lista de seleccionados
   const agregarJugador = (jugador) => {

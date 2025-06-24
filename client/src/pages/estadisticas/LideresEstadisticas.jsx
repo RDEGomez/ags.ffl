@@ -1,20 +1,23 @@
+// 📁 src/pages/estadisticas/LideresEstadisticas.jsx
+
 import React from 'react';
 import {
   Box,
   Typography,
   Avatar,
   Chip,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
-  Sports,
-  Shield,
-  Bolt,
-  PanTool,
-  SportsFootball,
   LocalFireDepartment,
-  Star,
-  EmojiEvents
+  SportsFootball,
+  Shield,
+  PanTool,
+  Bolt,
+  Sports,
+  Star
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -48,481 +51,379 @@ const cardVariants = {
       damping: 20,
       duration: 0.6
     }
-  },
-  hover: {
-    scale: 1.02,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 10
-    }
   }
 };
 
-// 🏆 COMPONENTE INDIVIDUAL DE LÍDER - ACTUALIZADO PARA QB RATING
-const LiderCard = ({ tipo, titulo, icono, color, lider, equipoSeleccionado, loading }) => {
-  // 📊 OBTENER VALOR Y UNIDAD SEGÚN TIPO - ACTUALIZADO CON QB RATING
-  const obtenerValorYUnidad = () => {
-    if (!lider?.estadisticas && !lider?.qbRatingData) return { valor: 0, unidad: '', extra: null };
-    
-    const stats = lider.estadisticas;
-    
-    switch (tipo) {
-      case 'qbrating':
-        // 🔥 NUEVO: QB Rating en lugar de pases
-        return { 
-          valor: lider.qbRatingData?.rating || lider.valor || 0, 
-          unidad: 'rating',
-          extra: lider.qbRatingData ? {
-            completados: lider.qbRatingData.completados,
-            intentos: lider.qbRatingData.intentos,
-            porcentaje: lider.qbRatingData.porcentajeComplecion,
-            touchdowns: lider.qbRatingData.touchdowns,
-            intercepciones: lider.qbRatingData.intercepciones
-          } : null
-        };
-      case 'puntos':
-        return { 
-          valor: stats?.puntos || lider.valor || 0, 
-          unidad: 'puntos' 
-        };
-      case 'tackleos':
-        return { 
-          valor: stats?.tackleos || lider.valor || 0, 
-          unidad: 'tackleos' 
-        };
-      case 'intercepciones':
-        return { 
-          valor: stats?.intercepciones || lider.valor || 0, 
-          unidad: 'ints' 
-        };
-      case 'sacks':
-        return { 
-          valor: stats?.sacks || lider.valor || 0, 
-          unidad: 'sacks' 
-        };
-      case 'recepciones':
-        return { 
-          valor: stats?.recepciones || lider.valor || 0, 
-          unidad: 'rec' 
-        };
-      default:
-        return { valor: 0, unidad: '' };
-    }
-  };
+const LiderCard = ({ 
+  tipo, 
+  titulo, 
+  icono, 
+  color, 
+  lideresDelTipo = [], // Recibir todos los líderes en lugar de solo uno
+  equipoSeleccionado, 
+  loading 
+}) => {
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          background: 'linear-gradient(145deg, rgba(64, 181, 246, 0.1), rgba(64, 181, 246, 0.05))',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(64, 181, 246, 0.2)',
+          borderRadius: 3,
+          p: 3,
+          height: '350px', // Misma altura que las tarjetas con datos
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <CircularProgress sx={{ color: '#64b5f6' }} />
+      </Box>
+    );
+  }
 
-  // 🏆 OBTENER ICONO DE POSICIÓN
-  const obtenerIconoPosicion = (posicion) => {
-    switch (posicion) {
-      case 1:
-        return <EmojiEvents sx={{ color: '#ffd700', fontSize: '1.2rem' }} />;
-      case 2:
-        return <EmojiEvents sx={{ color: '#c0c0c0', fontSize: '1.2rem' }} />;
-      case 3:
-        return <EmojiEvents sx={{ color: '#cd7f32', fontSize: '1.2rem' }} />;
-      default:
-        return <Star sx={{ color: '#64b5f6', fontSize: '1.2rem' }} />;
-    }
-  };
+  if (!lideresDelTipo || lideresDelTipo.length === 0) {
+    return (
+      <Box
+        sx={{
+          background: 'linear-gradient(145deg, rgba(64, 181, 246, 0.1), rgba(64, 181, 246, 0.05))',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(64, 181, 246, 0.2)',
+          borderRadius: 3,
+          p: 3,
+          height: '350px', // Misma altura que las otras tarjetas
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center'
+        }}
+      >
+        {icono && React.cloneElement(icono, { 
+          sx: { fontSize: '2rem', color: color, mb: 2, opacity: 0.5 } 
+        })}
+        <Typography variant="h6" sx={{ color: color, fontWeight: 700, mb: 1 }}>
+          {titulo}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          Sin estadísticas
+        </Typography>
+      </Box>
+    );
+  }
 
-  // 🎨 OBTENER COLOR DEL QB RATING
-  const obtenerColorQBRating = (rating) => {
-    if (rating >= 130) return '#4caf50'; // Verde - Excelente
-    if (rating >= 110) return '#2196f3'; // Azul - Muy bueno
-    if (rating >= 90) return '#ff9800';  // Naranja - Bueno
-    if (rating >= 70) return '#ffeb3b';  // Amarillo - Regular
-    return '#f44336'; // Rojo - Malo
-  };
-
-  const valorInfo = obtenerValorYUnidad();
+  const lider = lideresDelTipo[0]; // Líder principal
+  const topRestantes = lideresDelTipo.slice(1, 5); // Posiciones 2-5
 
   return (
     <motion.div
       variants={cardVariants}
-      whileHover="hover"
-      style={{ height: '100%' }}
+      initial="hidden"
+      animate="visible"
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300 }}
     >
       <Box
         sx={{
-          height: '180px',
-          width: '100%',
-          background: `linear-gradient(145deg, ${color}15, ${color}08)`,
+          background: `linear-gradient(145deg, ${color}20, ${color}10)`,
           backdropFilter: 'blur(10px)',
           border: `1px solid ${color}30`,
           borderRadius: 3,
+          p: 3,
+          height: '350px', // Altura aumentada para mostrar TOP 5
+          display: 'flex',
+          flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'all 0.3s ease',
           '&:hover': {
-            boxShadow: `0 8px 32px ${color}25`,
-            border: `1px solid ${color}50`,
+            boxShadow: `0 8px 25px ${color}40`,
+            transform: 'translateY(-2px)'
           }
         }}
       >
-        {/* Patrón de fondo */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: 100,
-            height: 100,
-            opacity: 0.1,
-            background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-          }}
-        />
-
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            p: 2,
-            pb: 1
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {icono}
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                color: color,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5
-              }}
-            >
-              {titulo}
-            </Typography>
-          </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontSize: '0.7rem'
-            }}
-          >
-            {equipoSeleccionado?.nombre || 'Equipo'}
+        {/* Header con ícono y título */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          {icono && React.cloneElement(icono, { sx: { color } })}
+          <Typography variant="h6" sx={{ color, fontWeight: 700, fontSize: '0.9rem' }}>
+            {titulo}
           </Typography>
         </Box>
 
-        {/* Contenido */}
-        <Box sx={{ px: 2, pb: 2, height: 'calc(100% - 60px)' }}>
-          <AnimatePresence mode="wait">
-            {loading ? (
-              <Box
-                key="loading"
+        {/* Líder Principal (#1) */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2, 
+          mb: 2,
+          p: 2,
+          borderRadius: 2,
+          background: `${color}20`,
+          border: `1px solid ${color}40`
+        }}>
+          <Avatar
+            src={getImageUrl(lider.jugador?.imagen)}
+            sx={{
+              width: 40,
+              height: 40,
+              border: `2px solid ${color}`,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+          >
+            {lider.jugador?.nombre?.charAt(0) || '?'}
+          </Avatar>
+          
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                color: 'white', 
+                fontWeight: 600,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontSize: '0.9rem'
+              }}
+            >
+              {lider.jugador?.nombre || 'Jugador'}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={`#${lider.jugador?.numero || '?'}`}
+                size="small"
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%'
+                  height: 18,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  bgcolor: color,
+                  color: 'white'
                 }}
-              >
-                <CircularProgress size={40} sx={{ color }} />
-              </Box>
-            ) : !lider ? (
-              <Box
-                key="no-data"
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  textAlign: 'center'
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    fontStyle: 'italic'
-                  }}
-                >
-                  Sin datos
-                </Typography>
-              </Box>
-            ) : (
-              <motion.div
-                key="content"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                style={{ height: '100%' }}
-              >
+              />
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                {lider.equipo?.nombre || equipoSeleccionado?.equipo?.nombre || 'Equipo'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Valor del líder */}
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              color, 
+              fontWeight: 900,
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            }}
+          >
+            {tipo === 'qbrating' ? Number(lider.valor).toFixed(1) : lider.valor}
+          </Typography>
+        </Box>
+
+        {/* TOP 5 (posiciones 2-5) */}
+        {topRestantes.length > 0 && (
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'rgba(255,255,255,0.7)', 
+                fontWeight: 600, 
+                mb: 1, 
+                display: 'block',
+                fontSize: '0.7rem'
+              }}
+            >
+              TOP 5
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {topRestantes.map((jugador, index) => (
                 <Box
+                  key={`${tipo}-${jugador.jugador?._id}-${index}`}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    height: '100%'
+                    gap: 1,
+                    p: 1,
+                    borderRadius: 1,
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.1)'
+                    }
                   }}
                 >
-                  {/* Avatar */}
-                  <Avatar
-                    src={getImageUrl(lider.jugador?.imagen)}
+                  {/* Posición */}
+                  <Chip
+                    label={`#${index + 2}`}
+                    size="small"
                     sx={{
-                      width: 45,
-                      height: 45,
-                      mr: 2,
-                      border: `2px solid ${color}40`,
-                      boxShadow: `0 4px 12px ${color}30`
+                      height: 18,
+                      width: 24,
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      bgcolor: `${color}60`,
+                      color: 'white'
+                    }}
+                  />
+
+                  {/* Avatar pequeño */}
+                  <Avatar
+                    src={getImageUrl(jugador.jugador?.imagen)}
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      fontSize: '0.6rem',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)'
                     }}
                   >
-                    {lider.jugador?.nombre?.charAt(0) || '?'}
+                    {jugador.jugador?.nombre?.charAt(0) || '?'}
                   </Avatar>
 
-                  {/* Info */}
+                  {/* Información del jugador */}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      {obtenerIconoPosicion(lider.posicion)}
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 700,
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {lider.jugador?.nombre || 'Jugador'}
-                      </Typography>
-                      <Chip
-                        label={`#${lider.jugador?.numero || 0}`}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: '0.6rem',
-                          fontWeight: 700,
-                          bgcolor: `${color}20`,
-                          color: color,
-                          minWidth: 'auto'
-                        }}
-                      />
-                    </Box>
-
-                    {/* Valor principal */}
                     <Typography
-                      variant="h5"
+                      variant="caption"
                       sx={{
-                        fontWeight: 900,
-                        color: tipo === 'qbrating' ? obtenerColorQBRating(valorInfo.valor) : color,
-                        fontSize: '1.4rem',
-                        lineHeight: 1,
-                        mb: 0.5
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '0.7rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}
                     >
-                      {tipo === 'qbrating' ? Number(valorInfo.valor).toFixed(1) : valorInfo.valor}
-                      <Typography
-                        component="span"
-                        variant="caption"
-                        sx={{
-                          ml: 0.5,
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          fontSize: '0.6rem',
-                          fontWeight: 400
-                        }}
-                      >
-                        {valorInfo.unidad}
-                      </Typography>
+                      {jugador.jugador?.nombre || 'Jugador'}
                     </Typography>
-
-                    {/* Información específica para QB Rating */}
-                    {tipo === 'qbrating' && valorInfo.extra && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        <Typography variant="caption" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.8)',
-                          fontSize: '0.65rem',
-                          display: 'block',
-                          mb: 0.5
-                        }}>
-                          {valorInfo.extra.completados}/{valorInfo.extra.intentos} ({valorInfo.extra.porcentaje}%)
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
-                          {valorInfo.extra.touchdowns > 0 && (
-                            <Chip 
-                              label={`${valorInfo.extra.touchdowns} TDs`}
-                              size="small"
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: '0.6rem',
-                                height: 16,
-                                background: 'linear-gradient(45deg, #4caf50, #81c784)',
-                                color: '#fff',
-                                boxShadow: '0 2px 6px rgba(76, 175, 80, 0.4)'
-                              }}
-                            />
-                          )}
-                          
-                          {valorInfo.extra.intercepciones > 0 && (
-                            <Chip 
-                              label={`${valorInfo.extra.intercepciones} INTs`}
-                              size="small"
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: '0.6rem',
-                                height: 16,
-                                background: 'linear-gradient(45deg, #f44336, #ef5350)',
-                                color: '#fff',
-                                boxShadow: '0 2px 6px rgba(244, 67, 54, 0.4)'
-                              }}
-                            />
-                          )}
-                        </Box>
-                      </motion.div>
-                    )}
-
-                    {/* Información adicional para puntos */}
-                    {tipo === 'puntos' && lider.estadisticas?.puntos > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <Chip 
-                          label="Anotador"
-                          size="small"
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: '0.6rem',
-                            height: 18,
-                            background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
-                            color: '#fff',
-                            boxShadow: '0 2px 6px rgba(255, 107, 53, 0.4)',
-                            mb: 1
-                          }}
-                        />
-                      </motion.div>
-                    )}
-
-                    {/* Información adicional para recepciones */}
-                    {tipo === 'recepciones' && lider.estadisticas?.recepciones > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <Typography variant="caption" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          fontSize: '0.6rem',
-                          mb: 3
-                        }}>
-                          Receptor
-                        </Typography>
-                      </motion.div>
-                    )}
-
-                    {/* Espaciador para mantener altura consistente */}
-                    {!(['qbrating', 'puntos', 'recepciones'].includes(tipo)) && (
-                      <Box sx={{ mb: 3 }} />
-                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '0.65rem',
+                        display: 'block'
+                      }}
+                    >
+                      #{jugador.jugador?.numero || '?'}
+                    </Typography>
                   </Box>
+
+                  {/* Valor */}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color,
+                      fontWeight: 700,
+                      fontSize: '0.7rem'
+                    }}
+                  >
+                    {tipo === 'qbrating' ? Number(jugador.valor).toFixed(1) : jugador.valor}
+                  </Typography>
                 </Box>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
       </Box>
     </motion.div>
   );
 };
 
-// 🏆 COMPONENTE PRINCIPAL - CONFIGURACIÓN ACTUALIZADA CON QB RATING
+// 🏆 COMPONENTE PRINCIPAL - CON SOPORTE PARA MODAL
 export const LideresEstadisticas = ({ 
   lideresEstadisticas = {}, 
   equipoSeleccionado, 
-  loading 
+  loading,
+  sinHeader = false, // Nueva prop para quitar header
+  layoutModal = false // Nueva prop para layout de modal
 }) => {
-  // 📊 CONFIGURACIÓN DE LÍDERES - ACTUALIZADA CON QB RATING
+  // 📊 CONFIGURACIÓN DE LÍDERES
   const tiposLideres = [
     {
       tipo: 'qbrating',
       titulo: 'QB Rating',
-      icono: <Sports sx={{ color: '#2196f3', fontSize: '1.1rem' }} />,
+      icono: <Sports sx={{ fontSize: '1.1rem' }} />,
       color: '#2196f3'
     },
     {
       tipo: 'puntos',
       titulo: 'Puntos',
-      icono: <LocalFireDepartment sx={{ color: '#ff6b35', fontSize: '1.1rem' }} />,
+      icono: <LocalFireDepartment sx={{ fontSize: '1.1rem' }} />,
       color: '#ff6b35'
     },
     {
       tipo: 'recepciones',
       titulo: 'Recepciones',
-      icono: <SportsFootball sx={{ color: '#4caf50', fontSize: '1.1rem' }} />,
+      icono: <SportsFootball sx={{ fontSize: '1.1rem' }} />,
       color: '#4caf50'
     },
     {
       tipo: 'tackleos',
       titulo: 'Tackleos',
-      icono: <Shield sx={{ color: '#9c27b0', fontSize: '1.1rem' }} />,
+      icono: <Shield sx={{ fontSize: '1.1rem' }} />,
       color: '#9c27b0'
     },
     {
       tipo: 'intercepciones',
       titulo: 'Intercepciones',
-      icono: <PanTool sx={{ color: '#ff9800', fontSize: '1.1rem' }} />,
+      icono: <PanTool sx={{ fontSize: '1.1rem' }} />,
       color: '#ff9800'
     },
     {
       tipo: 'sacks',
       titulo: 'Sacks',
-      icono: <Bolt sx={{ color: '#f44336', fontSize: '1.1rem' }} />,
+      icono: <Bolt sx={{ fontSize: '1.1rem' }} />,
       color: '#f44336'
     }
   ];
 
-  return (
-    <Box>
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: 700,
-          color: 'white',
-          mb: 3,
-          textAlign: 'center'
-        }}
-      >
-        Líderes de Estadísticas
-      </Typography>
+  // Determinar el grid layout basado en el contexto
+  const gridColumns = layoutModal 
+    ? 'repeat(3, 1fr)' // 3 columnas en modal
+    : 'repeat(auto-fit, minmax(280px, 1fr))'; // Layout original para dashboard
 
+  return (
+    <Box sx={{ gridColumn: layoutModal ? 'span 3' : 'auto' }}>
+      {/* Header condicional */}
+      {!sinHeader && (
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            color: 'white',
+            mb: 3,
+            textAlign: 'center'
+          }}
+        >
+          Líderes de Estadísticas
+        </Typography>
+      )}
+
+      {/* Grid de tarjetas */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: gridColumns,
           gap: 2,
-          width: '100%'
+          width: '100%',
+          '@media (max-width: 1024px)': {
+            gridTemplateColumns: layoutModal ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(280px, 1fr))'
+          },
+          '@media (max-width: 768px)': {
+            gridTemplateColumns: '1fr' // Una columna en móvil
+          }
         }}
       >
         {tiposLideres.map((config) => {
           const lideresDelTipo = lideresEstadisticas[config.tipo] || [];
-          const lider = lideresDelTipo[0]; // Mostrar solo el #1
 
           return (
-            <motion.div
+            <LiderCard
               key={config.tipo}
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              style={{ width: '100%' }}
-            >
-              <LiderCard
-                {...config}
-                lider={lider}
-                equipoSeleccionado={equipoSeleccionado}
-                loading={loading?.lideres || false}
-              />
-            </motion.div>
+              {...config}
+              lideresDelTipo={lideresDelTipo} // Pasar todos los líderes
+              equipoSeleccionado={equipoSeleccionado}
+              loading={loading?.lideres || false}
+            />
           );
         })}
       </Box>
