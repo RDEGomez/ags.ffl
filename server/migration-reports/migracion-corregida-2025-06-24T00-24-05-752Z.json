@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-06-24T00:24:05.756Z",
+  "estadisticas": {
+    "actualizadas": 179,
+    "estrategias": {
+      "timestamp_exacto_y_nombre": 103,
+      "timestamp_parcial_y_nombre": 0,
+      "solo_timestamp": 76,
+      "solo_nombre": 0,
+      "version_number": 0,
+      "no_encontrado": 0,
+      "error_datos": 0,
+      "datos_incompletos": 0,
+      "error_busqueda": 0
+    },
+    "noEncontradas": 1
+  },
+  "urlsNoEncontradas": [
+    {
+      "modelo": "usuarios",
+      "id": "68434986948e16cb4573f8f4",
+      "nombre": "Luis Gabriel Diaz Lopez",
+      "url": "https://res.cloudinary.com/dwviy7ft4/image/upload/c_limit,f_auto,fl_progressive,h_800,q_auto:good,w_800/1749241609768-IMG_9406",
+      "error": "url_no_normalizable"
+    }
+  ]
+}

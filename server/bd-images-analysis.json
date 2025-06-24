@@ -1,0 +1,26 @@
+{
+  "usuarios": {
+    "total": 600,
+    "conImagen": 374,
+    "cloudinary": 374,
+    "local": 0
+  },
+  "equipos": {
+    "total": 65,
+    "conImagen": 65,
+    "cloudinary": 65,
+    "local": 0
+  },
+  "torneos": {
+    "total": 1,
+    "conImagen": 1,
+    "cloudinary": 1,
+    "local": 0
+  },
+  "arbitros": {
+    "total": 0,
+    "conImagen": 0,
+    "cloudinary": 0,
+    "local": 0
+  }
+}
