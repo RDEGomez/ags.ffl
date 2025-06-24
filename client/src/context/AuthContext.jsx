@@ -124,8 +124,19 @@ export const AuthProvider = ({ children }) => {
   const puedeGestionarArbitros = () => ['admin'].includes(usuario?.rol);
   const puedeGestionarTorneos = () => ['admin'].includes(usuario?.rol);
   const puedeGestionarUsuarios = () => ['admin','capitan'].includes(usuario?.rol);
-  const puedeGestionarPartidos = () => ['admin', 'arbitro'].includes(usuario?.rol);
-  const puedeOperarPartidosEnVivo = () => ['admin', 'arbitro'].includes(usuario?.rol);
+  const puedeGestionarPartidos = () => {
+    if (!usuario) return false;
+    // Verificar rol principal O rol secundario
+    console.log(`puedeGestionarPartidos - usuario:`, usuario);
+    return ['admin', 'arbitro'].includes(usuario.rol) || usuario.rolSecundario === 'arbitro';
+  };
+
+  const puedeOperarPartidosEnVivo = () => {
+    if (!usuario) return false;
+    // Verificar rol principal O rol secundario
+    console.log("puedeOperarPartidosEnVivo - usuario:", usuario);
+    return ['admin', 'arbitro'].includes(usuario.rol) || usuario.rolSecundario === 'arbitro';
+  };
   const puedeEditarUsuario = (usuarioId) => {
     if (!usuario) return false;
     return usuario.rol === 'admin' || (usuario._id || usuario.id) === usuarioId;

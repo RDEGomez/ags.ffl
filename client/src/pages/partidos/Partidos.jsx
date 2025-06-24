@@ -301,7 +301,7 @@ const FiltrosAvanzados = ({
 // 🔥 Componente principal OPTIMIZADO
 export const Partidos = () => {
   const navigate = useNavigate();
-  const { puedeGestionarTorneos } = useAuth();
+  const { puedeGestionarPartidos } = useAuth();
 
   // Estados principales
   const [todosLosPartidos, setTodosLosPartidos] = useState([]); // 🔥 TODOS los partidos
@@ -347,7 +347,7 @@ export const Partidos = () => {
 
   // 🔥 OPTIMIZACIÓN: Eliminar partido (actualización local)
   const eliminarPartido = useCallback(async (partidoId) => {
-    if (!puedeGestionarTorneos()) {
+    if (!puedeGestionarPartidos()) {
       Swal.fire({
         icon: 'error',
         title: 'Sin permisos',
@@ -565,7 +565,7 @@ export const Partidos = () => {
               </Box>
             </Box>
 
-            {puedeGestionarTorneos() && (
+            {puedeGestionarPartidos() && (
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}

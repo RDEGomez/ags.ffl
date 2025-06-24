@@ -83,7 +83,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
 );
 
 // 🔥 COMPONENTE: Header con navegación mejorado
-const NavigationHeader = ({ partidoId, navigate, puedeGestionarTorneos, onEdit }) => {
+const NavigationHeader = ({ partidoId, navigate, puedeGestionarPartidos, onEdit }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -137,7 +137,7 @@ const NavigationHeader = ({ partidoId, navigate, puedeGestionarTorneos, onEdit }
       </Box>
 
       {/* Botón de editar */}
-      {puedeGestionarTorneos && (
+      {puedeGestionarPartidos && (
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             variant="contained"
@@ -546,7 +546,7 @@ const InfoAdicional = ({ partido }) => {
 export const DetallePartido = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { puedeGestionarTorneos, usuario } = useAuth();
+  const { puedeGestionarPartidos, usuario } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -644,7 +644,7 @@ export const DetallePartido = () => {
 
   // Obtener acciones disponibles según el estado del partido
   const getAccionesDisponibles = () => {
-    if (!puedeGestionarTorneos) return [];
+    if (!puedeGestionarPartidos) return [];
 
     switch (partido?.estado) {
       case 'programado':
@@ -813,7 +813,7 @@ export const DetallePartido = () => {
          <NavigationHeader 
            partidoId={partido._id}
            navigate={navigate}
-           puedeGestionarTorneos={puedeGestionarTorneos}
+           puedeGestionarPartidos={puedeGestionarPartidos}
            onEdit={() => navigate(`/partidos/${partido._id}/editar`)}
          />
 

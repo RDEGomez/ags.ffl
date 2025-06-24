@@ -338,7 +338,7 @@ export const PartidoCard = ({ partido, eliminarPartido }) => {
   const [expanded, setExpanded] = useState(false)
   
   // 🔥 AGREGADO: Importar funciones de validación por ID
-  const { puedeGestionarTorneos } = useAuth();
+  const { puedeGestionarPartidos } = useAuth();
   
   const { 
     _id, 
@@ -358,8 +358,8 @@ export const PartidoCard = ({ partido, eliminarPartido }) => {
   }
 
   // 🔥 NUEVO: Validar permisos específicos para este partido
-  const puedeEditarEstePartido = puedeGestionarTorneos();
-  const puedeEliminarEstePartido = puedeGestionarTorneos() && estado === 'programado';
+  const puedeEditarEstePartido = puedeGestionarPartidos();
+  const puedeEliminarEstePartido = puedeGestionarPartidos() && estado === 'programado';
 
   return (
     <motion.div
