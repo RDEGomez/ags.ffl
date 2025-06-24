@@ -392,7 +392,7 @@ export const Partidos = () => {
         text: 'Hubo un problema al eliminar el partido'
       });
     }
-  }, [puedeGestionarTorneos]);
+  }, [puedeGestionarPartidos]);
 
   // 🔥 FILTRADO EN TIEMPO REAL (super rápido)
   const partidosFiltradosPorBusqueda = useMemo(() => {
