@@ -14,7 +14,7 @@ import {
   Star as StarIcon,
   Timeline as TimelineIcon,
   Speed as SpeedIcon,
-  SportsTennis as TennisIcon,
+  SportsFootball,
   Security as SecurityIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -59,10 +59,11 @@ const CONFIGURACION_TIPOS = {
     label: "Intercepciones"
   },
   recepciones: {
-    icono: <TennisIcon />,
+    icono: <SportsFootball />,
     color: '#f57c00',
     bgColor: 'rgba(245, 124, 0, 0.05)',
     gradient: "linear-gradient(145deg, #f57c00, #ffb74d)",
+    titulo: "Manos Seguras",
     label: "Recepciones"
   }
 };
