@@ -80,6 +80,7 @@ import { FiltrosEquipos } from '../../components/FiltrosEquipos';
 import { ListaJugadoresEquipo } from './ListaJugadoresEquipo';
 import { useImage } from '../../hooks/useImage';
 import Swal from 'sweetalert2';
+import { useDebounce } from '../../hooks/useDebounce';
 
 // 🔥 CONFIGURACIÓN DE PAGINACIÓN
 const ITEMS_PER_PAGE_OPTIONS = [10, 15, 20, 50];
@@ -565,6 +566,8 @@ export const Equipos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('nombre_asc');
   const [categoriaActual, setCategoriaActual] = useState(null);
+  
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Estados de filtros
   const [equipoRecienCreado, setEquipoRecienCreado] = useState(null);
@@ -596,19 +599,41 @@ export const Equipos = () => {
     obtenerEquipos();
   }, [obtenerEquipos]);
 
+  const equiposConIndices = useMemo(() => {
+    return equipos.map(equipo => {
+      const searchIndex = [
+        equipo.nombre || '',
+        equipo.categoria || '',
+        getCategoryName(equipo.categoria) || '',
+        equipo.descripcion || '',
+        // Nombres de jugadores si están disponibles
+        equipo.jugadores?.map(j => j.usuario?.nombre || '').join(' ') || ''
+      ].join(' ').toLowerCase();
+      
+      return {
+        ...equipo,
+        _searchIndex: searchIndex,
+        _jugadoresCount: equipo.jugadores?.length || 0,
+        _createdAtTime: equipo.createdAt ? new Date(equipo.createdAt).getTime() : 0,
+        _nombreLower: (equipo.nombre || '').toLowerCase(),
+        _categoriaLower: (equipo.categoria || '').toLowerCase(),
+        _categoryDisplayName: getCategoryName(equipo.categoria) || equipo.categoria
+      };
+    });
+  }, [equipos]);
+
   // 🔥 Aplicar filtros de búsqueda
   const equiposFiltradosPorBusqueda = useMemo(() => {
-    if (!searchTerm.trim()) return equipos;
+    if (!debouncedSearchTerm.trim()) return equiposConIndices;
     
-    const termino = searchTerm.toLowerCase().trim();
-    return equipos.filter(equipo => 
-      equipo.nombre?.toLowerCase().includes(termino) ||
-      equipo.categoria?.toLowerCase().includes(termino) ||
-      getCategoryName(equipo.categoria)?.toLowerCase().includes(termino)
+    const termino = debouncedSearchTerm.toLowerCase().trim();
+    return equiposConIndices.filter(equipo => 
+      equipo._searchIndex.includes(termino)
     );
-  }, [equipos, searchTerm]);
+  }, [equiposConIndices, debouncedSearchTerm]);
 
   // 🔥 Aplicar ordenamiento
+  // REEMPLAZAR todo el useMemo actual de equiposOrdenados con:
   const equiposOrdenados = useMemo(() => {
     const sortOption = SORT_OPTIONS.find(opt => opt.value === sortBy);
     if (!sortOption) return equiposFiltradosPorBusqueda;
@@ -618,25 +643,34 @@ export const Equipos = () => {
 
       switch (sortOption.field) {
         case 'jugadores':
-          valueA = a.jugadores?.length || 0;
-          valueB = b.jugadores?.length || 0;
+          valueA = a._jugadoresCount;
+          valueB = b._jugadoresCount;
           break;
         case 'createdAt':
-          valueA = new Date(a.createdAt || 0);
-          valueB = new Date(b.createdAt || 0);
+          valueA = a._createdAtTime;
+          valueB = b._createdAtTime;
+          break;
+        case 'nombre':
+          valueA = a._nombreLower;
+          valueB = b._nombreLower;
+          break;
+        case 'categoria':
+          valueA = a._categoriaLower;
+          valueB = b._categoriaLower;
           break;
         default:
           valueA = (a[sortOption.field] || '').toString().toLowerCase();
           valueB = (b[sortOption.field] || '').toString().toLowerCase();
       }
 
-      if (valueA < valueB) {
-        return sortOption.order === 'asc' ? -1 : 1;
+      if (valueA === valueB) return 0;
+      
+      if (typeof valueA === 'number') {
+        return sortOption.order === 'asc' ? valueA - valueB : valueB - valueA;
       }
-      if (valueA > valueB) {
-        return sortOption.order === 'asc' ? 1 : -1;
-      }
-      return 0;
+      
+      const comparison = valueA < valueB ? -1 : 1;
+      return sortOption.order === 'asc' ? comparison : -comparison;
     });
   }, [equiposFiltradosPorBusqueda, sortBy]);
 

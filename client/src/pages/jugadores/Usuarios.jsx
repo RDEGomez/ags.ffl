@@ -6,6 +6,7 @@ import { UsuarioCard } from './UsuarioCard';
 import { FiltrosJugadores } from '../../components/FiltrosJugadores';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDebounce } from '../../hooks/useDebounce';
 
 import {
   Box,
@@ -114,6 +115,8 @@ export const Usuarios = () => {
   // Estados de menús
   const [sortMenuAnchor, setSortMenuAnchor] = useState(null);
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   // 🔥 Función helper para imágenes
   const getImageUrl = useCallback((imagen) => {
     if (!imagen) return '';
@@ -155,33 +158,36 @@ export const Usuarios = () => {
     obtenerUsuarios();
   }, [obtenerUsuarios]);
 
+  const usuariosConIndices = useMemo(() => {
+    return filtrados.map(usuario => {
+      const searchIndex = [
+        usuario.nombre || '',
+        usuario.documento || '',
+        usuario.email || '',
+        usuario.rol || '',
+        usuario.equipos?.map(eq => eq.equipo?.nombre || '').join(' ') || ''
+      ].join(' ').toLowerCase();
+      
+      return {
+        ...usuario,
+        _searchIndex: searchIndex,
+        _equiposCount: usuario.equipos?.length || 0,
+        _createdAtTime: usuario.createdAt ? new Date(usuario.createdAt).getTime() : 0,
+        _nombreLower: (usuario.nombre || '').toLowerCase(),
+        _rolLower: (usuario.rol || '').toLowerCase()
+      };
+    });
+  }, [filtrados]);
+
   // 🔥 Función de búsqueda optimizada
   const usuariosFiltradosPorBusqueda = useMemo(() => {
-    if (!searchTerm.trim()) return filtrados;
+    if (!debouncedSearchTerm.trim()) return usuariosConIndices;
     
-    const term = searchTerm.toLowerCase().trim();
-    
-    return filtrados.filter(usuario => {
-      // Búsqueda por nombre
-      if (usuario.nombre?.toLowerCase().includes(term)) return true;
-      
-      // Búsqueda por documento
-      if (usuario.documento?.toLowerCase().includes(term)) return true;
-      
-      // Búsqueda por email
-      if (usuario.email?.toLowerCase().includes(term)) return true;
-      
-      // Búsqueda por rol
-      if (usuario.rol?.toLowerCase().includes(term)) return true;
-      
-      // Búsqueda por nombres de equipos
-      if (usuario.equipos?.some(equipoRelacion => 
-        equipoRelacion.equipo?.nombre?.toLowerCase().includes(term)
-      )) return true;
-      
-      return false;
-    });
-  }, [filtrados, searchTerm]);
+    const term = debouncedSearchTerm.toLowerCase().trim();
+    return usuariosConIndices.filter(usuario => 
+      usuario._searchIndex.includes(term)
+    );
+  }, [usuariosConIndices, debouncedSearchTerm]);
 
   // 🔥 Función de ordenamiento optimizada
   const usuariosOrdenados = useMemo(() => {
@@ -193,33 +199,34 @@ export const Usuarios = () => {
       
       switch (sortOption.field) {
         case 'nombre':
-          valueA = a.nombre?.toLowerCase() || '';
-          valueB = b.nombre?.toLowerCase() || '';
+          valueA = a._nombreLower;
+          valueB = b._nombreLower;
           break;
         case 'createdAt':
-          valueA = new Date(a.createdAt || 0);
-          valueB = new Date(b.createdAt || 0);
+          valueA = a._createdAtTime;
+          valueB = b._createdAtTime;
           break;
         case 'equipos':
-          valueA = a.equipos?.length || 0;
-          valueB = b.equipos?.length || 0;
+          valueA = a._equiposCount;
+          valueB = b._equiposCount;
           break;
         case 'rol':
-          valueA = a.rol?.toLowerCase() || '';
-          valueB = b.rol?.toLowerCase() || '';
+          valueA = a._rolLower;
+          valueB = b._rolLower;
           break;
         default:
           valueA = a[sortOption.field] || '';
           valueB = b[sortOption.field] || '';
       }
       
-      if (valueA < valueB) {
-        return sortOption.order === 'asc' ? -1 : 1;
+      if (valueA === valueB) return 0;
+      
+      if (typeof valueA === 'number') {
+        return sortOption.order === 'asc' ? valueA - valueB : valueB - valueA;
       }
-      if (valueA > valueB) {
-        return sortOption.order === 'asc' ? 1 : -1;
-      }
-      return 0;
+      
+      const comparison = valueA < valueB ? -1 : 1;
+      return sortOption.order === 'asc' ? comparison : -comparison;
     });
   }, [usuariosFiltradosPorBusqueda, sortBy]);
 
