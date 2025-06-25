@@ -13,10 +13,14 @@ export const CATEGORY_NAMES = {
   'tocho7v7': '⚡ Tocho 7v7',
   'u8': '👶 U-8',
   'u10': '👦 U-10',
-  'u12': '👧 U-12',
-  'u14': '👦 U-14',
-  'u16': '👧 U-16',
-  'u18': '👦 U-18',
+  'u12fem': '👧 U-12 Femenil',
+  'u12var': '👦 U-12 Varonil',
+  'u14fem': '👧 U-14 Femenil',
+  'u14var': '👦 U-14 Varonil',
+  'u16fem': '👧 U-16 Femenil',
+  'u16var': '👦 U-16 Varonil',
+  'u18fem': '👧 U-18 Femenil',
+  'u18var': '👦 U-18 Varonil'
 };
 
 // 🔥 COLORES POR CATEGORÍA
@@ -30,12 +34,16 @@ export const CATEGORY_COLORS = {
   'varmast': '#FF9800',
   'femmast': '#FF7043',
   'tocho7v7': '#9C27B0',
-  'u8': '#64b5f6',
-  'u10': '#42a5f5',
-  'u12': '#2196F3',
-  'u14': '#1E88E5',
-  'u16': '#1976D2',
-  'u18': '#1565C0'
+  'u8': '#64B5F6',
+  'u10': '#42A5F5',
+  'u12fem': '#AB47BC',
+  'u12var': '#7E57C2',
+  'u14fem': '#5C6BC0',
+  'u14var': '#42A5F5',
+  'u16fem': '#29B6F6',
+  'u16var': '#26C6DA',
+  'u18fem': '#26A69A',
+  'u18var': '#66BB6A'
 };
 
 // 🔥 ICONOS POR CATEGORÍA
@@ -51,10 +59,14 @@ export const CATEGORY_ICONS = {
   'tocho7v7': '⚡',
   'u8': '👶',
   'u10': '👦',
-  'u12': '👧',
-  'u14': '👦',
-  'u16': '👧',
-  'u18': '👦'
+  'u12fem': '👧',
+  'u12var': '👦',
+  'u14fem': '👧',
+  'u14var': '👦',
+  'u16fem': '👧',
+  'u16var': '👦',
+  'u18fem': '👧',
+  'u18var': '👦'
 };
 
 // 🔥 FUNCIÓN: Obtener nombre formateado de categoría
@@ -116,10 +128,14 @@ export const agruparCategoriasPorTipo = () => {
     infantil: [
       { codigo: 'u8', nombre: CATEGORY_NAMES.u8 },
       { codigo: 'u10', nombre: CATEGORY_NAMES.u10 },
-      { codigo: 'u12', nombre: CATEGORY_NAMES.u12 },
-      { codigo: 'u14', nombre: CATEGORY_NAMES.u14 },
-      { codigo: 'u16', nombre: CATEGORY_NAMES.u16 },
-      { codigo: 'u18', nombre: CATEGORY_NAMES.u18 }
+      { codigo: 'u12fem', nombre: CATEGORY_NAMES.u12fem },
+      { codigo: 'u12var', nombre: CATEGORY_NAMES.u12var },
+      { codigo: 'u14fem', nombre: CATEGORY_NAMES.u14fem },
+      { codigo: 'u14var', nombre: CATEGORY_NAMES.u14var },
+      { codigo: 'u16fem', nombre: CATEGORY_NAMES.u16fem },
+      { codigo: 'u16var', nombre: CATEGORY_NAMES.u16var },
+      { codigo: 'u18fem', nombre: CATEGORY_NAMES.u18fem },
+      { codigo: 'u18var', nombre: CATEGORY_NAMES.u18var }
     ]
   };
 };

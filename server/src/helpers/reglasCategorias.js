@@ -55,41 +55,65 @@ const reglasCategorias = {
     edadMax: 99,
     tipoBase: 'tocho7v7'
   },
-  'U-8': {
+  u8: {
     sexoPermitido: ['M', 'F'],  // mixto
     edadMin: 0,
     edadMax: 8,
     tipoBase: 'u8'
   },
-  'U-10': {
+  u10: {
     sexoPermitido: ['M', 'F'],  // mixto
     edadMin: 0,
     edadMax: 10,
     tipoBase: 'u10'
   },
-  'U-12': {
-    sexoPermitido: ['M', 'F'],  // mixto
+  u12fem: {
+    sexoPermitido: ['F'],
     edadMin: 0,
     edadMax: 12,
-    tipoBase: 'u12'
+    tipoBase: 'u12fem'
   },
-  'U-14': {
-    sexoPermitido: ['M', 'F'],  // mixto
+  u12var: {
+    sexoPermitido: ['M'],
+    edadMin: 0,
+    edadMax: 12,
+    tipoBase: 'u12var'
+  },
+  u14fem: {
+    sexoPermitido: ['F'],
     edadMin: 0,
     edadMax: 14,
-    tipoBase: 'u14'
+    tipoBase: 'u14fem'
   },
-  'U-16': {
-    sexoPermitido: ['M', 'F'],  // mixto
+  u14var: {
+    sexoPermitido: ['M'],
+    edadMin: 0,
+    edadMax: 14,
+    tipoBase: 'u14var'
+  },
+  u16fem: {
+    sexoPermitido: ['F'],
     edadMin: 0,
     edadMax: 16,
-    tipoBase: 'u16'
+    tipoBase: 'u16fem'
   },
-  'U-18': {
-    sexoPermitido: ['M', 'F'],  // mixto
+  u16var: {
+    sexoPermitido: ['M'],
+    edadMin: 0,
+    edadMax: 16,
+    tipoBase: 'u16var'
+  },
+  u18fem: {
+    sexoPermitido: ['F'],
     edadMin: 0,
     edadMax: 18,
-    tipoBase: 'u18'
+    tipoBase: 'u18fem'
+  },
+  u18var: {
+    sexoPermitido: ['M'],
+    edadMin: 0,
+    edadMax: 18,
+    tipoBase: 'u18var'
   }
 };
 

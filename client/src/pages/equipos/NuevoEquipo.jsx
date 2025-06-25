@@ -503,10 +503,14 @@ export const NuevoEquipo = () => {
                                 <MenuItem value="tocho7v7">Tocho 7 v 7</MenuItem>
                                 <MenuItem value="u8">U-8</MenuItem>
                                 <MenuItem value="u10">U-10</MenuItem>
-                                <MenuItem value="u12">U-12</MenuItem>
-                                <MenuItem value="u14">U-14</MenuItem>
-                                <MenuItem value="u16">U-16</MenuItem>
-                                <MenuItem value="u18">U-18</MenuItem>
+                                <MenuItem value="u12fem">U-12 Femenil</MenuItem>
+                                <MenuItem value="u12var">U-12 Varonil</MenuItem>
+                                <MenuItem value="u14fem">U-14 Femenil</MenuItem>
+                                <MenuItem value="u14var">U-14 Varonil</MenuItem>
+                                <MenuItem value="u16fem">U-16 Femenil</MenuItem>
+                                <MenuItem value="u16var">U-16 Varonil</MenuItem>
+                                <MenuItem value="u18fem">U-18 Femenil</MenuItem>
+                                <MenuItem value="u18var">U-18 Varonil</MenuItem>
                               </TextField>
                             )}
                           />
