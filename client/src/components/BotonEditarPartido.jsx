@@ -12,25 +12,27 @@ export const BotonEditarPartido = ({
   showTooltip = true 
 }) => {
   const navigate = useNavigate();
-  const { usuario } = useAuth();
+  const { usuario, tieneRol, puedeGestionarPartidos } = useAuth(); // 🔥 AGREGAR funciones del context
 
-  // 🔐 Verificar permisos
+  // 🔐 Verificar permisos - 🔥 USANDO rolSecundario
   const puedeEditar = () => {
     if (!usuario || !partido) return false;
     
-    const esAdmin = usuario.rol === 'admin';
-    const esArbitro = usuario.rol === 'arbitro';
+    // 🔥 CAMBIO: Usar funciones del AuthContext que consideran rolSecundario
+    const esAdmin = tieneRol('admin');
+    const esArbitro = tieneRol('arbitro');
     const partidoProgramado = partido.estado === 'programado';
     
     // Admin puede editar siempre, árbitro solo partidos programados
     return esAdmin || (esArbitro && partidoProgramado);
   };
 
-  // 📝 Obtener mensaje del tooltip
+  // 📝 Obtener mensaje del tooltip - 🔥 MEJORADO
   const getTooltipMessage = () => {
     if (!usuario) return 'Debes iniciar sesión';
     if (!puedeEditar()) {
-      if (usuario.rol === 'arbitro' && partido.estado !== 'programado') {
+      // 🔥 CAMBIO: Considerar rolSecundario en el mensaje
+      if (tieneRol('arbitro') && partido.estado !== 'programado') {
         return 'Solo puedes editar partidos programados';
       }
       return 'No tienes permisos para editar este partido';
@@ -45,8 +47,8 @@ export const BotonEditarPartido = ({
     }
   };
 
-  // 🚫 No mostrar si no hay permisos y no es admin/arbitro
-  if (!usuario || (usuario.rol !== 'admin' && usuario.rol !== 'arbitro')) {
+  // 🚫 No mostrar si no puede gestionar partidos - 🔥 CAMBIO: Usar función del context
+  if (!usuario || !puedeGestionarPartidos()) {
     return null;
   }
 

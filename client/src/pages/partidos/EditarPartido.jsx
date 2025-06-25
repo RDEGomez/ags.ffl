@@ -66,7 +66,7 @@ const estadosPartido = [
 export const EditarPartido = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { usuario } = useAuth();
+  const { puedeGestionarPartidos, tieneRol, usuario } = useAuth();
   
   // Estados locales
   const [mostrarMarcador, setMostrarMarcador] = useState(false);
@@ -88,8 +88,8 @@ export const EditarPartido = () => {
   } = usePartidoEdit(id);
 
   // 🔐 Verificar permisos
-  const esAdmin = usuario?.rol === 'admin';
-  const puedeEditarBasico = esAdmin || (usuario?.rol === 'arbitro' && partido?.estado === 'programado');
+  const esAdmin = tieneRol('admin');
+  const puedeEditarBasico = esAdmin || (puedeGestionarPartidos && partido?.estado === 'programado');
   const puedeEditarAvanzado = esAdmin;
 
   // 🔄 Efectos

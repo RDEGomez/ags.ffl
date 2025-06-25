@@ -441,7 +441,7 @@ router.delete('/:id',
 router.patch('/:id/estado', 
   [
     auth,
-    checkRole('admin'),
+    checkRole('admin','arbitro'),
     [
       param('id', 'ID de partido debe ser válido').isMongoId(),
       check('estado', 'Estado es obligatorio y debe ser válido').isIn([

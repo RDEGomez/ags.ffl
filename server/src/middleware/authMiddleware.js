@@ -72,6 +72,8 @@ exports.checkRole = (...roles) => {
     }
 
     const usuario = req.usuario;
+
+    console.log("🔐 Verificando roles del usuario:", usuario.rol);
     
     // Verificar rol principal Y rol secundario
     const tieneRol = roles.includes(usuario.rol) || 

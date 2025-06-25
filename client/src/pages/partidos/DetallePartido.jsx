@@ -557,6 +557,8 @@ export const DetallePartido = () => {
   const [tabActual, setTabActual] = useState(0);
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
 
+  const tienePermisosGestion = puedeGestionarPartidos();
+
   // Obtener partido
   const obtenerPartido = async () => {
     try {

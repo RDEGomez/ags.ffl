@@ -8,6 +8,12 @@ const { validationResult } = require('express-validator');
 const { getImageUrlServer } = require('../helpers/imageUrlHelper');
 const mongoose = require('mongoose');
 
+const usuarioTieneRol = (usuario, rolesPermitidos) => {
+  if (!usuario) return false;
+  return rolesPermitidos.includes(usuario.rol) || 
+         (usuario.rolSecundario && rolesPermitidos.includes(usuario.rolSecundario));
+};
+
 // 🔄 Helper para enriquecer jugadas con números de jugador - CORREGIDO PARA 0
 const enriquecerJugadasConNumeros = async (jugadas, equipoLocalId, equipoVisitanteId) => {
   console.log('\n🔄 === ENRIQUECIENDO JUGADAS CON NÚMEROS ===');
@@ -610,10 +616,12 @@ exports.actualizarPartido = async (req, res) => {
     console.log('✅ Partido encontrado:', partido.equipoLocal, 'vs', partido.equipoVisitante);
 
     // 🔥 MEJORA: Validaciones de permisos más granulares
-    const puedeEditarBasico = usuarioLogueado.rol === 'admin' || 
-                              (usuarioLogueado.rol === 'arbitro' && partido.estado === 'programado');
-    
-    const puedeEditarAvanzado = usuarioLogueado.rol === 'admin';
+    const puedeEditarBasico = usuarioTieneRol(usuarioLogueado, ['admin']) || 
+                          (usuarioTieneRol(usuarioLogueado, ['arbitro']) && partido.estado === 'programado');
+    const puedeEditarAvanzado = usuarioTieneRol(usuarioLogueado, ['admin']);
+
+    console.log("Puede editar básico:", puedeEditarBasico);
+    console.log("Puede editar avanzado:", puedeEditarAvanzado);
 
     // Validar permisos según tipo de cambio
     const camposAvanzados = ['estado', 'marcador'];
