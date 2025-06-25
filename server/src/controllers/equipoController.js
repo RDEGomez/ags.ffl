@@ -9,13 +9,12 @@ exports.nuevoEquipo = async (req, res) => {
   const equipo = new Equipo(req.body);
 
   try {
-    if (req.file && req.file.filename) {
-      // 🔥 Guardar según el tipo de upload
-      if (req.file.path && req.file.path.includes('cloudinary.com')) {
-        // Cloudinary: guardar URL completa
+    if (req.file) {
+      if (req.file.url) {
+        equipo.imagen = req.file.url; // ← Guarda URL de ImageKit
+      } else if (req.file.path && req.file.path.includes('cloudinary.com')) {
         equipo.imagen = req.file.path;
-      } else {
-        // Local: guardar solo filename
+      } else if (req.file.filename) {
         equipo.imagen = req.file.filename;
       }
     }    
@@ -129,11 +128,9 @@ exports.actualizarEquipo = async (req, res) => {
     });
 
     // Actualizar la imagen si se proporciona una nueva
-    if (req.file && req.file.filename) {
-      // 🔥 Guardar según el tipo de upload
-      if (req.file.path && req.file.path.includes('cloudinary.com')) {
-        // Cloudinary: guardar URL completa
-        equipo.imagen = req.file.path;
+    if (req.file) {
+      if (req.file.url) {
+        equipo.imagen = req.file.url; // ← Detecta ImageKit primero
       } else {
         // Local: guardar solo filename
         equipo.imagen = req.file.filename;

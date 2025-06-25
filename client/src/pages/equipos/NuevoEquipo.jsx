@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as Yup from 'yup'
@@ -41,6 +41,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
 import { useImage } from '../../hooks/useImage' // 🔥 Importar el hook
 import { useAuth } from '../../context/AuthContext' // 🔥 AGREGADO: Import useAuth
+import { ImageUpload } from '../../components/ImageUpload' // 🔥 AGREGADO: Import del componente ImageUpload
 
 // 🔥 Componente para mostrar equipos existentes
 const EquipoListItem = ({ equipo, index }) => {
@@ -118,27 +119,17 @@ export const NuevoEquipo = () => {
     }
   }, [puedeGestionarEquipos, navigate]);
 
-  const [fileName, setFileName] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
+  // 🔥 CAMBIADO: Estados para manejo de imagen con ImageUpload
+  const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [equipoRecienCreado, setEquipoRecienCreado] = useState(null); // 🔥 Para mostrar el equipo recién creado
-  const fileInputRef = useRef(null);
+  const [equipoRecienCreado, setEquipoRecienCreado] = useState(null);
 
-  // Esquema de validación
+  // 🔥 CAMBIADO: Esquema de validación sin validación de imagen (se maneja en ImageUpload)
   const schema = Yup.object().shape({
     nombre: Yup.string().required('El nombre es obligatorio'),
     categoria: Yup.string().required('La categoría es obligatoria'),
-    imagen: Yup.mixed()
-      .test('fileSize', 'El archivo es demasiado grande', (value) => {
-        if (!value || !value[0]) return true;
-        return value[0].size <= 2000000;
-      })
-      .test('fileType', 'Solo se permiten imágenes', (value) => {
-        if (!value || !value[0]) return true;
-        return value[0].type.startsWith('image/');
-      })
   })
 
   const {
@@ -146,7 +137,6 @@ export const NuevoEquipo = () => {
     reset,
     control,
     handleSubmit,
-    setValue,
     watch,
     formState: { errors },
   } = useForm({
@@ -154,7 +144,6 @@ export const NuevoEquipo = () => {
     defaultValues: {
       nombre: '',
       categoria: '',
-      imagen: null
     },
   })
 
@@ -182,18 +171,13 @@ export const NuevoEquipo = () => {
     }
   }, [puedeGestionarEquipos]);
 
-  const handleImageClick = () => {
-    fileInputRef.current.click();
+  // 🔥 NUEVO: Funciones para manejar selección de imagen
+  const handleImageSelect = (file) => {
+    setImagenSeleccionada(file);
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setPreviewUrl(imageUrl);
-      setValue('imagen', e.target.files);
-      setFileName(file.name);
-    }
+  const handleImageRemove = () => {
+    setImagenSeleccionada(null);
   };
 
   const onSubmit = async (data) => {
@@ -212,8 +196,15 @@ export const NuevoEquipo = () => {
       formData.append('nombre', data.nombre);
       formData.append('categoria', data.categoria);
       
-      if (data.imagen && data.imagen.length > 0) {
-        formData.append('imagen', data.imagen[0]);
+      // 🔥 CAMBIADO: Usar imagenSeleccionada del componente ImageUpload
+      if (imagenSeleccionada) {
+        console.log('🔍 DEBUG: Archivo a enviar:', {
+          name: imagenSeleccionada.name,
+          type: imagenSeleccionada.type,
+          size: imagenSeleccionada.size,
+          isFile: imagenSeleccionada instanceof File
+        });
+        formData.append('imagen', imagenSeleccionada);
       }
 
       const response = await axiosInstance.post('/equipos', formData, {
@@ -234,10 +225,9 @@ export const NuevoEquipo = () => {
         timer: 2000,
       })
 
-      // Limpiar formulario
+      // 🔥 CAMBIADO: Limpiar formulario incluyendo imagen seleccionada
       reset();
-      setFileName('');
-      setPreviewUrl('');
+      setImagenSeleccionada(null);
     } catch (error) {
       console.error(error)
       Swal.fire({
@@ -431,7 +421,7 @@ export const NuevoEquipo = () => {
 
                   <form onSubmit={handleSubmit(onSubmit)} noValidate>
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
-                      {/* Sección de imagen */}
+                      {/* 🔥 CAMBIADO: Sección de imagen usando ImageUpload */}
                       <Box sx={{ flexBasis: { md: '40%' } }}>
                         <Card sx={{
                           backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -439,108 +429,12 @@ export const NuevoEquipo = () => {
                           border: '1px solid rgba(255, 255, 255, 0.1)'
                         }}>
                           <CardContent sx={{ p: 3 }}>
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              mb: 2,
-                              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                              pb: 1
-                            }}>
-                              <AddPhotoAlternateIcon sx={{ color: '#64b5f6', mr: 1 }} />
-                              <Typography variant="h6" sx={{ color: 'white' }}>
-                                Logo del Equipo
-                              </Typography>
-                            </Box>
-
-                            {/* Input file oculto */}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              ref={fileInputRef}
-                              style={{ display: 'none' }}
-                              onChange={handleImageChange}
+                            <ImageUpload
+                              onImageSelect={handleImageSelect}
+                              onImageRemove={handleImageRemove}
+                              size={200}
+                              label="Seleccionar logo del equipo"
                             />
-
-                            {/* Preview de imagen */}
-                            <Box
-                              onClick={handleImageClick}
-                              sx={{
-                                width: '100%',
-                                height: 200,
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                borderRadius: 2,
-                                overflow: 'hidden',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: '2px dashed rgba(255, 255, 255, 0.2)',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                mb: 2,
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                  borderColor: 'rgba(100, 181, 246, 0.5)',
-                                  transform: 'scale(1.02)'
-                                }
-                              }}
-                            >
-                              {previewUrl ? (
-                                <Box
-                                  component="img"
-                                  src={previewUrl}
-                                  alt="Preview"
-                                  sx={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'contain',
-                                    borderRadius: 2
-                                  }}
-                                />
-                              ) : (
-                                <Box sx={{ textAlign: 'center', p: 3 }}>
-                                  <AddPhotoAlternateIcon sx={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.3)', mb: 1 }} />
-                                  <Typography variant="body2" color="text.secondary">
-                                    Haz clic para seleccionar logo
-                                  </Typography>
-                                </Box>
-                              )}
-                            </Box>
-
-                            <Button
-                              variant="outlined"
-                              component="label"
-                              startIcon={<AddPhotoAlternateIcon />}
-                              onClick={handleImageClick}
-                              fullWidth
-                              sx={{
-                                borderRadius: 2,
-                                py: 1.5,
-                                borderWidth: 2,
-                                '&:hover': {
-                                  borderWidth: 2,
-                                  backgroundColor: 'rgba(255,255,255,0.05)'
-                                }
-                              }}
-                            >
-                              {previewUrl ? 'Cambiar Logo' : 'Seleccionar Logo'}
-                            </Button>
-
-                            {errors.imagen && (
-                              <FormHelperText error sx={{ mt: 1 }}>
-                                {errors.imagen.message}
-                              </FormHelperText>
-                            )}
-
-                            {fileName && (
-                              <Typography variant="caption" sx={{ 
-                                display: 'block', 
-                                mt: 1, 
-                                color: 'rgba(255,255,255,0.7)',
-                                textAlign: 'center'
-                              }}>
-                                📁 {fileName}
-                              </Typography>
-                            )}
                           </CardContent>
                         </Card>
                       </Box>
@@ -611,7 +505,7 @@ export const NuevoEquipo = () => {
                             )}
                           />
 
-                          {/* Vista previa en tiempo real */}
+                          {/* 🔥 CAMBIADO: Vista previa usando imagenSeleccionada */}
                           <Box sx={{ 
                             p: 2, 
                             borderRadius: 2, 
@@ -623,7 +517,7 @@ export const NuevoEquipo = () => {
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                               <Avatar
-                                src={previewUrl}
+                                src={imagenSeleccionada ? URL.createObjectURL(imagenSeleccionada) : ''}
                                 sx={{ 
                                   width: 40, 
                                   height: 40,
@@ -667,8 +561,7 @@ export const NuevoEquipo = () => {
                         startIcon={<CancelIcon />}
                         onClick={() => {
                           reset();
-                          setFileName('');
-                          setPreviewUrl('');
+                          setImagenSeleccionada(null);
                         }}
                         sx={{
                           borderRadius: 2,
