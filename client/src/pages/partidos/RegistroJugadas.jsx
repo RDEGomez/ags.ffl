@@ -50,7 +50,7 @@ import {
 } from '@mui/icons-material';
 
 const RegistroJugadas = ({ partido, onActualizar }) => {
-  const { usuario, puedeGestionarTorneos } = useAuth();
+  const { usuario, puedeGestionarPartidos } = useAuth();
 
   // Estados principales
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -64,7 +64,9 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
   const dropzoneRef = useRef(null);
 
   // Verificar permisos
-  const puedeRegistrar = puedeGestionarTorneos() || usuario?.rol === 'arbitro';
+  const puedeRegistrar = puedeGestionarPartidos();
+
+  console.log("Permisos de usuario:", puedeRegistrar);
 
   // 🎯 TIPOS DE JUGADAS CON ICONOS Y CONFIGURACIÓN
   const tiposJugada = [

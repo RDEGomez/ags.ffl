@@ -131,7 +131,7 @@ const NavigationHeader = ({ partidoId, navigate, puedeGestionarPartidos, onEdit 
             Partidos
           </Link>
           <Typography sx={{ color: 'white', fontSize: '0.9rem', fontWeight: 600 }}>
-            #{partidoId?.slice(-8)}
+            #{partidoId}
           </Typography>
         </Breadcrumbs>
       </Box>

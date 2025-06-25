@@ -127,14 +127,12 @@ export const AuthProvider = ({ children }) => {
   const puedeGestionarPartidos = () => {
     if (!usuario) return false;
     // Verificar rol principal O rol secundario
-    console.log(`puedeGestionarPartidos - usuario:`, usuario);
     return ['admin', 'arbitro'].includes(usuario.rol) || usuario.rolSecundario === 'arbitro';
   };
 
   const puedeOperarPartidosEnVivo = () => {
     if (!usuario) return false;
     // Verificar rol principal O rol secundario
-    console.log("puedeOperarPartidosEnVivo - usuario:", usuario);
     return ['admin', 'arbitro'].includes(usuario.rol) || usuario.rolSecundario === 'arbitro';
   };
   const puedeEditarUsuario = (usuarioId) => {
