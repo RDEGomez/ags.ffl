@@ -16,7 +16,7 @@ router.post('/generar-rol',
       check('torneoId', 'ID de torneo es obligatorio y debe ser válido').isMongoId(),
       check('categoria', 'Categoría es obligatoria').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'
       ]),
       check('tipoRol', 'Tipo de rol es obligatorio').isIn(['todos_contra_todos', 'limitado']),
       check('fechaInicio', 'Fecha de inicio es obligatoria y debe ser válida').isISO8601(),
@@ -85,7 +85,7 @@ router.delete('/rol/:torneoId/:categoria',
       param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
       param('categoria', 'Categoría debe ser válida').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'
       ])
     ]
   ],
@@ -102,7 +102,7 @@ router.post('/regenerar-rol',
       check('torneoId', 'ID de torneo es obligatorio y debe ser válido').isMongoId(),
       check('categoria', 'Categoría es obligatoria').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'
       ]),
       check('tipoRol', 'Tipo de rol es obligatorio').isIn(['todos_contra_todos', 'limitado']),
       check('fechaInicio', 'Fecha de inicio es obligatoria y debe ser válida').isISO8601(),
@@ -160,7 +160,7 @@ router.post('/',
       // Validaciones opcionales
       check('categoria')
         .optional()
-        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'])
+        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'])
         .withMessage('Categoría no válida'),
       
       check('duracionMinutos')
@@ -219,7 +219,7 @@ router.get('/',
       
       query('categoria')
         .optional()
-        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'])
+        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'])
         .withMessage('Categoría no válida'),
       
       query('estado')

@@ -91,7 +91,8 @@ router.put('/:id',
       check('fechaFin', 'Formato de fecha inválido').optional().isDate(),
       check('categorias', 'Categoría no válida').optional().isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
+        'u10', 'u12', 'u14', 'u16', 'u18'
       ]),
       check('estado', 'Estado no válido').optional().isIn(['activo', 'inactivo'])
     ]

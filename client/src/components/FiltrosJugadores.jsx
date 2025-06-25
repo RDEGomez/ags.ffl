@@ -18,7 +18,13 @@ const categorias = [
   { value: 'femsilv', label: 'Femenil Silver' },
   { value: 'varmast', label: 'Varonil Master' },
   { value: 'femmast', label: 'Femenil Master' },
-  { value: 'tocho7v7', label: 'Tocho 7v7' }
+  { value: 'tocho7v7', label: 'Tocho 7v7' },
+  { value: 'U-8', label: 'U-8' },
+  { value: 'U-10', label: 'U-10' },
+  { value: 'U-12', label: 'U-12' },
+  { value: 'U-14', label: 'U-14' },
+  { value: 'U-16', label: 'U-16' },
+  { value: 'U-18', label: 'U-18' }
 ];
 
 // 🔥 FUNCIÓN DE LOGGING PARA FILTROS

@@ -16,7 +16,7 @@ router.get('/tabla-posiciones/:torneoId/:categoria',
       param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
       param('categoria', 'Categoría debe ser válida').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'
       ])
     ]
   ],
@@ -143,7 +143,7 @@ router.get('/equipos-torneo/:torneoId/:categoria',
       param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
       param('categoria', 'Categoría debe ser válida').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'
       ])
     ]
   ],
@@ -240,7 +240,7 @@ router.get('/validar/:torneoId/:categoria',
       param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
       param('categoria', 'Categoría debe ser válida').isIn([
         'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7'
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12', 'u14', 'u16', 'u18'
       ])
     ]
   ],

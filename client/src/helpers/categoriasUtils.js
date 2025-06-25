@@ -11,11 +11,12 @@ export const CATEGORY_NAMES = {
   'varmast': '👑 Varonil Master',
   'femmast': '👑 Femenil Master',
   'tocho7v7': '⚡ Tocho 7v7',
-  // Agregar otros posibles valores que uses
-  'mixta': '🏈 Mixta',
-  'femenil': '👩 Femenil',
-  'varonil': '👨 Varonil',
-  'libre': '🆓 Libre'
+  'u8': '👶 U-8',
+  'u10': '👦 U-10',
+  'u12': '👧 U-12',
+  'u14': '👦 U-14',
+  'u16': '👧 U-16',
+  'u18': '👦 U-18',
 };
 
 // 🔥 COLORES POR CATEGORÍA
@@ -29,11 +30,12 @@ export const CATEGORY_COLORS = {
   'varmast': '#FF9800',
   'femmast': '#FF7043',
   'tocho7v7': '#9C27B0',
-  // Colores para categorías adicionales
-  'mixta': '#2196F3',
-  'femenil': '#E91E63',
-  'varonil': '#4CAF50',
-  'libre': '#9E9E9E'
+  'u8': '#64b5f6',
+  'u10': '#42a5f5',
+  'u12': '#2196F3',
+  'u14': '#1E88E5',
+  'u16': '#1976D2',
+  'u18': '#1565C0'
 };
 
 // 🔥 ICONOS POR CATEGORÍA
@@ -47,11 +49,12 @@ export const CATEGORY_ICONS = {
   'varmast': '🔥',
   'femmast': '💫',
   'tocho7v7': '⚡',
-  // Iconos para categorías adicionales
-  'mixta': '🏈',
-  'femenil': '👩',
-  'varonil': '👨',
-  'libre': '🆓'
+  'u8': '👶',
+  'u10': '👦',
+  'u12': '👧',
+  'u14': '👦',
+  'u16': '👧',
+  'u18': '👦'
 };
 
 // 🔥 FUNCIÓN: Obtener nombre formateado de categoría
@@ -108,8 +111,15 @@ export const agruparCategoriasPorTipo = () => {
       { codigo: 'femenil', nombre: CATEGORY_NAMES.femenil }
     ],
     especial: [
-      { codigo: 'tocho7v7', nombre: CATEGORY_NAMES.tocho7v7 },
-      { codigo: 'libre', nombre: CATEGORY_NAMES.libre }
+      { codigo: 'tocho7v7', nombre: CATEGORY_NAMES.tocho7v7 }
+    ],
+    infantil: [
+      { codigo: 'u8', nombre: CATEGORY_NAMES.u8 },
+      { codigo: 'u10', nombre: CATEGORY_NAMES.u10 },
+      { codigo: 'u12', nombre: CATEGORY_NAMES.u12 },
+      { codigo: 'u14', nombre: CATEGORY_NAMES.u14 },
+      { codigo: 'u16', nombre: CATEGORY_NAMES.u16 },
+      { codigo: 'u18', nombre: CATEGORY_NAMES.u18 }
     ]
   };
 };

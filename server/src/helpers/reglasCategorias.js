@@ -54,6 +54,42 @@ const reglasCategorias = {
     edadMin: 0,
     edadMax: 99,
     tipoBase: 'tocho7v7'
+  },
+  'U-8': {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 8,
+    tipoBase: 'u8'
+  },
+  'U-10': {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 10,
+    tipoBase: 'u10'
+  },
+  'U-12': {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 12,
+    tipoBase: 'u12'
+  },
+  'U-14': {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 14,
+    tipoBase: 'u14'
+  },
+  'U-16': {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 16,
+    tipoBase: 'u16'
+  },
+  'U-18': {
+    sexoPermitido: ['M', 'F'],  // mixto
+    edadMin: 0,
+    edadMax: 18,
+    tipoBase: 'u18'
   }
 };
 
