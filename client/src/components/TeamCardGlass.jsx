@@ -340,7 +340,7 @@ const TeamCardGlass = ({ equipo, usuario, torneoId = null }) => {
             width: '100%',
             maxWidth: '100%'
           }}>
-            {lider.jugador.nombre.split(' ')[0]} {/* Solo primer nombre */}
+            {lider?.jugador?.nombre ? lider.jugador.nombre.split(' ')[0] : 'N/A'}
           </Typography>
 
           {/* Valor de la estadística */}
