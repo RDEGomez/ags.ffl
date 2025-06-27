@@ -453,7 +453,6 @@ export const RegistrarJugadores = () => {
   const [deletingPlayer, setDeletingPlayer] = useState(false);
   const [equipo, setEquipo] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
-  const [usuariosFiltrados, setUsuariosFiltrados] = useState([]);
   const [filtroUsuarios, setFiltroUsuarios] = useState('');
   const [jugadoresSeleccionados, setJugadoresSeleccionados] = useState([]);
   const [jugadoresActuales, setJugadoresActuales] = useState([]);
@@ -470,13 +469,12 @@ export const RegistrarJugadores = () => {
     debugLog('ESTADO_CAMBIO', {
       equipo: equipo ? { id: equipo._id, nombre: equipo.nombre } : null,
       usuarios: usuarios.length,
-      usuariosFiltrados: usuariosFiltrados.length,
       jugadoresSeleccionados: jugadoresSeleccionados.length,
       jugadoresActuales: jugadoresActuales.length,
       loading,
       errorMessage
     });
-  }, [equipo, usuarios, usuariosFiltrados, jugadoresSeleccionados, jugadoresActuales, loading, errorMessage]);
+  }, [equipo, usuarios, jugadoresSeleccionados, jugadoresActuales, loading, errorMessage]);
 
   // Verificar permisos al cargar el componente
   useEffect(() => {
@@ -666,30 +664,26 @@ export const RegistrarJugadores = () => {
     });
   }, [usuarios]);
 
-  // Filtrar usuarios cuando cambia el texto de búsqueda
-  useEffect(() => {
-    debugLog('FILTRADO_USUARIOS', { 
+  const usuariosFiltrados = useMemo(() => {
+    debugLog('FILTRADO_USUARIOS_MEMO', { 
       filtroUsuarios: debouncedFiltroUsuarios, 
       usuariosTotal: usuarios.length 
     });
     
-    if (debouncedFiltroUsuarios.trim() === '') {
-      setUsuariosFiltrados(usuariosConIndices);
-      return;
-    }
-
-    const filtroLowerCase = debouncedFiltroUsuarios.toLowerCase().trim();
+    if (!debouncedFiltroUsuarios.trim()) return usuariosConIndices;
+    
+    const term = debouncedFiltroUsuarios.toLowerCase().trim();
     const resultado = usuariosConIndices.filter(usuario => 
-      usuario._searchIndex.includes(filtroLowerCase)
+      usuario._searchIndex.includes(term)
     );
 
-    debugLog('FILTRADO_RESULTADO', { 
+    debugLog('FILTRADO_RESULTADO_MEMO', { 
       filtro: debouncedFiltroUsuarios, 
       resultados: resultado.length 
     });
     
-    setUsuariosFiltrados(resultado);
-  }, [debouncedFiltroUsuarios, usuariosConIndices]);
+    return resultado;
+  }, [usuariosConIndices, debouncedFiltroUsuarios]);
 
   // Agregar jugador a la lista de seleccionados
   const agregarJugador = (jugador) => {
@@ -1263,7 +1257,6 @@ export const RegistrarJugadores = () => {
                         }
                       }}
                     >
-                      <AnimatePresence>
                         {usuariosFiltrados.map((usuario, index) => (
                           <UsuarioDisponibleItem
                             key={usuario._id}
@@ -1272,7 +1265,6 @@ export const RegistrarJugadores = () => {
                             index={index}
                           />
                         ))}
-                      </AnimatePresence>
                     </List>
                   )}
                 </CardContent>
