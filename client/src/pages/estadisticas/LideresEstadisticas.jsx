@@ -11,14 +11,13 @@ import {
   useMediaQuery
 } from '@mui/material';
 import {
-  LocalFireDepartment,
-  SportsFootball,
-  Shield,
-  PanTool,
-  Bolt,
-  Sports,
-  Star
+  Shield
 } from '@mui/icons-material';
+import SportsKabaddiIcon from '@mui/icons-material/SportsKabaddi';
+import SportsHandballIcon from '@mui/icons-material/SportsHandball';
+import ScoreboardIcon from '@mui/icons-material/Scoreboard';
+import WavingHandIcon from '@mui/icons-material/WavingHand';
+import TransferWithinAStationIcon from '@mui/icons-material/TransferWithinAStation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // 🔥 FUNCIÓN HELPER PARA IMÁGENES
@@ -341,19 +340,19 @@ export const LideresEstadisticas = ({
     {
       tipo: 'qbrating',
       titulo: 'QB Rating',
-      icono: <Sports sx={{ fontSize: '1.1rem' }} />,
+      icono: <SportsHandballIcon sx={{ fontSize: '1.1rem' }} />,
       color: '#2196f3'
     },
     {
       tipo: 'puntos',
       titulo: 'Puntos',
-      icono: <LocalFireDepartment sx={{ fontSize: '1.1rem' }} />,
+      icono: <ScoreboardIcon sx={{ fontSize: '1.1rem' }} />,
       color: '#ff6b35'
     },
     {
       tipo: 'recepciones',
       titulo: 'Recepciones',
-      icono: <SportsFootball sx={{ fontSize: '1.1rem' }} />,
+      icono: <WavingHandIcon sx={{ fontSize: '1.1rem' }} />,
       color: '#4caf50'
     },
     {
@@ -365,13 +364,13 @@ export const LideresEstadisticas = ({
     {
       tipo: 'intercepciones',
       titulo: 'Intercepciones',
-      icono: <PanTool sx={{ fontSize: '1.1rem' }} />,
+      icono: <TransferWithinAStationIcon sx={{ fontSize: '1.1rem' }} />,
       color: '#ff9800'
     },
     {
       tipo: 'sacks',
       titulo: 'Sacks',
-      icono: <Bolt sx={{ fontSize: '1.1rem' }} />,
+      icono: <SportsKabaddiIcon sx={{ fontSize: '1.1rem' }} />,
       color: '#f44336'
     }
   ];

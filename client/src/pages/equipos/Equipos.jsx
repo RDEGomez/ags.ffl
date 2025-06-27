@@ -76,7 +76,6 @@ import axiosInstance from '../../config/axios';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getCategoryName } from '../../helpers/mappings';
-import { FiltrosEquipos } from '../../components/FiltrosEquipos';
 import { ListaJugadoresEquipo } from './ListaJugadoresEquipo';
 import { useImage } from '../../hooks/useImage';
 import Swal from 'sweetalert2';
@@ -566,6 +565,7 @@ export const Equipos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('nombre_asc');
   const [categoriaActual, setCategoriaActual] = useState(null);
+  const [filtros, setFiltros] = useState({ categoria: ''});
   
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -622,15 +622,27 @@ export const Equipos = () => {
     });
   }, [equipos]);
 
-  // 🔥 Aplicar filtros de búsqueda
+  // 🔥 Aplicar filtros de búsqueda Y categoría
   const equiposFiltradosPorBusqueda = useMemo(() => {
-    if (!debouncedSearchTerm.trim()) return equiposConIndices;
-    
-    const termino = debouncedSearchTerm.toLowerCase().trim();
-    return equiposConIndices.filter(equipo => 
-      equipo._searchIndex.includes(termino)
-    );
-  }, [equiposConIndices, debouncedSearchTerm]);
+    let equiposToFilter = [...equiposConIndices];
+
+    // 🔥 NUEVO: Aplicar filtro por categoría
+    if (filtros.categoria) {
+      equiposToFilter = equiposToFilter.filter(equipo => 
+        equipo.categoria === filtros.categoria
+      );
+    }
+
+    // Aplicar búsqueda por texto
+    if (debouncedSearchTerm.trim()) {
+      const termino = debouncedSearchTerm.toLowerCase().trim();
+      equiposToFilter = equiposToFilter.filter(equipo => 
+        equipo._searchIndex.includes(termino)
+      );
+    }
+
+    return equiposToFilter;
+  }, [equiposConIndices, debouncedSearchTerm, filtros]);
 
   // 🔥 Aplicar ordenamiento
   // REEMPLAZAR todo el useMemo actual de equiposOrdenados con:
@@ -847,6 +859,7 @@ export const Equipos = () => {
         <motion.div variants={itemVariants}>
           <Card sx={{ ...cardStyle, mb: 3 }}>
             <CardContent sx={{ p: 3 }}>
+
               {/* Primera fila: Búsqueda y controles principales */}
               <Box sx={{ 
                 display: 'flex', 
@@ -860,7 +873,7 @@ export const Equipos = () => {
                 <TextField
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar equipos por nombre o categoría..."
+                  placeholder="Buscar equipos por nombre..."
                   variant="outlined"
                   size="small"
                   sx={{ 
@@ -896,6 +909,49 @@ export const Equipos = () => {
 
                 {/* Controles de ordenamiento y vista */}
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  {/* 🔥 NUEVO: Filtro de categoría */}
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <Select
+                      value={filtros.categoria}
+                      onChange={(e) => {
+                        setFiltros(prev => ({ ...prev, categoria: e.target.value }));
+                        setCurrentPage(1);
+                      }}
+                      displayEmpty
+                      sx={{
+                        color: 'white',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.3)'
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.5)'
+                        },
+                        '& .MuiSvgIcon-root': { color: 'white' }
+                      }}
+                      MenuProps={{
+                        PaperProps: {
+                          sx: {
+                            backgroundColor: 'rgba(20, 20, 40, 0.95)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                          }
+                        }
+                      }}
+                    >
+                      <MenuItem value="" sx={{ color: 'white' }}>
+                        <em>Todas las categorías</em>
+                      </MenuItem>
+                      <MenuItem value="mixgold" sx={{ color: 'white' }}>Mixto Gold</MenuItem>
+                      <MenuItem value="mixsilv" sx={{ color: 'white' }}>Mixto Silver</MenuItem>
+                      <MenuItem value="vargold" sx={{ color: 'white' }}>Varonil Gold</MenuItem>
+                      <MenuItem value="varsilv" sx={{ color: 'white' }}>Varonil Silver</MenuItem>
+                      <MenuItem value="femgold" sx={{ color: 'white' }}>Femenil Gold</MenuItem>
+                      <MenuItem value="femsilv" sx={{ color: 'white' }}>Femenil Silver</MenuItem>
+                      <MenuItem value="varmast" sx={{ color: 'white' }}>Varonil Master</MenuItem>
+                      <MenuItem value="femmast" sx={{ color: 'white' }}>Femenil Master</MenuItem>
+                      <MenuItem value="tocho7v7" sx={{ color: 'white' }}>Tocho 7v7</MenuItem>
+                    </Select>
+                  </FormControl>
+
                   {/* Ordenamiento */}
                   <FormControl size="small" sx={{ minWidth: 140 }}>
                     <Select

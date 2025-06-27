@@ -11,13 +11,13 @@ import {
 } from '@mui/material';
 import {
   EmojiEvents,
-  Star as StarIcon,
-  Timeline as TimelineIcon,
-  Speed as SpeedIcon,
-  SportsFootball,
-  Security as SecurityIcon,
-  Bolt as BoltIcon // 🔥 NUEVO ICONO PARA SACKS
+  Security as SecurityIcon
 } from '@mui/icons-material';
+import SportsKabaddiIcon from '@mui/icons-material/SportsKabaddi';
+import SportsHandballIcon from '@mui/icons-material/SportsHandball';
+import ScoreboardIcon from '@mui/icons-material/Scoreboard';
+import WavingHandIcon from '@mui/icons-material/WavingHand';
+import TransferWithinAStationIcon from '@mui/icons-material/TransferWithinAStation';
 import { motion } from 'framer-motion';
 import axiosInstance from '../config/axios';
 import { useImage } from '../hooks/useImage';
@@ -28,7 +28,7 @@ const tiposEstadisticas = ['puntos', 'qbrating', 'recepciones', 'tackleos', 'int
 // 🎨 CONFIGURACIÓN DE TIPOS - 🔥 CON SACKS AGREGADO
 const CONFIGURACION_TIPOS = {
   puntos: {
-    icono: <StarIcon />,
+    icono: <ScoreboardIcon />,
     color: '#ffd700',
     bgColor: 'rgba(255, 215, 0, 0.05)',
     gradient: "linear-gradient(145deg, #ffd700, #ffed4e)",
@@ -36,7 +36,7 @@ const CONFIGURACION_TIPOS = {
     label: "Puntos Totales"
   },
   qbrating: {
-    icono: <SpeedIcon />,
+    icono: <SportsHandballIcon />,
     color: '#2196f3',
     bgColor: 'rgba(33, 150, 243, 0.05)',
     gradient: "linear-gradient(145deg, #2196f3, #64b5f6)",
@@ -52,7 +52,7 @@ const CONFIGURACION_TIPOS = {
     label: "Tackleos"
   },
   intercepciones: {
-    icono: <TimelineIcon />,
+    icono: <TransferWithinAStationIcon />,
     color: '#e91e63',
     bgColor: 'rgba(233, 30, 99, 0.05)',
     gradient: "linear-gradient(145deg, #e91e63, #f48fb1)",
@@ -60,7 +60,7 @@ const CONFIGURACION_TIPOS = {
     label: "Intercepciones"
   },
   recepciones: {
-    icono: <SportsFootball />,
+    icono: <WavingHandIcon />,
     color: '#f57c00',
     bgColor: 'rgba(245, 124, 0, 0.05)',
     gradient: "linear-gradient(145deg, #f57c00, #ffb74d)",
@@ -69,7 +69,7 @@ const CONFIGURACION_TIPOS = {
   },
   // 🔥 NUEVA CONFIGURACIÓN PARA SACKS
   sacks: {
-    icono: <BoltIcon />,
+    icono: <SportsKabaddiIcon />,
     color: '#f44336',
     bgColor: 'rgba(244, 67, 54, 0.05)',
     gradient: "linear-gradient(145deg, #f44336, #ef5350)",
