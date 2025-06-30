@@ -1350,7 +1350,13 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
                 imagen: null
               },
               stats: {
-                pases: { intentos: 0, completados: 0, touchdowns: 0, intercepciones: 0 },
+                pases: { 
+                  intentos: 0, 
+                  completados: 0, 
+                  touchdowns: 0, 
+                  intercepciones: 0,
+                  conversiones: 0  // 🔥 NUEVO CAMPO
+                },
                 recepciones: { total: 0, touchdowns: 0 },
                 tackleos: { total: 0 },
                 intercepciones: { total: 0 },
@@ -1467,32 +1473,19 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
               break;
 
             case 'conversion_1pt':
-              if (esPrincipal) {
-                // QB: Solo stats de pase, NO puntos
-                playerStats.stats.pases.intentos++;
-                playerStats.stats.pases.completados++;
-                playerStats.stats.pases.touchdowns++;
-              } else if (esSecundario) {
-                // Receptor: Recepción + PUNTOS
-                playerStats.stats.recepciones.total++;
-                playerStats.stats.puntos.total += 1;
-              } else if (esJugadorTouchdown) {
-                playerStats.stats.puntos.total += 1;
-              }
-              break;
-
             case 'conversion_2pt':
               if (esPrincipal) {
                 // QB: Solo stats de pase, NO puntos
                 playerStats.stats.pases.intentos++;
                 playerStats.stats.pases.completados++;
                 playerStats.stats.pases.touchdowns++;
+                playerStats.stats.pases.conversiones++; // 🔥 NUEVO: Trackear conversiones
               } else if (esSecundario) {
                 // Receptor: Recepción + PUNTOS
                 playerStats.stats.recepciones.total++;
-                playerStats.stats.puntos.total += 2;
+                playerStats.stats.puntos.total += jugada.tipoJugada === 'conversion_1pt' ? 1 : 2;
               } else if (esJugadorTouchdown) {
-                playerStats.stats.puntos.total += 2;
+                playerStats.stats.puntos.total += jugada.tipoJugada === 'conversion_1pt' ? 1 : 2;
               }
               break;
           }
@@ -1516,11 +1509,11 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
     // 🔥 CALCULAR QB RATING PARA CADA JUGADOR
     console.log('\n🏈 === CALCULANDO QB RATING PARA CLASIFICACIÓN GENERAL ===');
     estadisticasJugadores.forEach((stats, jugadorId) => {
-      const { intentos, completados, touchdowns, intercepciones } = stats.stats.pases;
-      stats.qbRating = calcularQBRating(completados, intentos, touchdowns, intercepciones);
+      const { intentos, completados, touchdowns, intercepciones, conversiones } = stats.stats.pases;
+      stats.qbRating = calcularQBRating(completados, intentos, touchdowns, intercepciones, conversiones);
       
       if (intentos > 0) {
-        console.log(`🏈 ${stats.jugador.nombre}: ${completados}/${intentos}, ${touchdowns} TDs, ${intercepciones} INTs → Rating: ${stats.qbRating}`);
+        console.log(`🏈 ${stats.jugador.nombre}: ${completados}/${intentos}, ${touchdowns} TDs, ${intercepciones} INTs, ${conversiones} Conv → Rating: ${stats.qbRating}`);
       }
     });
 
@@ -1643,6 +1636,7 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
           completados: jugador.stats.pases.completados,
           touchdowns: jugador.stats.pases.touchdowns,
           intercepciones: jugador.stats.pases.intercepciones,
+          conversiones: jugador.stats.pases.conversiones, // 🔥 NUEVO
           rating: jugador.qbRating,
           porcentajeComplecion: jugador.stats.pases.intentos > 0 ? 
             Math.round((jugador.stats.pases.completados / jugador.stats.pases.intentos) * 100) : 0
@@ -2429,15 +2423,31 @@ const obtenerPosicionEquipo = async (equipoId, torneoId, categoria, req) => {
 
 // 🔢 HELPER: CALCULAR QB RATING (IGUAL QUE EN obtenerEstadisticasGenerales)
 
-const calcularQBRating = (completados, intentos, touchdowns, intercepciones) => {
+// 🏈 FUNCIÓN CALCULAR QB RATING MEJORADA - CON CONVERSIONES
+const calcularQBRating = (completados, intentos, touchdowns, intercepciones, conversiones = 0) => {
   if (intentos === 0) return 0;
 
+  // 📊 COMPONENTES DEL RATING (0-2.375 cada uno)
   const a = Math.max(0, Math.min(2.375, (completados / intentos - 0.3) * 5));
   const b = Math.max(0, Math.min(2.375, (touchdowns / intentos) * 20));
   const c = Math.max(0, Math.min(2.375, 2.375 - (intercepciones / intentos) * 25));
-  const d = Math.max(0, Math.min(2.375, 2.375)); // Simplificado sin yardas
-
-  return Math.round(((a + b + c + d) / 6) * 100 * 10) / 10;
+  const d = 2.375; // Yardas por intento (simplificado - valor máximo)
+  
+  // 🔥 NUEVO: Componente de conversiones con peso moderado
+  const e = Math.max(0, Math.min(2.375, (conversiones / intentos) * 10));
+  
+  // 📈 RATING BASE (con 5 componentes)
+  const maxPuntaje = 5 * 2.375; // 11.875
+  const baseRating = ((a + b + c + d + e) / maxPuntaje) * 100;
+  
+  // ⚖️ PONDERACIÓN POR VOLUMEN (evita ratings inflados con pocos intentos)
+  const k = 15; // Factor de ponderación
+  const ponderacion = intentos / (intentos + k);
+  
+  // 🎯 RATING FINAL
+  const ratingFinal = baseRating * ponderacion;
+  
+  return Math.round(ratingFinal * 10) / 10;
 };
 
 // Helper para obtener tendencia simplificada
