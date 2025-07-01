@@ -543,15 +543,16 @@ router.get('/clasificacion-general/:torneoId/:categoria',
   estadisticasController.obtenerClasificacionGeneral
 );
 
-router.get('/debug-jugador/:partidoId/:numeroJugador',
+router.get('/debug/:torneoId/:equipoId/:numeroJugador',
   [
     auth,
     [
-      param('partidoId', 'ID de partido debe ser válido').isMongoId(),
+      param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
+      param('equipoId', 'ID de equipo debe ser válido').isMongoId(),
       param('numeroJugador', 'Número de jugador debe ser válido').isInt({ min: 1, max: 99 })
     ]
   ],
-  estadisticasController.debugJugadorJugadas
+  estadisticasController.debugJugadorTemporada
 );
 
 // 🏆 NUEVA RUTA: LÍDERES DE ESTADÍSTICAS POR PARTIDO ESPECÍFICO

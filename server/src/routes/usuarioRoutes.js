@@ -57,4 +57,7 @@ router.patch('/equipos/:id', auth, checkRole('admin', 'capitan'), upload, equipo
 // 🔥 ACTUALIZADO: Eliminar equipo (Admin + Capitán)
 router.delete('/equipos/:id', auth, checkRole('admin', 'capitan'), equipoController.eliminarEquipo);
 
+// 🔥 NUEVO: Obtener equipos específicos de un usuario
+router.get('/usuarios/:id/equipos', auth, usuarioController.obtenerEquiposUsuario);
+
 module.exports = router;

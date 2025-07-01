@@ -694,3 +694,65 @@ exports.agregarJugadorAEquipo = async (req, res) => {
     });
   }
 };
+// 🔥 NUEVO ENDPOINT: Obtener equipos específicos del usuario
+// Agregar esto en server/src/controllers/usuarioController.js
+
+exports.obtenerEquiposUsuario = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🏆 [${timestamp}] INICIO - Obtener equipos del usuario`);
+  console.log('🆔 Usuario ID:', req.params.id);
+
+  try {
+    const { id } = req.params;
+    
+    console.log('🔍 Buscando usuario con equipos populados...');
+    const usuario = await Usuario.findById(id)
+      .populate('equipos.equipo', 'nombre categoria imagen jugadores')
+      .select('equipos');
+    
+    if (!usuario) {
+      console.log('❌ ERROR: Usuario no encontrado');
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+
+    console.log('✅ Usuario encontrado');
+    console.log(`🏆 Equipos del usuario: ${usuario.equipos?.length || 0}`);
+    
+    // Procesar equipos con URLs completas
+    let equiposConUrls = [];
+    if (usuario.equipos && usuario.equipos.length > 0) {
+      console.log('🔄 Procesando equipos del usuario...');
+      equiposConUrls = usuario.equipos.map(equipoUsuario => {
+        const equipoObj = {
+          equipo: equipoUsuario.equipo ? {
+            ...equipoUsuario.equipo.toObject(),
+            imagen: getImageUrlServer(equipoUsuario.equipo.imagen, req)
+          } : equipoUsuario.equipo,
+          numero: equipoUsuario.numero
+        };
+        
+        console.log(`  📋 Equipo procesado: ${equipoObj.equipo?.nombre || 'Sin nombre'} - #${equipoObj.numero}`);
+        return equipoObj;
+      });
+    }
+
+    console.log('📤 Enviando equipos del usuario');
+    console.log(`✅ [${new Date().toISOString()}] FIN - Equipos del usuario obtenidos\n`);
+
+    res.json({
+      equipos: equiposConUrls,
+      total: equiposConUrls.length,
+      usuarioId: id
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener equipos del usuario:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener equipos del usuario fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener equipos del usuario', 
+      error: error.message 
+    });
+  }
+};
