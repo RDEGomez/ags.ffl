@@ -1,0 +1,780 @@
+{
+  "timestamp": "2025-07-01T07:11:00.361Z",
+  "totalCapitanes": 42,
+  "capitanes": [
+    {
+      "_id": "684303a87c9fb86e70a19648",
+      "nombre": "Gpe Sides HC",
+      "email": "j_gpe@hotmail.com",
+      "documento": "SIRG850210HASDSD05",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684311b71152e01f135ddc92",
+          "numero": 0,
+          "_id": "684319f07c9fb86e70a19958"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738835219-1749224505076-WhatsApp_Image_2025-06-06_at_9.39.48_AM_3ysbiCFhG.jpeg"
+    },
+    {
+      "_id": "684307987c9fb86e70a19672",
+      "nombre": "Santiago Amezquita",
+      "email": "santiamezquita18@gmail.com",
+      "documento": "AELS060411HASMPNA7",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684316d37c9fb86e70a19844",
+          "numero": 18,
+          "_id": "6843183e1152e01f135ddde8"
+        },
+        {
+          "equipo": "68431dfa1152e01f135de8f4",
+          "numero": 18,
+          "_id": "684325c646e1e130dd624a3a"
+        },
+        {
+          "equipo": "685b70ff8b20e70b18dfbac6",
+          "numero": 18,
+          "_id": "685d7afe0ac1f159cfe32651"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738795364-1749227124159-050570B9-0BE2-4495-95FD-87AEFB755EBA_1EYDyxR_1.jpeg"
+    },
+    {
+      "_id": "684309847c9fb86e70a19689",
+      "nombre": "ANTAR HERNANDEZ GARCIA",
+      "email": "antarhg@hotmail.com",
+      "documento": "HEGA790906HDFRRN04",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431c1c7c9fb86e70a19f61",
+          "numero": 58,
+          "_id": "68499290d89998835588b317"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738838391-1749224173405-AHG_IXIchrApo.JPG"
+    },
+    {
+      "_id": "68430c6f1152e01f135ddc08",
+      "nombre": "Andrea Martínez López",
+      "email": "andiphoneg@gmail.com",
+      "documento": "mala940513masrpn05",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431ca81152e01f135de5b5",
+          "numero": 13,
+          "_id": "68431d741152e01f135de6b2"
+        },
+        {
+          "equipo": "68431d091152e01f135de5f7",
+          "numero": 13,
+          "_id": "68431d811152e01f135de6ba"
+        },
+        {
+          "equipo": "68431e401152e01f135de9d5",
+          "numero": 13,
+          "_id": "68431e581152e01f135dea4f"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738831610-1749224670999-andy_lEbtfvgJp.JPG"
+    },
+    {
+      "_id": "68430ce67c9fb86e70a196bb",
+      "nombre": "Alejandro Enriquez",
+      "email": "alex.enriquez280979@gmail.com",
+      "documento": "HUEJ790928HASRNR06",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684314bb7c9fb86e70a197c4",
+          "numero": 18,
+          "_id": "684314d11152e01f135ddd2a"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738828217-1749225095504-WhatsApp_Image_2025-06-06_at_9.51.03_AM_mVFQpT7aF.jpeg"
+    },
+    {
+      "_id": "68430f511152e01f135ddc2f",
+      "nombre": "Sergio Alejandro Díaz Barba",
+      "email": "sadb2608@gmail.com",
+      "documento": "DIBS911126HASZRR07",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68435df1948e16cb45748b62",
+          "numero": 8,
+          "_id": "68436170764e121ef663bf86"
+        },
+        {
+          "equipo": "68431cd51152e01f135de5be",
+          "numero": 81,
+          "_id": "6848b0b3d89998835586736c"
+        },
+        {
+          "equipo": "6850e2570a704813d96f86d9",
+          "numero": 34,
+          "_id": "68519a24ff5761b7ec46d968"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738062693-1749329767088-1000218611_wR0B4osBH.jpg"
+    },
+    {
+      "_id": "6843100b1152e01f135ddc40",
+      "nombre": "Alberto Janeiro RIO",
+      "email": "albertojg_10_2001@yahoo.com",
+      "documento": "JAGA010830HMCNZLA7",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431ea81152e01f135dec07",
+          "numero": 30,
+          "_id": "6843247c7c9fb86e70a1b889"
+        },
+        {
+          "equipo": "68431ec17c9fb86e70a1a5fa",
+          "numero": 30,
+          "_id": "684324861152e01f135e01de"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738824980-1749225638728-WhatsApp_Image_2025-06-06_at_10.00.26_2svQDKw3k.jpeg"
+    },
+    {
+      "_id": "6843110a1152e01f135ddc6f",
+      "nombre": "Andrea Saucedo Martínez",
+      "email": "ansauma@hotmail.com",
+      "documento": "SAMA930223MJCCRN00",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684316491152e01f135ddd7b",
+          "numero": 8,
+          "_id": "68431f5a1152e01f135defc1"
+        },
+        {
+          "equipo": "6843291e2bdff01c9aaea226",
+          "numero": 8,
+          "_id": "68432a742bdff01c9aaeaa25"
+        },
+        {
+          "equipo": "6849a427911a45f4f107e584",
+          "numero": 8,
+          "_id": "684b050ee60fc4446a18c401"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738821582-1749225844600-58f9366f-f937-4c44-a381-0ddb4cc5dfed_6Pm-jOOP0.jpg"
+    },
+    {
+      "_id": "6843114d7c9fb86e70a19715",
+      "nombre": "Coach",
+      "email": "flagblackmamba@gmail.com",
+      "documento": "Black Mamba Aguascalientes",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431ae71152e01f135de1f0",
+          "numero": 100,
+          "_id": "68431c141152e01f135de423"
+        },
+        {
+          "equipo": "68431b301152e01f135de25b",
+          "numero": 100,
+          "_id": "68431c251152e01f135de42b"
+        },
+        {
+          "equipo": "68431bc97c9fb86e70a19e57",
+          "numero": 100,
+          "_id": "68431c3f1152e01f135de51f"
+        },
+        {
+          "equipo": "68431ee81152e01f135ded09",
+          "numero": 99,
+          "_id": "6843385a46e1e130dd62c2ca"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738422179-1749236095726-1000488393_TSzv8jtVD.jpg"
+    },
+    {
+      "_id": "684311947c9fb86e70a1971f",
+      "nombre": "Mon Flores",
+      "email": "monserratclaflores@gmailcom",
+      "documento": "FOHD990521MASLRN05",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684318b21152e01f135dde38",
+          "numero": 21,
+          "_id": "684318d67c9fb86e70a198db"
+        },
+        {
+          "equipo": "68431a7d7c9fb86e70a19b17",
+          "numero": 21,
+          "_id": "68431a991152e01f135de0da"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738808536-1749226217028-Imagen_de_WhatsApp_2025-06-06_a_las_10.08.13_cd1a2e4e_-Brvsf0AU.jpg"
+    },
+    {
+      "_id": "6843169d1152e01f135ddd9c",
+      "nombre": "Magda Nuñez",
+      "email": "magdanunez1724@gmail.com",
+      "documento": "NUVM010224MASXCGA0",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431a397c9fb86e70a19a37",
+          "numero": 17,
+          "_id": "68431a857c9fb86e70a19b8a"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738788479-1749227284911-IMG_1670_Zwh-19F9X.jpeg"
+    },
+    {
+      "_id": "68431c087c9fb86e70a19f41",
+      "nombre": "Daniela Ochoa",
+      "email": "dani8afruta@gmail.com",
+      "documento": "OOPD950627MZSCXL07",
+      "rol": "capitan",
+      "equipos": [],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738696804-1749228923800-WhatsApp_Image_2025-06-06_at_10.53.54_AM_fPto5tEnO.jpeg"
+    },
+    {
+      "_id": "68431fad1152e01f135df132",
+      "nombre": "Javier Valencia Dávila",
+      "email": "javiervale99@gmail.com",
+      "documento": "VADJ990902HASLVV02",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431ea81152e01f135dec07",
+          "numero": 32,
+          "_id": "6843246c1152e01f135e017e"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738634690-1749230625018-Javi_cXkWGL2AV.jpg"
+    },
+    {
+      "_id": "6843204e1152e01f135df3ec",
+      "nombre": "Martin Alejandro Salinas Sandoval",
+      "email": "mass831@gmail.com",
+      "documento": "SASM830513HASLNR00",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684314bb7c9fb86e70a197c4",
+          "numero": 2,
+          "_id": "684321db7c9fb86e70a1b0b9"
+        },
+        {
+          "equipo": "683df0aac44be4786c2de655",
+          "numero": 2,
+          "_id": "684324291152e01f135dfffa"
+        },
+        {
+          "equipo": "6843353f2bdff01c9aaef082",
+          "numero": 2,
+          "_id": "684cd615e60fc4446a252ff3"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738648447-1749230165289-Martin_Salinas_62kTMDcpr.jpeg"
+    },
+    {
+      "_id": "684321e57c9fb86e70a1b0bc",
+      "email": "santiagosantanavargasz@gmail.com",
+      "documento": "SAVS090321HASNRNA6",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6843266e2bdff01c9aae9466",
+          "numero": 82,
+          "_id": "68432a0e2bdff01c9aaea742"
+        },
+        {
+          "equipo": "684c4de5942bd7b64818a385",
+          "numero": 1,
+          "_id": "684c599de60fc4446a1fe480"
+        }
+      ]
+    },
+    {
+      "_id": "684326d32bdff01c9aae960a",
+      "nombre": "Francisco Barba",
+      "email": "panchoskate2@gmail.com",
+      "documento": "BACF940825HASRBR06",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "683df0aac44be4786c2de655",
+          "numero": 11,
+          "_id": "6843283346e1e130dd625494"
+        },
+        {
+          "equipo": "6843291e2bdff01c9aaea226",
+          "numero": 11,
+          "_id": "6843293246e1e130dd625a66"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738608588-1749231372629-Pancho_gVIv4PIsZ.jpg"
+    },
+    {
+      "_id": "68432e3f2bdff01c9aaeca48",
+      "nombre": "Aztecas flag ags",
+      "email": "aztecas.agsflag@gmail.com",
+      "documento": "Aztecas",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6844a41bd8999883557b4bdc",
+          "numero": 28,
+          "_id": "6844a5dcd8999883557b6a1c"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738533000-1749233446344-IMG_0966_6bq5qlYKN.jpeg"
+    },
+    {
+      "_id": "6843303046e1e130dd628f38",
+      "nombre": "Beto Chávez Arratia",
+      "email": "beto.ch.arratia@gmail.com",
+      "documento": "CAAH940913HASHRM02",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684317b91152e01f135dddcc",
+          "numero": 12,
+          "_id": "684330d246e1e130dd62947e"
+        },
+        {
+          "equipo": "6843353f2bdff01c9aaef082",
+          "numero": 12,
+          "_id": "6843355f46e1e130dd62ab54"
+        },
+        {
+          "equipo": "685b70ff8b20e70b18dfbac6",
+          "numero": 12,
+          "_id": "685d6cca233bf40da6049548"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738519182-1749233837151-IMG_5051_1O3jMj9d0.jpeg"
+    },
+    {
+      "_id": "684331cb2bdff01c9aaee29c",
+      "nombre": "Luis Esteves",
+      "email": "ceo@estevesarquitectos.com",
+      "documento": "EEPL971123HASSRS08",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68433ea92bdff01c9aaf4c12",
+          "numero": 4,
+          "_id": "684341b946e1e130dd6334d9"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737727650-1749514800298-7_4pqB6IgFG.jpg"
+    },
+    {
+      "_id": "68434cf6948e16cb457426b9",
+      "nombre": "JUDITH PEREZ JUAREZ",
+      "email": "fumiquezada@hotmail.com",
+      "documento": "PEJJ760901MDFRRD03",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6843545d948e16cb45745b2e",
+          "numero": 1,
+          "_id": "684356f8764e121ef663709d"
+        },
+        {
+          "equipo": "6843630b948e16cb4574d0d9",
+          "numero": 1,
+          "_id": "68474038d89998835580f7a2"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737823483-1749500063475-f8dff474-e75c-4d54-a918-00669b3aff52_qIfDZEMS8.jpg"
+    },
+    {
+      "_id": "68436569948e16cb4574ee94",
+      "nombre": "Eligio Velasco Márquez",
+      "email": "vemael@gmail.com",
+      "documento": "VEME850623HDFLRL07",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684389fe911a45f4f1f8c95c",
+          "numero": 13,
+          "_id": "68438aacd8999883557a2039"
+        }
+      ]
+    },
+    {
+      "_id": "68437da8911a45f4f1f8a5da",
+      "nombre": "Alonso Martínez",
+      "email": "up170115@alumnos.upa.edu.mx",
+      "documento": "MADR990205HASRLM06",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684782c1d899988355838de9",
+          "numero": 23,
+          "_id": "6847c7a7911a45f4f1033f03"
+        },
+        {
+          "equipo": "6847830fd8999883558396b9",
+          "numero": 23,
+          "_id": "6847c7b1911a45f4f10340ef"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737895107-1749481988222-WhatsApp_Image_2022-07-11_at_5.14.14_PM_AuXhM-iAI.jpeg"
+    },
+    {
+      "_id": "68449344d8999883557afbab",
+      "nombre": "Miguel Ángel Aguilar Nuñez",
+      "email": "lic.miguel.aguilar@hotmail.com",
+      "documento": "Aunm901029hasgxg02",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6844970d911a45f4f1f9bfec",
+          "numero": 50,
+          "_id": "684497cfd8999883557b0568"
+        },
+        {
+          "equipo": "68449725911a45f4f1f9bff2",
+          "numero": 50,
+          "_id": "684497e1d8999883557b066c"
+        },
+        {
+          "equipo": "68449748d8999883557b0277",
+          "numero": 50,
+          "_id": "684497f1911a45f4f1f9c6d3"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750738114705-1749325128430-IMG_8554_29m-wzwWl.jpeg"
+    },
+    {
+      "_id": "6844a7cfd8999883557b8de9",
+      "nombre": "Marco Antonio",
+      "email": "garpez67@gmail.com",
+      "documento": "PEGM671101HDFRRR08",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6844ae36911a45f4f1faa2f2",
+          "numero": 17,
+          "_id": "6844ae71911a45f4f1faa771"
+        },
+        {
+          "equipo": "6856cb3acf6bfc9e726b00a6",
+          "numero": 17,
+          "_id": "6856cb9c719dc5bc4fc0c76a"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/tr:limit,f-auto,pr-true,h-800,q-80,w-800/laces-uploads/1750737993423-1749334816660-1000120041_mZo3f6cvr.jpg"
+    },
+    {
+      "_id": "6844ab18d8999883557bc854",
+      "nombre": "Francisco Robles",
+      "email": "francisco.robles.a@gmail.com",
+      "documento": "ROAF870728HASBNR03",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6844adcb911a45f4f1faa0a7",
+          "numero": 4,
+          "_id": "6844ae35911a45f4f1faa2ed"
+        },
+        {
+          "equipo": "685bfcd88879c703163140f9",
+          "numero": 4,
+          "_id": "685c20bcf86ccffa9290d024"
+        }
+      ]
+    },
+    {
+      "_id": "6844af96d8999883557c0417",
+      "nombre": "Miguel A Pascual",
+      "email": "chicora_07@hotmail.com",
+      "documento": "PAMM880928HCSSGG02",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6849d4acd8999883558c101e",
+          "numero": 28,
+          "_id": "6849d51ad8999883558c1980"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737406784-1749669324599-1__SsOTCNIKU.jpg"
+    },
+    {
+      "_id": "6844e2bed8999883557d491c",
+      "nombre": "Paola Diaz",
+      "email": "djim.paola@gmail.com",
+      "documento": "DIJP940603MCMZML02",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6846685d911a45f4f1fd5842",
+          "numero": 3,
+          "_id": "684669e4d8999883557f0bc3"
+        },
+        {
+          "equipo": "684316491152e01f135ddd7b",
+          "numero": 3,
+          "_id": "684669ef911a45f4f1fd667d"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737917481-1749444610993-1000173509_Sf_1JFCLE.jpg"
+    },
+    {
+      "_id": "6844ef28911a45f4f1fbd13c",
+      "nombre": "Hugo Randy Benitez",
+      "email": "hugobntz@hotmail.com",
+      "documento": "BEMH820711HDFNDG01",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68472a02d899988355802965",
+          "numero": 19,
+          "_id": "68472b22911a45f4f1fea0fd"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737866708-1749494539863-HG_qLr3EOQoT.jpg"
+    },
+    {
+      "_id": "6846522b911a45f4f1fd0909",
+      "nombre": "Naoki",
+      "email": "naokisano13@gmail.com",
+      "documento": "SALN050615HDFNPKA5",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684659c4d8999883557ec924",
+          "numero": 19,
+          "_id": "68465a00911a45f4f1fd1f4c"
+        },
+        {
+          "equipo": "683df0aac44be4786c2de655",
+          "numero": 32,
+          "_id": "68479a35911a45f4f102dc34"
+        }
+      ]
+    },
+    {
+      "_id": "68466be7d8999883557f1311",
+      "nombre": "Fanny Cross",
+      "email": "scd.cruzdorado@gmail.com",
+      "documento": "CUDS890224MHGRRT04",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431e401152e01f135de9d5",
+          "numero": 81,
+          "_id": "68466c55d8999883557f1482"
+        },
+        {
+          "equipo": "6846685d911a45f4f1fd5842",
+          "numero": 99,
+          "_id": "68466c70d8999883557f1601"
+        },
+        {
+          "equipo": "6849c1e9911a45f4f1099e16",
+          "numero": 81,
+          "_id": "6849c437d8999883558b60b6"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737435881-1749664583659-1000259101_gGLPtSVpW.jpg"
+    },
+    {
+      "_id": "68476797d899988355820708",
+      "nombre": "Gri Estefanía Plascencia",
+      "email": "griestefania@gmail.com",
+      "documento": "PAJG880408MASLSR01",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431a7d7c9fb86e70a19b17",
+          "numero": 94,
+          "_id": "684767d1d8999883558208cb"
+        },
+        {
+          "equipo": "6849a427911a45f4f107e584",
+          "numero": 4,
+          "_id": "6849a58c911a45f4f107f04c"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737782589-1749510365263-IMG_2651_y5t8_WB2C.jpeg"
+    },
+    {
+      "_id": "68478034911a45f4f10220e5",
+      "nombre": "Emilio García",
+      "email": "emilio.garciabiotec@gmail.com",
+      "documento": "GAPE010306HSLRRMA3",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6847844ad89998835583aa1d",
+          "numero": 56,
+          "_id": "68478f60d89998835583e799"
+        }
+      ]
+    },
+    {
+      "_id": "68490b0bd899988355880137",
+      "nombre": "Inezely Artemisa Lazarín Beltrán",
+      "email": "inearte.lazarin@gmail.com",
+      "documento": "LABI810206MSLZLN07",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6849a81d911a45f4f108106a",
+          "numero": 76,
+          "_id": "6849b175911a45f4f108b1dd"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737249646-1749785440489-blob_ireEe7_NB"
+    },
+    {
+      "_id": "6849b072d89998835589ddda",
+      "nombre": "Alison Xareni Villalobos Ojeda",
+      "email": "alisonxarenivillalobosojeda@gmail.com",
+      "documento": "VIOA060619MASLJLA9",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6849a980911a45f4f1081073",
+          "numero": 6,
+          "_id": "6849b0c2911a45f4f1088c42"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737489806-1749660780923-1090ACF5-F4AC-4324-BC26-AD0BA855D495_qqn68G5m0.jpeg"
+    },
+    {
+      "_id": "6849ccf3d8999883558bcca0",
+      "nombre": "Luis Martinez",
+      "email": "lmmtzmtz01@gmail.com",
+      "documento": "MAML820206HJCRRS03",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684b4770942bd7b648137d94",
+          "numero": 82,
+          "_id": "684b480fe60fc4446a19fb28"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737294372-1749764262994-blob_YRCASjdB7"
+    },
+    {
+      "_id": "684a0920d8999883558d8292",
+      "nombre": "David Morán González",
+      "email": "davidmgonzalez9@hotmail.com",
+      "documento": "MOGD270697HDFRNV07",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684bc035942bd7b648171aad",
+          "numero": 2,
+          "_id": "684c4d00e60fc4446a1f1c52"
+        },
+        {
+          "equipo": "684bc050e60fc4446a1dd02f",
+          "numero": 2,
+          "_id": "684c4d6de60fc4446a1f31f9"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737358904-1749682869649-IMG_4119_SOuGDmSf2.png"
+    },
+    {
+      "_id": "684ae429942bd7b6481125d8",
+      "nombre": "Roman Martinez",
+      "email": "cesar.esparza.mtz@hotmail.com",
+      "documento": "EAMC820207HASSRS09",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6844adcb911a45f4f1faa0a7",
+          "numero": 24,
+          "_id": "684ae4a7e60fc4446a17b729"
+        },
+        {
+          "equipo": "685bfcd88879c703163140f9",
+          "numero": 24,
+          "_id": "685c2ec24f1dfe59d572bc0c"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737310514-1749739316079-blob_2rM8i3Ns4"
+    },
+    {
+      "_id": "684b8a78942bd7b648161fb9",
+      "nombre": "Jose Eduardo Coronado",
+      "email": "eduardocoronado76@gmail.com",
+      "documento": "COME761025HASRND03",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "684b8d3c942bd7b64816394f",
+          "numero": 16,
+          "_id": "684b910b942bd7b6481657f7"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737253029-1749784614914-blob_fAenAXD_i"
+    },
+    {
+      "_id": "684fa091b67af8e8fd060d31",
+      "nombre": "Dianiss",
+      "email": "dianaaheide@gmail.com",
+      "documento": "JACD780601MDFRRN06",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "68431b4a1152e01f135de289",
+          "numero": 300,
+          "_id": "68504c4cb67af8e8fd07102b"
+        },
+        {
+          "equipo": "68431b097c9fb86e70a19d37",
+          "numero": 300,
+          "_id": "68504c7bdfe9e3de3be915fe"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737053506-1750049083813-blob_PuqgW98EQ"
+    },
+    {
+      "_id": "6850ec420a704813d970145c",
+      "nombre": "Jorge Héctor Saldivar Vargas",
+      "email": "jorge.saldivar75@gmail.com",
+      "documento": "SAVJ750101HDFLRR00",
+      "rol": "capitan",
+      "equipos": [
+        {
+          "equipo": "6850cd780a704813d96f5a80",
+          "numero": 21,
+          "_id": "6851d204ff5761b7ec47acd2"
+        }
+      ],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1750737031222-1750133905257-blob_1yboVjjl6"
+    },
+    {
+      "_id": "685c0cbf8879c7031632be26",
+      "email": "hugobetosalazar@gmail.com",
+      "documento": "SAGH800422HDFLLG09",
+      "rol": "capitan",
+      "equipos": []
+    },
+    {
+      "_id": "6862c80fae1df6fe5a3d1879",
+      "nombre": "Andrea Ramos",
+      "email": "aramossaldivar10@gmail.com",
+      "documento": "RASA010328MASMLNA1",
+      "rol": "capitan",
+      "equipos": [],
+      "imagen": "https://ik.imagekit.io/agsfflmedia/laces-uploads/1751304660507-blob_J9MY73XKW"
+    }
+  ],
+  "metadata": {
+    "scriptVersion": "1.0",
+    "mongoUri": "mongodb+srv://danielcachao:WWchwuZwGi5nItxh@edgcpr...",
+    "nodeVersion": "v23.11.0"
+  }
+}

@@ -62,6 +62,10 @@ app.use((req, res, next) => {
 
 // 📝 Log de errores
 app.use((err, req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const timestamp = new Date().toISOString();
   console.error(`[${timestamp}] ❌ ERROR: ${err.message}`);
   console.error(`[${timestamp}] 📍 URL: ${req.method} ${req.url}`);

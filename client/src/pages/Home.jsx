@@ -538,6 +538,81 @@ const MegaTarjetaEstadisticasPersonales = ({ usuario, estadisticasPersonales, lo
           zIndex: 1,
           position: 'relative'
         }}>
+          {/* Avatar Gigante */}
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+          >
+            <Avatar
+              src={userImageUrl}
+              sx={{
+                width: { xs: 120, md: 160 },
+                height: { xs: 120, md: 160 },
+                border: '6px solid rgba(64, 181, 246, 0.8)',
+                boxShadow: '0 0 40px rgba(64, 181, 246, 0.6)',
+                background: 'linear-gradient(135deg, rgba(64, 181, 246, 0.2), rgba(156, 39, 176, 0.2))',
+                fontSize: { xs: '3rem', md: '4rem' },
+                fontWeight: 'bold'
+              }}
+            >
+              {usuario?.nombre?.charAt(0)?.toUpperCase()}
+            </Avatar>
+          </motion.div>
+
+          {/* Info del usuario */}
+          <Box sx={{ 
+            flex: 1, 
+            textAlign: { xs: 'center', md: 'left' },
+            minWidth: 0
+          }}>
+            <Typography 
+              variant="h3" 
+              sx={{ 
+                color: 'white', 
+                fontWeight: 700,
+                mb: 1,
+                background: 'linear-gradient(45deg, #64b5f6, #9c27b0)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontSize: { xs: '1.8rem', md: '2.5rem' }
+              }}
+            >
+              Mis Estadísticas 🏆
+            </Typography>
+            
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: 'rgba(255,255,255,0.9)', 
+                mb: 2,
+                fontSize: { xs: '1.2rem', md: '1.5rem' }
+              }}
+            >
+              {usuario?.nombre}
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: { xs: 'center', md: 'flex-start' } }}>
+              <Chip
+                label={getCategoryName(usuario?.rol) || usuario?.rol}
+                sx={{
+                  backgroundColor: 'rgba(64, 181, 246, 0.2)',
+                  color: '#64b5f6',
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
+                }}
+              />
+              <Chip
+                label={`${estadisticasPersonales?.equipos?.length || 0} Equipos`}
+                sx={{
+                  backgroundColor: 'rgba(156, 39, 176, 0.2)',
+                  color: '#9c27b0',
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
+                }}
+              />
+            </Box>
+          </Box>
 
           {/* Botón de actualizar */}
           <Button
@@ -574,8 +649,8 @@ const MegaTarjetaEstadisticasPersonales = ({ usuario, estadisticasPersonales, lo
               />
             ))}
 
-            {/* 🔍 DEBUG INFO - Solo en desarrollo
-            {process.env.NODE_ENV === 'development' && (
+            {/* 🔍 DEBUG INFO - Solo en desarrollo */}
+            {/* {process.env.NODE_ENV === 'development' && (
               <Box sx={{ 
                 mt: 3, 
                 p: 2, 
@@ -1121,7 +1196,7 @@ export const Home = () => {
     setCargando(true);
 
     try {
-      const response = await axiosInstance.post('/usuarios/agregar-equipo', {
+      const response = await axiosInstance.patch('/usuarios/equipo', {
         usuarioId: usuario._id,
         equipoId: equipoSeleccionado._id,
         numero: parseInt(numeroJugador)
