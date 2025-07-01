@@ -115,10 +115,21 @@ export const TablaPosiciones = ({
   };
 
   // 📱 COLUMNAS RESPONSIVAS - SIMPLIFICADAS
-  const columnas = [
-    { key: 'posicion', label: '#', width: 60, align: 'center' },
-    { key: 'equipo', label: 'Equipo', width: '1fr', align: 'left' }
-  ];
+  const columnas = isMobile 
+  ? [
+      { key: 'posicion', label: '#', width: 60, align: 'center' },
+      { key: 'equipo', label: 'Equipo', width: '1fr', align: 'left' }
+    ]
+  : [
+      { key: 'posicion', label: '#', width: 60, align: 'center' },
+      { key: 'equipo', label: 'Equipo', width: '2fr', align: 'left' },
+      { key: 'victorias', label: 'G', width: 60, align: 'center' },
+      { key: 'derrotas', label: 'P', width: 60, align: 'center' },
+      { key: 'partidos', label: 'PJ', width: 70, align: 'center' },
+      { key: 'puntosFavor', label: 'PF', width: 70, align: 'center' },
+      { key: 'puntosContra', label: 'PC', width: 70, align: 'center' },
+      { key: 'diferencia', label: 'DIF', width: 80, align: 'center' }
+    ];
 
   return (
     <motion.div
