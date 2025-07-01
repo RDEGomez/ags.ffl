@@ -8,6 +8,7 @@ const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');
 const { getCategoryName } = require('../../../client/src/helpers/mappings');
 const { getImageUrlServer } = require('../helpers/imageUrlHelper');
+const { validarInscripcionHabilitada } = require('../helpers/inscripcionesHelper');
 
 // 🔐 Generar token
 const generarToken = (usuario) => {
@@ -545,8 +546,14 @@ exports.agregarJugadorAEquipo = async (req, res) => {
       console.log('❌ ERROR: Equipo no encontrado');
       return res.status(404).json({ mensaje: 'Equipo no encontrado' });
     }
-    console.log('✅ Equipo encontrado:', equipo.nombre);
-    console.log('📋 Categoría del equipo:', equipo.categoria);
+
+    console.log('🔍 Validando si las inscripciones están habilitadas para la categoría...');
+    const validacionInscripcion = validarInscripcionHabilitada(equipo.categoria);
+    if (!validacionInscripcion.esValida) {
+      console.log('❌ ERROR: Inscripciones deshabilitadas para esta categoría');
+      return res.status(403).json({ mensaje: validacionInscripcion.mensaje });
+    }
+    console.log('✅ Inscripciones habilitadas para esta categoría');
 
     // 🔥 VALIDACIÓN 1: Verificar si jugador ya está inscrito
     console.log('🔍 Verificando si jugador ya está inscrito...');
