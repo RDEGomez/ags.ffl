@@ -7,6 +7,9 @@ import { FiltrosJugadores } from '../../components/FiltrosJugadores';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from '../../hooks/useDebounce';
+import { Dialog, DialogTitle, DialogContent } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { MegaTarjetaEstadisticasPersonales } from '../../components/MegaTarjetaEstadisticasPersonales';
 
 import {
   Box,
@@ -115,6 +118,15 @@ export const Usuarios = () => {
   // Estados de menús
   const [sortMenuAnchor, setSortMenuAnchor] = useState(null);
 
+  //Estados de modal estadísticas
+  const [modalEstadisticasAbierto, setModalEstadisticasAbierto] = useState(false);
+  const [usuarioSeleccionadoEstadisticas, setUsuarioSeleccionadoEstadisticas] = useState(null);
+  const [estadisticasUsuario, setEstadisticasUsuario] = useState(null);
+  const [cargandoEstadisticas, setCargandoEstadisticas] = useState(false);
+  const [errorEstadisticas, setErrorEstadisticas] = useState(null);
+  const [torneos, setTorneos] = useState([]);
+  const [torneoSeleccionado, setTorneoSeleccionado] = useState('');
+
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // 🔥 Función helper para imágenes
@@ -124,6 +136,28 @@ export const Usuarios = () => {
       return imagen;
     }
     return `${import.meta.env.VITE_BACKEND_URL || ''}/uploads/${imagen}`;
+  }, []);
+
+  // Función para cargar torneos
+  const cargarTorneos = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get('/torneos');
+      // La respuesta puede venir como response.data.torneos o directamente como array
+      const torneosData = Array.isArray(response.data) ? response.data : (response.data.torneos || []);
+      
+      setTorneos(torneosData);
+      
+      // Seleccionar el primer torneo activo por defecto
+      if (torneosData.length > 0) {
+        const torneoActivo = torneosData.find(t => t.activo) || torneosData[0];
+        if (torneoActivo) {
+          setTorneoSeleccionado(torneoActivo._id);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar torneos:', error);
+      setTorneos([]); // Asegurar que siempre sea un array
+    }
   }, []);
 
   // 🔥 Función para verificar permisos
@@ -154,9 +188,115 @@ export const Usuarios = () => {
     }
   }, [itemsPerPage, currentPage]);
 
+  // Función para abrir modal de estadísticas
+  const handleVerEstadisticas = useCallback(async (usuario) => {
+    setUsuarioSeleccionadoEstadisticas(usuario);
+    setModalEstadisticasAbierto(true);
+    
+    if (!torneoSeleccionado || !usuario.equipos || usuario.equipos.length === 0) {
+      setEstadisticasUsuario(null);
+      setCargandoEstadisticas(false);
+      return;
+    }
+    
+    setCargandoEstadisticas(true);
+    setErrorEstadisticas(null);
+    
+    try {
+      // Obtener estadísticas para cada equipo del usuario
+      const equiposConEstadisticas = [];
+      
+      for (const equipoUsuario of usuario.equipos) {
+        try {
+          const response = await axiosInstance.get(
+            `/estadisticas/debug/${torneoSeleccionado}/${equipoUsuario.equipo._id}/${equipoUsuario.numero}`
+          );
+          
+          if (response.data && response.data.estadisticasCalculadas) {
+            const stats = response.data.estadisticasCalculadas;
+            
+            equiposConEstadisticas.push({
+              equipo: equipoUsuario.equipo,
+              numero: equipoUsuario.numero,
+              pases: {
+                completados: stats.pases?.completados || 0,
+                intentos: stats.pases?.intentos || 0,
+                touchdowns: stats.pases?.touchdowns || 0,
+                conversiones: stats.pases?.conversiones || 0
+              },
+              recepciones: {
+                total: stats.recepciones?.total || 0,
+                touchdowns: stats.recepciones?.touchdowns || 0,
+                normales: stats.recepciones?.normales || 0,
+                conversiones1pt: stats.recepciones?.conversiones1pt || 0,
+                conversiones2pt: stats.recepciones?.conversiones2pt || 0
+              },
+              carreras: { 
+                touchdowns: stats.carreras?.touchdowns || 0 
+              },
+              conversiones: {
+                lanzadas: stats.pases?.conversiones || 0,
+                atrapadas: (stats.recepciones?.conversiones1pt || 0) + (stats.recepciones?.conversiones2pt || 0)
+              },
+              puntos: stats.puntos || 0,
+              qbRating: stats.qbRating || 0,
+              tackleos: stats.tackleos || 0,
+              intercepciones: stats.intercepciones || 0,
+              sacks: stats.sacks || 0
+            });
+          }
+        } catch (error) {
+          console.warn(`Error cargando estadísticas para equipo ${equipoUsuario.equipo.nombre}:`, error);
+        }
+      }
+
+      // Calcular totales
+      const totales = equiposConEstadisticas.reduce((acc, curr) => ({
+        puntos: (acc.puntos || 0) + curr.puntos,
+        pases: {
+          completados: (acc.pases?.completados || 0) + curr.pases.completados,
+          intentos: (acc.pases?.intentos || 0) + curr.pases.intentos,
+          touchdowns: (acc.pases?.touchdowns || 0) + curr.pases.touchdowns,
+          conversiones: (acc.pases?.conversiones || 0) + curr.pases.conversiones
+        },
+        recepciones: {
+          total: (acc.recepciones?.total || 0) + curr.recepciones.total,
+          touchdowns: (acc.recepciones?.touchdowns || 0) + curr.recepciones.touchdowns
+        },
+        conversiones: {
+          lanzadas: (acc.conversiones?.lanzadas || 0) + curr.conversiones.lanzadas,
+          atrapadas: (acc.conversiones?.atrapadas || 0) + curr.conversiones.atrapadas
+        },
+        tackleos: (acc.tackleos || 0) + curr.tackleos,
+        intercepciones: (acc.intercepciones || 0) + curr.intercepciones
+      }), {});
+
+      setEstadisticasUsuario({
+        equipos: equiposConEstadisticas,
+        totales
+      });
+
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+      setErrorEstadisticas('Error al cargar las estadísticas personales');
+    } finally {
+      setCargandoEstadisticas(false);
+    }
+  }, [torneoSeleccionado]);
+
   useEffect(() => {
     obtenerUsuarios();
   }, [obtenerUsuarios]);
+
+  useEffect(() => {
+    cargarTorneos();
+  }, [cargarTorneos]);
+
+  useEffect(() => {
+    if (usuarioSeleccionadoEstadisticas && torneoSeleccionado && modalEstadisticasAbierto) {
+      handleVerEstadisticas(usuarioSeleccionadoEstadisticas);
+    }
+  }, [torneoSeleccionado]);
 
   const usuariosConIndices = useMemo(() => {
     return filtrados.map(usuario => {
@@ -821,7 +961,12 @@ export const Usuarios = () => {
                         backgroundColor: 'rgba(0, 0, 0, 0.9)'
                       }
                     }}>
-                      <UsuarioCard usuario={usuarioItem} eliminarUsuario={eliminarUsuario} />
+                      <UsuarioCard 
+                        key={usuarioItem._id} 
+                        usuario={usuarioItem} 
+                        eliminarUsuario={eliminarUsuario}
+                        onVerEstadisticas={handleVerEstadisticas}
+                      />
                     </Box>
                   </motion.div>
                 </Box>
@@ -951,6 +1096,88 @@ export const Usuarios = () => {
           </motion.div>
         )}
       </motion.div>
+
+      {/* Modal de Estadísticas */}
+      <Dialog
+        open={modalEstadisticasAbierto}
+        onClose={() => setModalEstadisticasAbierto(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: 'rgba(18, 18, 18, 0.95)',
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+            <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Estadísticas del Jugador
+            </Typography>
+            
+            {/* Selector de Torneo */}
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Select
+                value={torneoSeleccionado}
+                onChange={(e) => setTorneoSeleccionado(e.target.value)}
+                disabled={torneos.length === 0}
+                displayEmpty
+                sx={{
+                  color: 'white',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)'
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#64b5f6'
+                  }
+                }}
+              >
+                {torneos.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    Sin torneos disponibles
+                  </MenuItem>
+                ) : (
+                  torneos.map(torneo => (
+                    <MenuItem key={torneo._id} value={torneo._id}>
+                      {torneo.nombre} {torneo.activo && '(Activo)'}
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          <IconButton
+            onClick={() => setModalEstadisticasAbierto(false)}
+            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2 }}>
+          <MegaTarjetaEstadisticasPersonales
+            usuario={usuarioSeleccionadoEstadisticas}
+            estadisticasPersonales={estadisticasUsuario}
+            loading={cargandoEstadisticas}
+            error={errorEstadisticas}
+            onActualizar={() => handleVerEstadisticas(usuarioSeleccionadoEstadisticas)}
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

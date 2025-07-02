@@ -31,6 +31,7 @@ import { motion } from 'framer-motion'
 import { getCategoryName } from '../../helpers/mappings'
 import { useImage } from '../../hooks/useImage'
 import { useAuth } from '../../context/AuthContext'
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 // 🔥 FUNCIÓN DE LOGGING PARA USUARIO CARD
 const logUsuarioCard = (context, data, level = 'INFO') => {
@@ -428,7 +429,7 @@ const ListaEquiposUsuario = ({ equipos, usuarioId }) => {
   );
 };
 
-export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
+export const UsuarioCard = ({ usuario, eliminarUsuario, onVerEstadisticas }) => {
   const [expanded, setExpanded] = useState(false)
   
   const { puedeEditarUsuario, puedeGestionarUsuarios } = useAuth();
@@ -628,6 +629,22 @@ export const UsuarioCard = ({ usuario, eliminarUsuario }) => {
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
+          {/* Botón de ver estadísticas - NUEVO */}
+          <Tooltip title="Ver estadísticas">
+            <IconButton
+              onClick={() => onVerEstadisticas(usuario)}
+              sx={{
+                backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                color: '#9c27b0',
+                '&:hover': {
+                  backgroundColor: 'rgba(156, 39, 176, 0.2)',
+                  transform: 'scale(1.1)'
+                }
+              }}
+            >
+              <VisibilityIcon />
+            </IconButton>
+          </Tooltip>
           {puedeEditarEsteUsuario && (
             <Tooltip title="Editar usuario">
               <IconButton
