@@ -5,7 +5,7 @@ const inscripcionesConfig = {
   // Configuración por categoría - true = habilitada, false = deshabilitada
   categorias: {
     // Categorías Mixtas
-    'mixgold': true,
+    'mixgold': false,
     'mixsilv': false,
     
     // Categorías Varoniles

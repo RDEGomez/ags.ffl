@@ -4,6 +4,7 @@ const Equipo = require('../models/Equipo');
 const reglasCategorias = require('../helpers/reglasCategorias');
 const { getCategoryName } = require('../../../client/src/helpers/mappings');
 const { getImageUrlServer } = require('../helpers/imageUrlHelper'); // 🔥 Agregar helper
+const { validarInscripcionHabilitada } = require('../helpers/inscripcionesHelper');
 
 exports.nuevoEquipo = async (req, res) => {
   const equipo = new Equipo(req.body);
@@ -207,6 +208,14 @@ exports.registrarJugadores = async (req, res) => {
           errores.push(`Jugador #${index + 1}: Equipo no encontrado (ID: ${equipoId})`);
           continue;
         }
+
+        console.log('🔍 Validando si las inscripciones están habilitadas para la categoría...');
+        const validacionInscripcion = validarInscripcionHabilitada(equipo.categoria);
+        if (!validacionInscripcion.esValida) {
+          console.log('❌ ERROR: Inscripciones deshabilitadas para esta categoría');
+          return res.status(403).json({ mensaje: validacionInscripcion.mensaje });
+        }
+        console.log('✅ Inscripciones habilitadas para esta categoría');
 
         // Validación: jugador ya inscrito
         const yaInscrito = jugador.equipos.some(p => p.equipo.toString() === equipoId);
