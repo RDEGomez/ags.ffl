@@ -1820,6 +1820,7 @@ exports.debugJugadorTemporada = async (req, res) => {
             const jugadaDetalle = {
               partidoNumero: partidoIndex + 1,
               partidoId: partido._id,
+              jugadaId: jugada._id,
               numeroJugada: jugadaIndex + 1,
               tipo: jugada.tipoJugada,
               descripcion: jugada.descripcion,

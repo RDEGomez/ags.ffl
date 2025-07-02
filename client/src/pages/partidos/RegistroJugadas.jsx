@@ -725,7 +725,31 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
           </Typography>
           
           {partido?.jugadas && partido.jugadas.length > 0 ? (
-            <TableContainer>
+            <TableContainer
+              sx={{ 
+                maxHeight: 400, // Altura máxima para la tabla
+                overflow: 'auto', // Scroll automático cuando sea necesario
+                // Estilos personalizados para el scrollbar
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                  height: '8px'
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '4px'
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(64, 181, 246, 0.6)',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    background: 'rgba(64, 181, 246, 0.8)'
+                  }
+                },
+                // Para navegadores Firefox
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(64, 181, 246, 0.6) rgba(255, 255, 255, 0.1)'
+              }}
+            >
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -739,7 +763,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {partido.jugadas.slice(-10).reverse().map((jugada, index) => {
+                  {partido.jugadas.slice().reverse().map((jugada, index) => {
                     const tipoJugada = tiposJugada.find(t => t.id === jugada.tipoJugada);
                     return (
                       <TableRow key={jugada._id || jugada.numero}>
