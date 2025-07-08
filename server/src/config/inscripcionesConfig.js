@@ -5,21 +5,21 @@ const inscripcionesConfig = {
   // Configuración por categoría - true = habilitada, false = deshabilitada
   categorias: {
     // Categorías Mixtas
-    'mixgold': true,
+    'mixgold': false,
     'mixsilv': false,
     
     // Categorías Varoniles
-    'vargold': true,
+    'vargold': false,
     'varsilv': false,
-    'varmast': true, // Ejemplo: inscripciones cerradas
+    'varmast': false, // Ejemplo: inscripciones cerradas
     
     // Categorías Femeniles
-    'femgold': true,
+    'femgold': false,
     'femsilv': false,
-    'femmast': true, // Ejemplo: inscripciones cerradas
+    'femmast': false, // Ejemplo: inscripciones cerradas
     
     // Categoría Tocho
-    'tocho7v7': true,
+    'tocho7v7': false,
     
     // Categorías Menores
     'u8': true,
