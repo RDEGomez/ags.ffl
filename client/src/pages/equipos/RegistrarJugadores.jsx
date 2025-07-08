@@ -59,63 +59,15 @@ import { useImage } from '../../hooks/useImage';
 import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../hooks/useDebounce';
 
-// 🔥 FUNCIÓN DE LOGGING MEJORADA
-const debugLog = (context, data, level = 'INFO') => {
-  const timestamp = new Date().toISOString();
-  const prefix = {
-    'ERROR': '❌',
-    'WARN': '⚠️',
-    'INFO': '✅',
-    'DEBUG': '🔍'
-  }[level] || '📝';
-  
-  console.log(`[${timestamp}] ${prefix} REGISTRAR_JUGADORES | ${context}:`, data);
-  
-  // Log adicional para errores críticos
-  if (level === 'ERROR') {
-    console.error(`💥 ERROR CRÍTICO en ${context}:`, data);
-    if (data?.stack) {
-      console.error('📋 Stack Trace:', data.stack);
-    }
-  }
+// Validación básica de objetos (sin logging)
+const validateObject = (obj, expectedProps) => {
+  if (!obj || typeof obj !== 'object') return false;
+  return expectedProps.every(prop => prop in obj && obj[prop] != null);
 };
 
-// 🔥 FUNCIÓN HELPER PARA VALIDAR OBJETOS
-const validateObject = (obj, expectedProps, objectName) => {
-  debugLog(`VALIDANDO_OBJETO_${objectName}`, { obj, expectedProps });
-  
-  if (!obj) {
-    debugLog(`OBJETO_NULL_${objectName}`, { obj }, 'ERROR');
-    return false;
-  }
-  
-  if (typeof obj !== 'object') {
-    debugLog(`OBJETO_NO_ES_OBJECT_${objectName}`, { obj, type: typeof obj }, 'ERROR');
-    return false;
-  }
-  
-  for (const prop of expectedProps) {
-    if (!(prop in obj)) {
-      debugLog(`PROPIEDAD_FALTANTE_${objectName}`, { prop, obj }, 'ERROR');
-      return false;
-    }
-    if (obj[prop] === null || obj[prop] === undefined) {
-      debugLog(`PROPIEDAD_NULL_${objectName}`, { prop, value: obj[prop] }, 'ERROR');
-      return false;
-    }
-  }
-  
-  debugLog(`OBJETO_VALIDO_${objectName}`, { obj }, 'INFO');
-  return true;
-};
-
-// 🔥 Componente para el avatar del equipo CON VALIDACIÓN
+// Componente para el avatar del equipo
 const EquipoAvatar = ({ equipo, size = 64 }) => {
-  debugLog('EQUIPO_AVATAR_RENDER', { equipo, size });
-  
-  // Validación segura
   if (!equipo) {
-    debugLog('EQUIPO_AVATAR_NULL', { equipo }, 'WARN');
     return (
       <Avatar sx={{ width: size, height: size, border: '3px solid rgba(255, 255, 255, 0.2)' }}>
         <GroupsIcon />
@@ -124,7 +76,6 @@ const EquipoAvatar = ({ equipo, size = 64 }) => {
   }
   
   const equipoImageUrl = useImage(equipo?.imagen, '');
-  debugLog('EQUIPO_AVATAR_IMAGE_URL', { equipoImageUrl, equipoImagen: equipo?.imagen });
   
   return (
     <Avatar
@@ -140,18 +91,13 @@ const EquipoAvatar = ({ equipo, size = 64 }) => {
   );
 };
 
-// 🔥 Componente para usuario disponible CON VALIDACIÓN
+// Componente para usuario disponible
 const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
-  debugLog('USUARIO_DISPONIBLE_RENDER', { usuario, index });
-  
-  // Validación crítica
-  if (!validateObject(usuario, ['_id', 'nombre'], 'USUARIO_DISPONIBLE')) {
-    debugLog('USUARIO_DISPONIBLE_INVALIDO', { usuario }, 'ERROR');
-    return null; // No renderizar si el usuario es inválido
+  if (!validateObject(usuario, ['_id', 'nombre'])) {
+    return null;
   }
   
   const usuarioImageUrl = useImage(usuario.imagen, '');
-  debugLog('USUARIO_DISPONIBLE_IMAGE_URL', { usuarioImageUrl, usuarioImagen: usuario.imagen });
   
   return (
     <motion.div
@@ -177,10 +123,7 @@ const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
             <IconButton
               edge="end"
               color="primary"
-              onClick={() => {
-                debugLog('USUARIO_DISPONIBLE_CLICK', { usuario });
-                onAgregar(usuario);
-              }}
+              onClick={() => onAgregar(usuario)}
               sx={{
                 backgroundColor: 'rgba(33, 150, 243, 0.1)',
                 '&:hover': {
@@ -219,28 +162,13 @@ const UsuarioDisponibleItem = ({ usuario, onAgregar, index }) => {
   );
 };
 
-// 🔥 Componente para jugador seleccionado CON VALIDACIÓN
+// Componente para jugador seleccionado
 const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index }) => {
-  debugLog('JUGADOR_SELECCIONADO_RENDER', { jugador, index });
-  
-  // Validación crítica con logging detallado
-  if (!jugador) {
-    debugLog('JUGADOR_SELECCIONADO_NULL', { jugador }, 'ERROR');
-    return null;
-  }
-  
-  if (!jugador.usuario) {
-    debugLog('JUGADOR_USUARIO_NULL', { jugador }, 'ERROR');
-    return null;
-  }
-  
-  if (!validateObject(jugador.usuario, ['_id', 'nombre'], 'JUGADOR_USUARIO')) {
-    debugLog('JUGADOR_USUARIO_INVALIDO', { jugador }, 'ERROR');
+  if (!jugador?.usuario || !validateObject(jugador.usuario, ['_id', 'nombre'])) {
     return null;
   }
   
   const usuarioImageUrl = useImage(jugador.usuario.imagen, '');
-  debugLog('JUGADOR_SELECCIONADO_IMAGE_URL', { usuarioImageUrl, usuarioImagen: jugador.usuario.imagen });
   
   return (
     <motion.div
@@ -306,13 +234,7 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
             label="Número"
             type="number"
             value={jugador.numero || ''}
-            onChange={(e) => {
-              debugLog('NUMERO_CHANGE', { 
-                jugadorId: jugador.usuario._id, 
-                nuevoNumero: e.target.value 
-              });
-              onActualizarNumero(jugador.usuario._id, e.target.value);
-            }}
+            onChange={(e) => onActualizarNumero(jugador.usuario._id, e.target.value)}
             size="small"
             sx={{
               width: 120,
@@ -330,10 +252,7 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
           />
           <IconButton
             color="error"
-            onClick={() => {
-              debugLog('QUITAR_JUGADOR_CLICK', { jugadorId: jugador.usuario._id });
-              onQuitar(jugador.usuario._id);
-            }}
+            onClick={() => onQuitar(jugador.usuario._id)}
             sx={{
               backgroundColor: 'rgba(244, 67, 54, 0.1)',
               '&:hover': {
@@ -350,18 +269,13 @@ const JugadorSeleccionadoItem = ({ jugador, onQuitar, onActualizarNumero, index 
   );
 };
 
-// 🔥 Componente para jugador del roster CON VALIDACIÓN
+// Componente para jugador del roster
 const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugadorAEliminar }) => {
-  debugLog('JUGADOR_ROSTER_RENDER', { jugador, index });
-  
-  // Validación crítica
-  if (!validateObject(jugador, ['_id', 'nombre'], 'JUGADOR_ROSTER')) {
-    debugLog('JUGADOR_ROSTER_INVALIDO', { jugador }, 'ERROR');
+  if (!validateObject(jugador, ['_id', 'nombre'])) {
     return null;
   }
   
   const jugadorImageUrl = useImage(jugador.imagen, '');
-  debugLog('JUGADOR_ROSTER_IMAGE_URL', { jugadorImageUrl, jugadorImagen: jugador.imagen });
   
   return (
     <motion.tr
@@ -415,10 +329,7 @@ const JugadorRosterItem = ({ jugador, onEliminar, index, deletingPlayer, jugador
             <IconButton
               color="error"
               disabled={deletingPlayer}
-              onClick={() => {
-                debugLog('ELIMINAR_JUGADOR_ROSTER_CLICK', { jugadorId: jugador._id });
-                onEliminar(jugador._id);
-              }}
+              onClick={() => onEliminar(jugador._id)}
               sx={{
                 backgroundColor: 'rgba(244, 67, 54, 0.1)',
                 '&:hover': {
@@ -463,25 +374,9 @@ export const RegistrarJugadores = () => {
 
   const debouncedFiltroUsuarios = useDebounce(filtroUsuarios, 300);
 
-
-  // 🔥 LOGGING DE ESTADOS CRÍTICOS
-  useEffect(() => {
-    debugLog('ESTADO_CAMBIO', {
-      equipo: equipo ? { id: equipo._id, nombre: equipo.nombre } : null,
-      usuarios: usuarios.length,
-      jugadoresSeleccionados: jugadoresSeleccionados.length,
-      jugadoresActuales: jugadoresActuales.length,
-      loading,
-      errorMessage
-    });
-  }, [equipo, usuarios, jugadoresSeleccionados, jugadoresActuales, loading, errorMessage]);
-
   // Verificar permisos al cargar el componente
   useEffect(() => {
-    debugLog('VERIFICANDO_PERMISOS', { puedeGestionarEquipos: puedeGestionarEquipos() });
-    
     if (!puedeGestionarEquipos()) {
-      debugLog('SIN_PERMISOS_GESTIONAR_EQUIPOS', {}, 'WARN');
       Swal.fire({
         icon: 'warning',
         title: 'Acceso Denegado',
@@ -498,87 +393,50 @@ export const RegistrarJugadores = () => {
   // Cargar información del equipo y usuarios disponibles
   useEffect(() => {
     const fetchData = async () => {
+      if (!puedeGestionarEquipos()) return;
+
       try {
-        debugLog('FETCH_DATA_INICIO', { equipoId: id });
         setLoading(true);
 
-        // 🔥 PASO 1: Cargar equipo
-        debugLog('CARGANDO_EQUIPO', { equipoId: id });
+        // Cargar equipo
         const equipoResponse = await axiosInstance.get(`/equipos/${id}`);
-        debugLog('EQUIPO_RESPONSE', { 
-          status: equipoResponse.status, 
-          data: equipoResponse.data 
-        });
         
-        // Validar respuesta del equipo
-        if (!equipoResponse.data) {
-          throw new Error('Respuesta del equipo vacía');
-        }
-        
-        if (!equipoResponse.data._id) {
-          debugLog('EQUIPO_SIN_ID', { equipoData: equipoResponse.data }, 'ERROR');
+        if (!equipoResponse.data?._id) {
           throw new Error('Equipo sin ID válido');
         }
         
         setEquipo(equipoResponse.data);
-        debugLog('EQUIPO_ESTABLECIDO', equipoResponse.data);
 
-        // 🔥 PASO 2: Cargar usuarios
-        debugLog('CARGANDO_USUARIOS', {});
+        // Cargar usuarios
         const usuariosResponse = await axiosInstance.get('/usuarios');
-        debugLog('USUARIOS_RESPONSE', { 
-          status: usuariosResponse.status, 
-          totalUsuarios: usuariosResponse.data?.length || 0,
-          primeros3: usuariosResponse.data?.slice(0, 3) || []
-        });
 
-        // Validar respuesta de usuarios
         if (!Array.isArray(usuariosResponse.data)) {
-          debugLog('USUARIOS_NO_ARRAY', { usuariosData: usuariosResponse.data }, 'ERROR');
           throw new Error('Respuesta de usuarios no es un array');
         }
 
-        // 🔥 PASO 3: Procesar usuarios con validación detallada
+        // Procesar usuarios
         const usuariosEnEquipo = [];
         const jugadoresFiltrados = [];
 
-        debugLog('PROCESANDO_USUARIOS', { totalUsuarios: usuariosResponse.data.length });
-
-        usuariosResponse.data.forEach((usuario, index) => {
+        usuariosResponse.data.forEach((usuario) => {
           try {
-            // Validar cada usuario
-            if (!validateObject(usuario, ['_id', 'equipos'], `USUARIO_${index}`)) {
-              debugLog('USUARIO_INVALIDO_SKIPPED', { index, usuario }, 'WARN');
-              return; // Skip usuario inválido
+            if (!validateObject(usuario, ['_id', 'equipos'])) {
+              return;
             }
 
-            // Validar que equipos sea un array
             if (!Array.isArray(usuario.equipos)) {
-              debugLog('USUARIO_EQUIPOS_NO_ARRAY', { 
-                index, 
-                usuarioId: usuario._id, 
-                equipos: usuario.equipos 
-              }, 'WARN');
-              usuario.equipos = []; // Corregir equipos inválidos
+              usuario.equipos = [];
             }
 
-            // Verificar si está en el equipo actual
             const estaEnEquipo = usuario.equipos.some(e => {
-              if (!e || !e.equipo) {
-                debugLog('EQUIPO_RELACION_INVALIDA', { 
-                  usuarioId: usuario._id, 
-                  equipoRelacion: e 
-                }, 'WARN');
-                return false;
-              }
-              
+              if (!e?.equipo) return false;
               const equipoId = typeof e.equipo === 'object' ? e.equipo._id : e.equipo;
               return equipoId === id;
             });
 
             if (estaEnEquipo) {
               const equipoData = usuario.equipos.find(e => {
-                if (!e || !e.equipo) return false;
+                if (!e?.equipo) return false;
                 const equipoId = typeof e.equipo === 'object' ? e.equipo._id : e.equipo;
                 return equipoId === id;
               });
@@ -587,66 +445,29 @@ export const RegistrarJugadores = () => {
                 ...usuario,
                 numero: equipoData?.numero || 0
               });
-              
-              debugLog('USUARIO_EN_EQUIPO', { 
-                usuarioId: usuario._id, 
-                nombre: usuario.nombre, 
-                numero: equipoData?.numero 
-              });
             } else {
               jugadoresFiltrados.push(usuario);
-              debugLog('USUARIO_DISPONIBLE', { 
-                usuarioId: usuario._id, 
-                nombre: usuario.nombre 
-              });
             }
           } catch (error) {
-            debugLog('ERROR_PROCESANDO_USUARIO', { 
-              index, 
-              usuario, 
-              error: error.message 
-            }, 'ERROR');
+            console.error('Error procesando usuario:', error);
           }
-        });
-
-        debugLog('USUARIOS_PROCESADOS', {
-          usuariosEnEquipo: usuariosEnEquipo.length,
-          jugadoresFiltrados: jugadoresFiltrados.length
         });
 
         setJugadoresActuales(usuariosEnEquipo);
         setUsuarios(jugadoresFiltrados);
-        setUsuariosFiltrados(jugadoresFiltrados);
-        
-        debugLog('FETCH_DATA_COMPLETADO', {
-          equipo: equipoResponse.data.nombre,
-          jugadoresActuales: usuariosEnEquipo.length,
-          usuariosDisponibles: jugadoresFiltrados.length
-        });
 
       } catch (error) {
-        debugLog('ERROR_FETCH_DATA', { 
-          error: error.message, 
-          stack: error.stack,
-          equipoId: id 
-        }, 'ERROR');
-        
         console.error('Error al cargar datos:', error);
         setErrorMessage('Error al cargar los datos. Por favor, intenta nuevamente.');
       } finally {
         setLoading(false);
-        debugLog('LOADING_FALSE', {});
       }
     };
 
-    if (puedeGestionarEquipos()) {
-      debugLog('INICIANDO_FETCH_DATA', { equipoId: id });
-      fetchData();
-    } else {
-      debugLog('SKIP_FETCH_DATA_SIN_PERMISOS', {});
-    }
+    fetchData();
   }, [id, puedeGestionarEquipos]);
 
+  // Optimizar filtrado de usuarios
   const usuariosConIndices = useMemo(() => {
     return usuarios.map(usuario => {
       const searchIndex = [
@@ -657,82 +478,45 @@ export const RegistrarJugadores = () => {
       
       return {
         ...usuario,
-        _searchIndex: searchIndex,
-        _nombreLower: (usuario.nombre || '').toLowerCase(),
-        _documentoLower: (usuario.documento || '').toLowerCase()
+        _searchIndex: searchIndex
       };
     });
   }, [usuarios]);
 
   const usuariosFiltrados = useMemo(() => {
-    debugLog('FILTRADO_USUARIOS_MEMO', { 
-      filtroUsuarios: debouncedFiltroUsuarios, 
-      usuariosTotal: usuarios.length 
-    });
-    
     if (!debouncedFiltroUsuarios.trim()) return usuariosConIndices;
     
     const term = debouncedFiltroUsuarios.toLowerCase().trim();
-    const resultado = usuariosConIndices.filter(usuario => 
+    return usuariosConIndices.filter(usuario => 
       usuario._searchIndex.includes(term)
     );
-
-    debugLog('FILTRADO_RESULTADO_MEMO', { 
-      filtro: debouncedFiltroUsuarios, 
-      resultados: resultado.length 
-    });
-    
-    return resultado;
   }, [usuariosConIndices, debouncedFiltroUsuarios]);
 
-  // Agregar jugador a la lista de seleccionados
+  // Funciones de manejo
   const agregarJugador = (jugador) => {
-    debugLog('AGREGAR_JUGADOR', { jugador });
-    
-    // Validación
-    if (!validateObject(jugador, ['_id'], 'JUGADOR_A_AGREGAR')) {
-      debugLog('JUGADOR_INVALIDO_NO_AGREGADO', { jugador }, 'ERROR');
-      return;
-    }
-
-    if (jugadoresSeleccionados.some(j => j.usuario._id === jugador._id)) {
-      debugLog('JUGADOR_YA_SELECCIONADO', { jugadorId: jugador._id }, 'WARN');
+    if (!validateObject(jugador, ['_id']) || 
+        jugadoresSeleccionados.some(j => j.usuario._id === jugador._id)) {
       return;
     }
 
     setJugadoresSeleccionados([
       ...jugadoresSeleccionados,
-      {
-        usuario: jugador,
-        numero: ''
-      }
+      { usuario: jugador, numero: '' }
     ]);
 
     setUsuarios(usuarios.filter(u => u._id !== jugador._id));
-    debugLog('JUGADOR_AGREGADO_EXITOSO', { jugadorId: jugador._id });
   };
 
-  // Quitar jugador de la lista de seleccionados
   const quitarJugador = (jugadorId) => {
-    debugLog('QUITAR_JUGADOR', { jugadorId });
-    
     const jugadorAQuitar = jugadoresSeleccionados.find(j => j.usuario._id === jugadorId);
     
-    if (!jugadorAQuitar) {
-      debugLog('JUGADOR_A_QUITAR_NO_ENCONTRADO', { jugadorId }, 'ERROR');
-      return;
-    }
+    if (!jugadorAQuitar) return;
 
     setJugadoresSeleccionados(jugadoresSeleccionados.filter(j => j.usuario._id !== jugadorId));
     setUsuarios([...usuarios, jugadorAQuitar.usuario]);
-    
-    debugLog('JUGADOR_QUITADO_EXITOSO', { jugadorId });
   };
 
-  // Actualizar número de camiseta
   const actualizarNumeroCamiseta = (jugadorId, nuevoNumero) => {
-    debugLog('ACTUALIZAR_NUMERO', { jugadorId, nuevoNumero });
-    
     setJugadoresSeleccionados(
       jugadoresSeleccionados.map(j =>
         j.usuario._id === jugadorId ? { ...j, numero: nuevoNumero } : j
@@ -740,29 +524,12 @@ export const RegistrarJugadores = () => {
     );
   };
 
-  // Resto del código del componente permanece igual...
-  // [Mantienes todas las demás funciones sin cambios]
-
-  const handleOpenRoster = () => {
-    debugLog('OPEN_ROSTER_DIALOG', {});
-    setOpenRosterDialog(true);
-  };
-
-  const handleCloseRoster = () => {
-    debugLog('CLOSE_ROSTER_DIALOG', {});
-    setOpenRosterDialog(false);
-  };
-
-  const handleFiltroChange = (e) => {
-    debugLog('FILTRO_CHANGE', { nuevoFiltro: e.target.value });
-    setFiltroUsuarios(e.target.value);
-  };
+  const handleOpenRoster = () => setOpenRosterDialog(true);
+  const handleCloseRoster = () => setOpenRosterDialog(false);
+  const handleFiltroChange = (e) => setFiltroUsuarios(e.target.value);
 
   const iniciarEliminarJugador = async (jugadorId) => {
-    debugLog('INICIAR_ELIMINAR_JUGADOR', { jugadorId });
-    
     if (!puedeGestionarEquipos()) {
-      debugLog('SIN_PERMISOS_ELIMINAR', {}, 'ERROR');
       Swal.fire({
         icon: 'error',
         title: 'Sin permisos',
@@ -797,25 +564,18 @@ export const RegistrarJugadores = () => {
   };
 
   const eliminarJugadorDelEquipo = async (jugadorId) => {
-    debugLog('ELIMINAR_JUGADOR_DEL_EQUIPO', { jugadorId });
-    
     try {
       setDeletingPlayer(true);
 
       await axiosInstance.delete('/equipos/borrarJugadores', {
-        data: {
-          equipoId: id,
-          jugadorId
-        }
+        data: { equipoId: id, jugadorId }
       });
 
       setJugadoresActuales(jugadoresActuales.filter(j => j._id !== jugadorId));
 
       const jugadorEliminado = jugadoresActuales.find(j => j._id === jugadorId);
-
       if (jugadorEliminado) {
         setUsuarios([...usuarios, jugadorEliminado]);
-        debugLog('JUGADOR_MOVIDO_A_DISPONIBLES', { jugadorEliminado });
       }
 
       Swal.fire({
@@ -825,15 +585,8 @@ export const RegistrarJugadores = () => {
         showConfirmButton: false,
         timer: 1500,
       });
-      
-      debugLog('JUGADOR_ELIMINADO_EXITOSO', { jugadorId });
+
     } catch (error) {
-      debugLog('ERROR_ELIMINAR_JUGADOR', { 
-        jugadorId, 
-        error: error.message,
-        response: error.response?.data 
-      }, 'ERROR');
-      
       console.error('Error al eliminar jugador:', error);
       Swal.fire({
         icon: 'error',
@@ -846,12 +599,7 @@ export const RegistrarJugadores = () => {
   };
 
   const guardarJugadores = async () => {
-    debugLog('GUARDAR_JUGADORES_INICIO', { 
-      jugadoresSeleccionados: jugadoresSeleccionados.length 
-    });
-    
     if (!puedeGestionarEquipos()) {
-      debugLog('SIN_PERMISOS_GUARDAR', {}, 'ERROR');
       Swal.fire({
         icon: 'error',
         title: 'Sin permisos',
@@ -863,7 +611,6 @@ export const RegistrarJugadores = () => {
     // Validaciones
     const faltanNumeros = jugadoresSeleccionados.some(j => !j.numero);
     if (faltanNumeros) {
-      debugLog('FALTAN_NUMEROS', { jugadoresSeleccionados }, 'WARN');
       Swal.fire({
         icon: 'error',
         title: 'Faltan datos',
@@ -875,7 +622,6 @@ export const RegistrarJugadores = () => {
     const numeros = jugadoresSeleccionados.map(j => j.numero);
     const numerosUnicos = new Set(numeros);
     if (numeros.length !== numerosUnicos.size) {
-      debugLog('NUMEROS_DUPLICADOS', { numeros }, 'WARN');
       Swal.fire({
         icon: 'error',
         title: 'Números duplicados',
@@ -888,7 +634,6 @@ export const RegistrarJugadores = () => {
     const numerosConflicto = numeros.filter(num => numerosExistentes.includes(num));
 
     if (numerosConflicto.length > 0) {
-      debugLog('NUMEROS_EN_CONFLICTO', { numerosConflicto, numerosExistentes }, 'WARN');
       Swal.fire({
         icon: 'error',
         title: 'Números en conflicto',
@@ -906,13 +651,14 @@ export const RegistrarJugadores = () => {
         numero: parseInt(j.numero)
       }));
 
-      debugLog('ENVIANDO_JUGADORES_AL_SERVIDOR', { jugadoresDatos });
-
       await axiosInstance.post('/equipos/registrarJugadores', {
         jugadores: jugadoresDatos
       });
 
-      debugLog('JUGADORES_GUARDADOS_EXITOSO', {});
+      // Limpiar estados antes de navegar
+      setJugadoresSeleccionados([]);
+      setErrorMessage('');
+      setSavingData(false);
 
       Swal.fire({
         icon: 'success',
@@ -920,15 +666,11 @@ export const RegistrarJugadores = () => {
         text: 'Los jugadores se han registrado correctamente en el equipo',
         showConfirmButton: false,
         timer: 2000,
+      }).then(() => {
+        // Forzar navegación completa para evitar problemas de estado
+        window.location.href = '/equipos';
       });
-
-      navigate('/equipos');
     } catch (error) {
-      debugLog('ERROR_GUARDAR_JUGADORES', { 
-        error: error.message,
-        response: error.response?.data 
-      }, 'ERROR');
-      
       console.error('Error al registrar jugadores:', error);
 
       if (error.response?.data?.errores && Array.isArray(error.response.data.errores)) {
@@ -954,7 +696,6 @@ export const RegistrarJugadores = () => {
 
   // Si no tiene permisos, mostrar mensaje de acceso denegado
   if (!puedeGestionarEquipos()) {
-    debugLog('RENDERIZANDO_SIN_PERMISOS', {});
     return (
       <Box sx={{
         display: 'flex',
@@ -1018,7 +759,6 @@ export const RegistrarJugadores = () => {
   };
 
   if (loading) {
-    debugLog('RENDERIZANDO_LOADING', {});
     return (
       <Box sx={{
         display: 'flex',
@@ -1032,13 +772,6 @@ export const RegistrarJugadores = () => {
       </Box>
     );
   }
-
-  debugLog('RENDERIZANDO_COMPONENTE_PRINCIPAL', {
-    equipoNombre: equipo?.nombre,
-    usuariosDisponibles: usuariosFiltrados.length,
-    jugadoresSeleccionados: jugadoresSeleccionados.length,
-    jugadoresActuales: jugadoresActuales.length
-  });
 
   return (
     <Box sx={{

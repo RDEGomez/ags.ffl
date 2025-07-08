@@ -447,6 +447,8 @@ export const CrearPartido = () => {
   const [torneos, setTorneos] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [arbitros, setArbitros] = useState([]);
+  const [estadisticasEquipos, setEstadisticasEquipos] = useState({});
+  const [loadingEstadisticas, setLoadingEstadisticas] = useState(false);
   
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -495,6 +497,65 @@ export const CrearPartido = () => {
 
     cargarDatos();
   }, []);
+
+  useEffect(() => {
+    const cargarEstadisticas = async () => {
+      if (formData.equipoLocal && formData.equipoVisitante && formData.torneo) {
+        setLoadingEstadisticas(true);
+        try {
+          const [estadisticasLocal, estadisticasVisitante] = await Promise.all([
+            obtenerEstadisticasEquipo(formData.equipoLocal, formData.torneo),
+            obtenerEstadisticasEquipo(formData.equipoVisitante, formData.torneo)
+          ]);
+          
+          setEstadisticasEquipos({
+            [formData.equipoLocal]: estadisticasLocal,
+            [formData.equipoVisitante]: estadisticasVisitante
+          });
+        } catch (error) {
+          console.error('Error al cargar estadísticas:', error);
+        } finally {
+          setLoadingEstadisticas(false);
+        }
+      }
+    };
+
+    cargarEstadisticas();
+  }, [formData.equipoLocal, formData.equipoVisitante, formData.torneo]);
+
+
+  const obtenerEstadisticasEquipo = async (equipoId, torneoId) => {
+  try {
+    const response = await axiosInstance.get(`/estadisticas/tarjeta-equipo/${equipoId}/${torneoId}`);
+    return response.data.estadisticas;
+  } catch (error) {
+    console.error('Error al obtener estadísticas:', error);
+    return {
+      partidosJugados: 0,
+      partidosGanados: 0,
+      partidosPerdidos: 0,
+      porcentajeVictorias: 0,
+      puntosFavor: 0,
+      puntosContra: 0,
+      promedioPuntosPorPartido: 0
+    };
+  }
+};
+
+  // 🔥 HELPERS PARA FORMATEAR DATOS - Solo W-L (sin empates)
+  const formatearRecord = (estadisticas) => {
+    if (!estadisticas) return '0-0';
+    
+    const ganados = estadisticas.partidosGanados || 0;
+    const perdidos = estadisticas.partidosPerdidos || 0;
+    
+    return `${ganados}-${perdidos}`;
+  };
+
+  const calcularPorcentajeVictorias = (estadisticas) => {
+    if (!estadisticas || !estadisticas.partidosJugados) return '0.0';
+    return estadisticas.porcentajeVictorias?.toFixed(1) || '0.0';
+  };
 
   // Validación del formulario
   const validarFormulario = () => {
@@ -877,32 +938,8 @@ export const CrearPartido = () => {
                       const equipoLocal = equipos.find(e => e._id === formData.equipoLocal);
                       const equipoVisitante = equipos.find(e => e._id === formData.equipoVisitante);
                       const torneoSeleccionado = torneos.find(t => t._id === formData.torneo);
-                      
-                      // 🔥 FUNCIÓN PARA OBTENER RÉCORD (dummy data por ahora, preparado para API real)
-                      const getRecordEquipo = (equipoId, torneoId) => {
-                        // 🔥 TODO: Cuando tengamos las estadísticas reales del backend, reemplazar con:
-                        // const { data } = await axiosInstance.get(`/equipos/${equipoId}/record?torneo=${torneoId}`);
-                        // return data.record;
-                        
-                        // 🔥 DUMMY DATA por ahora - diferentes para cada equipo para que se vea real
-                        const dummyRecords = {
-                          [formData.equipoLocal]: { 
-                            ganados: Math.floor(Math.random() * 8) + 2,  // 2-9 ganados
-                            perdidos: Math.floor(Math.random() * 4) + 1,  // 1-4 perdidos
-                            empates: Math.floor(Math.random() * 2)        // 0-1 empates
-                          },
-                          [formData.equipoVisitante]: { 
-                            ganados: Math.floor(Math.random() * 6) + 3,   // 3-8 ganados
-                            perdidos: Math.floor(Math.random() * 5) + 2,  // 2-6 perdidos
-                            empates: Math.floor(Math.random() * 3)        // 0-2 empates
-                          }
-                        };
-                        
-                        return dummyRecords[equipoId] || { ganados: 0, perdidos: 0, empates: 0 };
-                      };
-                      
-                      const recordLocal = getRecordEquipo(formData.equipoLocal, formData.torneo);
-                      const recordVisitante = getRecordEquipo(formData.equipoVisitante, formData.torneo);
+                      const recordLocal = estadisticasEquipos[formData.equipoLocal] || { partidosGanados: 0, partidosPerdidos: 0 };
+                      const recordVisitante = estadisticasEquipos[formData.equipoVisitante] || { partidosGanados: 0, partidosPerdidos: 0 };
                       
                       // Calcular porcentaje de victorias
                       const calcularPorcentaje = (record) => {
@@ -1017,11 +1054,10 @@ export const CrearPartido = () => {
                                   fontFamily: 'monospace',
                                   fontSize: '1rem'
                                 }}>
-                                  {recordLocal.ganados}-{recordLocal.perdidos}
-                                  {recordLocal.empates > 0 && `-${recordLocal.empates}`}
+                                  {loadingEstadisticas ? '...' : formatearRecord(recordLocal)}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                  {calcularPorcentaje(recordLocal)}% victorias
+                                  {loadingEstadisticas ? '...' : `${calcularPorcentajeVictorias(recordLocal)}% victorias`}
                                 </Typography>
                               </Box>
                             </Box>
@@ -1045,9 +1081,7 @@ export const CrearPartido = () => {
                               
                               {/* 🔥 ANÁLISIS RÁPIDO EN EL CENTRO */}
                               {(() => {
-                                const porcentajeLocal = parseFloat(calcularPorcentaje(recordLocal));
-                                const porcentajeVisitante = parseFloat(calcularPorcentaje(recordVisitante));
-                                const diferencia = Math.abs(porcentajeLocal - porcentajeVisitante);
+                                const diferencia = Math.abs(recordLocal.porcentajeVictorias - recordVisitante.porcentajeVictorias);
                                 
                                 let analisis = "";
                                 let color = "#64b5f6";
@@ -1126,11 +1160,10 @@ export const CrearPartido = () => {
                                   fontFamily: 'monospace',
                                   fontSize: '1rem'
                                 }}>
-                                  {recordVisitante.ganados}-{recordVisitante.perdidos}
-                                  {recordVisitante.empates > 0 && `-${recordVisitante.empates}`}
+                                  {loadingEstadisticas ? '...' : formatearRecord(recordVisitante)}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                  {calcularPorcentaje(recordVisitante)}% victorias
+                                  {loadingEstadisticas ? '...' : `${calcularPorcentajeVictorias(recordVisitante)}% victorias`}
                                 </Typography>
                               </Box>
                             </Box>

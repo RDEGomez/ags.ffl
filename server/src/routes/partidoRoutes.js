@@ -145,18 +145,6 @@ router.post('/',
         return true;
       }),
       
-      // Validación de fecha futura
-      body('fechaHora').custom((value) => {
-        const fechaPartido = new Date(value);
-        const ahora = new Date();
-        
-        if (fechaPartido <= ahora) {
-          throw new Error('La fecha del partido debe ser futura');
-        }
-        
-        return true;
-      }),
-      
       // Validaciones opcionales
       check('categoria')
         .optional()
