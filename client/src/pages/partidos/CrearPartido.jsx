@@ -43,7 +43,8 @@ import {
   Info as InfoIcon,
   EmojiEvents as EmojiEventsIcon,
   ArrowBack as ArrowBackIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  CalendarToday as CalendarTodayIcon
 } from '@mui/icons-material';
 
 import { getCategoryName } from '../../helpers/mappings';
@@ -89,8 +90,6 @@ const steps = [
 ];
 
 // Componente para selección de equipos con preview mejorado
-// En CrearPartido.jsx, busca esta función y reemplázala:
-
 const EquipoSelector = ({ 
   label, 
   value, 
@@ -246,7 +245,6 @@ const EquipoSelector = ({
 };
 
 // Componente para selección de árbitros mejorado
-
 const ArbitroSelector = ({ 
   label, 
   value, 
@@ -431,6 +429,7 @@ export const CrearPartido = () => {
     categoria: '',
     fechaHora: '',
     duracionMinutos: 50,
+    jornada: '', // 🔥 NUEVO CAMPO
     sede: {
       nombre: '',
       direccion: ''
@@ -523,24 +522,23 @@ export const CrearPartido = () => {
     cargarEstadisticas();
   }, [formData.equipoLocal, formData.equipoVisitante, formData.torneo]);
 
-
   const obtenerEstadisticasEquipo = async (equipoId, torneoId) => {
-  try {
-    const response = await axiosInstance.get(`/estadisticas/tarjeta-equipo/${equipoId}/${torneoId}`);
-    return response.data.estadisticas;
-  } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    return {
-      partidosJugados: 0,
-      partidosGanados: 0,
-      partidosPerdidos: 0,
-      porcentajeVictorias: 0,
-      puntosFavor: 0,
-      puntosContra: 0,
-      promedioPuntosPorPartido: 0
-    };
-  }
-};
+    try {
+      const response = await axiosInstance.get(`/estadisticas/tarjeta-equipo/${equipoId}/${torneoId}`);
+      return response.data.estadisticas;
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      return {
+        partidosJugados: 0,
+        partidosGanados: 0,
+        partidosPerdidos: 0,
+        porcentajeVictorias: 0,
+        puntosFavor: 0,
+        puntosContra: 0,
+        promedioPuntosPorPartido: 0
+      };
+    }
+  };
 
   // 🔥 HELPERS PARA FORMATEAR DATOS - Solo W-L (sin empates)
   const formatearRecord = (estadisticas) => {
@@ -551,7 +549,7 @@ export const CrearPartido = () => {
     
     return `${ganados}-${perdidos}`;
   };
-
+  
   const calcularPorcentajeVictorias = (estadisticas) => {
     if (!estadisticas || !estadisticas.partidosJugados) return '0.0';
     return estadisticas.porcentajeVictorias?.toFixed(1) || '0.0';
@@ -571,17 +569,41 @@ export const CrearPartido = () => {
       newErrors.general = 'Un equipo no puede jugar contra sí mismo';
     }
 
-    if (formData.fechaHora) {
-      const fechaPartido = new Date(formData.fechaHora);
-      const ahora = new Date();
-      if (fechaPartido <= ahora) {
-        newErrors.fechaHora = true;
-        newErrors.general = 'La fecha del partido debe ser futura';
-      }
-    }
-
     if (!formData.arbitros.principal) {
       newErrors.arbitroPrincipal = true;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 🔥 NUEVA FUNCIÓN: Validar step específico
+  const validarStep = (step) => {
+    const newErrors = {};
+
+    switch (step) {
+      case 0: // Información Básica
+        if (!formData.torneo) newErrors.torneo = true;
+        break;
+      case 1: // Equipos
+        if (!formData.equipoLocal) newErrors.equipoLocal = true;
+        if (!formData.equipoVisitante) newErrors.equipoVisitante = true;
+        if (formData.equipoLocal === formData.equipoVisitante) {
+          newErrors.equipoVisitante = true;
+          newErrors.general = 'Un equipo no puede jugar contra sí mismo';
+        }
+        break;
+      case 2: // Programación
+        if (!formData.fechaHora) newErrors.fechaHora = true;
+        break;
+      case 3: // Árbitros
+        if (!formData.arbitros.principal) newErrors.arbitroPrincipal = true;
+        break;
+      case 4: // Ubicación - Opcional
+        // No hay campos obligatorios en este step
+        break;
+      default:
+        break;
     }
 
     setErrors(newErrors);
@@ -648,9 +670,22 @@ export const CrearPartido = () => {
     }
   }, [formData.equipoLocal, formData.equipoVisitante, equipos]);
 
-  // Navegación del stepper
+  // 🔥 CORREGIR: Navegación del stepper con validación
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    // 🔥 VALIDAR STEP ACTUAL ANTES DE AVANZAR
+    if (!validarStep(activeStep)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos requeridos',
+        text: errors.general || 'Por favor completa todos los campos requeridos antes de continuar'
+      });
+      return;
+    }
+
+    // 🔥 EVITAR SALTAR EL ÚLTIMO STEP
+    if (activeStep < steps.length - 1) {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }
   };
 
   const handleBack = () => {
@@ -680,6 +715,7 @@ export const CrearPartido = () => {
         categoria: formData.categoria,
         fechaHora: formData.fechaHora,
         duracionMinutos: formData.duracionMinutos,
+        jornada: formData.jornada || undefined, // 🔥 NUEVO CAMPO
         sede: {
           nombre: formData.sede.nombre,
           direccion: formData.sede.direccion
@@ -732,489 +768,782 @@ export const CrearPartido = () => {
               Información Básica
             </Typography>
             
+            {/* 🔥 CORREGIR CSS: Cambiar de Grid a Flexbox */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Paper elevation={0} sx={{ 
+                p: 4, 
+                backgroundColor: 'rgba(255, 255, 255, 0.03)', 
+                borderRadius: 3 
+              }}>
+                {/* 🔥 USAR FLEXBOX PARA MEJOR DISTRIBUCIÓN */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 3,
+                  alignItems: 'center'
+                }}>
+                  {/* Campo Torneo */}
+                  <Box sx={{ width: '100%', maxWidth: '600px' }}>
+                    <FormControl fullWidth error={errors.torneo} sx={{ mb: 3 }}>
+                      <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                       Torneo *
+                     </InputLabel>
+                     <Select
+                       value={formData.torneo}
+                       label="Torneo *"
+                       onChange={(e) => handleInputChange('torneo', e.target.value)}
+                       sx={{
+                         color: 'white',
+                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                         minHeight: '56px',
+                         '.MuiOutlinedInput-notchedOutline': {
+                           borderColor: 'rgba(255, 255, 255, 0.2)',
+                         },
+                         '&:hover .MuiOutlinedInput-notchedOutline': {
+                           borderColor: 'rgba(255, 255, 255, 0.4)',
+                         },
+                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                           borderColor: '#64b5f6',
+                         },
+                       }}
+                     >
+                       {torneos.map(torneo => (
+                         <MenuItem key={torneo._id} value={torneo._id}>
+                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                             <EmojiEventsIcon sx={{ color: '#FFD700' }} />
+                             <Box>
+                               <Typography variant="body1">{torneo.nombre}</Typography>
+                               <Typography variant="caption" color="text.secondary">
+                                 {torneo.equipos?.length || 0} equipos • {torneo.categorias?.length || 0} categorías
+                               </Typography>
+                             </Box>
+                           </Box>
+                         </MenuItem>
+                       ))}
+                     </Select>
+                   </FormControl>
+                 </Box>
+
+                 {/* Campo Categoría */}
+                 <Box sx={{ width: '100%', maxWidth: '600px' }}>
+                   <FormControl fullWidth>
+                     <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                       Categoría
+                     </InputLabel>
+                     <Select
+                       value={formData.categoria}
+                       label="Categoría"
+                       onChange={(e) => handleInputChange('categoria', e.target.value)}
+                       sx={{
+                         color: 'white',
+                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                         minHeight: '56px',
+                         '.MuiOutlinedInput-notchedOutline': {
+                           borderColor: 'rgba(255, 255, 255, 0.2)',
+                         },
+                         '&:hover .MuiOutlinedInput-notchedOutline': {
+                           borderColor: 'rgba(255, 255, 255, 0.4)',
+                         },
+                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                           borderColor: '#64b5f6',
+                         },
+                       }}
+                     >
+                       {categorias.map(categoria => (
+                         <MenuItem key={categoria.value} value={categoria.value}>
+                           {categoria.label}
+                         </MenuItem>
+                       ))}
+                     </Select>
+                   </FormControl>
+                 </Box>
+               </Box>
+             </Paper>
+           </Box>
+         </Stack>
+       );
+
+     case 1:
+       return (
+         <Stack spacing={4}>
+           <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+             <GroupIcon sx={{ color: '#64b5f6' }} />
+             Equipos Enfrentados
+           </Typography>
+           
+           {/* 🔥 NUEVO: Contenedor flexbox con altura fija */}
+           <Box sx={{ 
+             display: 'flex',
+             gap: 3,
+             minHeight: '400px', // Altura fija para consistencia
+             flexDirection: { xs: 'column', md: 'row' }, // Responsive
+             alignItems: 'stretch' // Hace que todos los elementos tengan la misma altura
+           }}>
+             {/* Equipo Local */}
+             <Box sx={{ 
+               flex: formData.equipoLocal && formData.equipoVisitante ? '1 1 300px' : '1 1 0',
+               minWidth: '280px',
+               display: 'flex',
+               flexDirection: 'column',
+               alignItems: 'center'
+             }}>
+               <Typography variant="h6" sx={{ 
+                 color: 'white', 
+                 mb: 3, 
+                 textAlign: 'center',
+                 height: '32px', // Altura fija para el título
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center'
+               }}>
+                 Equipo Local
+               </Typography>
+               <Box sx={{ 
+                 width: '100%', 
+                 flex: 1, // Ocupa todo el espacio disponible
+                 display: 'flex',
+                 justifyContent: 'center'
+               }}>
+                 <EquipoSelector
+                   label="Seleccionar Equipo Local *"
+                   value={formData.equipoLocal}
+                   onChange={(value) => handleInputChange('equipoLocal', value)}
+                   equipos={equipos}
+                   categoria={formData.categoria}
+                   equipoOpuesto={formData.equipoVisitante}
+                   error={errors.equipoLocal}
+                 />
+               </Box>
+             </Box>
+
+             {/* Equipo Visitante */}
+             <Box sx={{ 
+               flex: formData.equipoLocal && formData.equipoVisitante ? '1 1 300px' : '1 1 0',
+               minWidth: '280px',
+               display: 'flex',
+               flexDirection: 'column',
+               alignItems: 'center'
+             }}>
+               <Typography variant="h6" sx={{ 
+                 color: 'white', 
+                 mb: 3, 
+                 textAlign: 'center',
+                 height: '32px', // Altura fija para el título
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center'
+               }}>
+                 Equipo Visitante
+               </Typography>
+               <Box sx={{ 
+                 width: '100%', 
+                 flex: 1, // Ocupa todo el espacio disponible
+                 display: 'flex',
+                 justifyContent: 'center'
+               }}>
+                 <EquipoSelector
+                   label="Seleccionar Equipo Visitante *"
+                   value={formData.equipoVisitante}
+                   onChange={(value) => handleInputChange('equipoVisitante', value)}
+                   equipos={equipos}
+                   categoria={formData.categoria}
+                   equipoOpuesto={formData.equipoLocal}
+                   error={errors.equipoVisitante}
+                 />
+               </Box>
+             </Box>
+             {/* Preview mejorado - Solo aparece cuando ambos equipos están seleccionados */}
+             {formData.equipoLocal && formData.equipoVisitante && (
+               <Box sx={{ 
+                 flex: '1 1 350px',
+                 minWidth: '320px',
+                 display: 'flex',
+                 flexDirection: 'column',
+                 alignItems: 'center'
+               }}>
+                 <Typography variant="h6" sx={{ 
+                   color: '#4caf50', 
+                   mb: 3, 
+                   textAlign: 'center',
+                   height: '32px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   gap: 1
+                 }}>
+                   <CheckCircleIcon />
+                   Vista Previa del Partido
+                 </Typography>
+                 
+                 <Paper 
+                   elevation={0}
+                   sx={{ 
+                     p: 3, 
+                     backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                     borderRadius: 3,
+                     border: '1px solid rgba(76, 175, 80, 0.3)',
+                     width: '100%',
+                     flex: 1,
+                     display: 'flex',
+                     flexDirection: 'column',
+                     overflow: 'hidden'
+                   }}
+                 >
+                   {(() => {
+                     const equipoLocal = equipos.find(e => e._id === formData.equipoLocal);
+                     const equipoVisitante = equipos.find(e => e._id === formData.equipoVisitante);
+                     const torneoSeleccionado = torneos.find(t => t._id === formData.torneo);
+                     const recordLocal = estadisticasEquipos[formData.equipoLocal] || { partidosGanados: 0, partidosPerdidos: 0 };
+                     const recordVisitante = estadisticasEquipos[formData.equipoVisitante] || { partidosGanados: 0, partidosPerdidos: 0 };
+                     
+                     // Calcular porcentaje de victorias
+                     const calcularPorcentaje = (record) => {
+                       const total = record.ganados + record.perdidos + record.empates;
+                       return total > 0 ? ((record.ganados / total) * 100).toFixed(1) : '0.0';
+                     };
+                     
+                     return (
+                       <Box sx={{ 
+                         display: 'flex', 
+                         flexDirection: 'column',
+                         height: '100%',
+                         gap: 2
+                       }}>
+                         {/* Información del Torneo */}
+                         {torneoSeleccionado && (
+                           <Box sx={{ 
+                             backgroundColor: 'rgba(100, 181, 246, 0.15)',
+                             borderRadius: 2,
+                             p: 1.5,
+                             textAlign: 'center',
+                             borderLeft: '4px solid #64b5f6'
+                           }}>
+                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
+                               <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 18 }} />
+                               <Typography variant="subtitle2" sx={{ color: '#64b5f6', fontWeight: 'bold' }}>
+                                 {torneoSeleccionado.nombre}
+                               </Typography>
+                             </Box>
+                             <Typography variant="caption" color="text.secondary">
+                               {torneoSeleccionado.equipos?.length || 0} equipos participantes
+                             </Typography>
+                           </Box>
+                         )}
+
+                         {/* Información de Categoría */}
+                         {(equipoLocal?.categoria || formData.categoria) && (
+                           <Box sx={{ 
+                             backgroundColor: 'rgba(156, 39, 176, 0.15)',
+                             borderRadius: 2,
+                             p: 1.5,
+                             textAlign: 'center'
+                           }}>
+                             <Typography variant="subtitle2" sx={{ color: '#ab47bc', fontWeight: 'bold', mb: 0.5 }}>
+                               Categoría
+                             </Typography>
+                             <Chip 
+                               label={getCategoryName(equipoLocal?.categoria || formData.categoria)}
+                               size="small"
+                               sx={{ 
+                                 backgroundColor: '#ab47bc',
+                                 color: 'white',
+                                 fontWeight: 'bold'
+                               }}
+                             />
+                           </Box>
+                         )}
+
+                         {/* 🔥 ENFRENTAMIENTO HORIZONTAL */}
+                         <Box sx={{ 
+                           flex: 1,
+                           display: 'flex', 
+                           alignItems: 'center', 
+                           justifyContent: 'center',
+                           gap: 2,
+                           backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                           borderRadius: 2,
+                           p: 2
+                         }}>
+                           {/* Equipo Local */}
+                           <Box sx={{ 
+                             flex: 1,
+                             textAlign: 'center',
+                             backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                             borderRadius: 2,
+                             p: 2,
+                             border: '2px solid rgba(33, 150, 243, 0.3)'
+                           }}>
+                             <Avatar 
+                               src={equipoLocal?.imagen} 
+                               sx={{ 
+                                 width: 60, 
+                                 height: 60, 
+                                 mx: 'auto', 
+                                 mb: 1,
+                                 border: '2px solid #2196f3',
+                                 boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
+                               }}
+                             >
+                               <GroupIcon sx={{ fontSize: 30 }} />
+                             </Avatar>
+                             <Typography variant="subtitle2" color="white" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                               {equipoLocal?.nombre}
+                             </Typography>
+                             <Chip 
+                               label="LOCAL" 
+                               size="small" 
+                               color="primary"
+                               sx={{ fontSize: '0.65rem', mb: 1, height: 20 }}
+                             />
+                             
+                             {/* Récord del Equipo Local */}
+                             <Box sx={{ 
+                               backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                               borderRadius: 1,
+                               p: 1,
+                               border: '1px solid rgba(33, 150, 243, 0.4)'
+                             }}>
+                               <Typography variant="subtitle1" sx={{ 
+                                 color: '#2196f3', 
+                                 fontWeight: 'bold',
+                                 fontFamily: 'monospace',
+                                 fontSize: '1rem'
+                               }}>
+                                 {loadingEstadisticas ? '...' : formatearRecord(recordLocal)}
+                               </Typography>
+                               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                 {loadingEstadisticas ? '...' : `${calcularPorcentajeVictorias(recordLocal)}% victorias`}
+                               </Typography>
+                             </Box>
+                           </Box>
+                           
+                           {/* VS Central */}
+                           <Box sx={{ 
+                             display: 'flex',
+                             flexDirection: 'column',
+                             alignItems: 'center',
+                             justifyContent: 'center',
+                             px: 1
+                           }}>
+                             <Typography variant="h5" sx={{ 
+                               color: '#64b5f6', 
+                               fontWeight: 'bold',
+                               textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                               mb: 0.5
+                             }}>
+                               VS
+                             </Typography>
+                             
+                             {/* 🔥 ANÁLISIS RÁPIDO EN EL CENTRO */}
+                             {(() => {
+                               const diferencia = Math.abs(recordLocal.porcentajeVictorias - recordVisitante.porcentajeVictorias);
+                               
+                               let analisis = "";
+                               let color = "#64b5f6";
+                               
+                               if (diferencia < 10) {
+                                 analisis = "🔥 Parejo";
+                                 color = "#ff9800";
+                               } else if (diferencia < 25) {
+                                 analisis = "⚖️ Favorito";
+                                 color = "#2196f3";
+                               } else {
+                                 analisis = "🎯 Claro";
+                                 color = "#4caf50";
+                               }
+                               
+                               return (
+                                 <Typography variant="caption" sx={{ 
+                                   color: color, 
+                                   fontWeight: 'bold',
+                                   textAlign: 'center',
+                                   fontSize: '0.7rem'
+                                 }}>
+                                   {analisis}
+                                 </Typography>
+                               );
+                             })()}
+                           </Box>
+                           
+                           {/* Equipo Visitante */}
+                           <Box sx={{ 
+                             flex: 1,
+                             textAlign: 'center',
+                             backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                             borderRadius: 2,
+                             p: 2,
+                             border: '2px solid rgba(255, 152, 0, 0.3)'
+                           }}>
+                             <Avatar 
+                               src={equipoVisitante?.imagen} 
+                               sx={{ 
+                                 width: 60, 
+                                 height: 60, 
+                                 mx: 'auto', 
+                                 mb: 1,
+                                 border: '2px solid #ff9800',
+                                 boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)'
+                               }}
+                             >
+                               <GroupIcon sx={{ fontSize: 30 }} />
+                             </Avatar>
+                             <Typography variant="subtitle2" color="white" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                               {equipoVisitante?.nombre}
+                             </Typography>
+                             <Chip 
+                               label="VISITANTE" 
+                               size="small" 
+                               sx={{ 
+                                 fontSize: '0.65rem', 
+                                 mb: 1,
+                                 height: 20,
+                                 backgroundColor: '#ff9800',
+                                 color: 'white'
+                               }}
+                             />
+                             
+                             {/* Récord del Equipo Visitante */}
+                             <Box sx={{ 
+                               backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                               borderRadius: 1,
+                               p: 1,
+                               border: '1px solid rgba(255, 152, 0, 0.4)'
+                             }}>
+                               <Typography variant="subtitle1" sx={{ 
+                                 color: '#ff9800', 
+                                 fontWeight: 'bold',
+                                 fontFamily: 'monospace',
+                                 fontSize: '1rem'
+                               }}>
+                                 {loadingEstadisticas ? '...' : formatearRecord(recordVisitante)}
+                               </Typography>
+                               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                 {loadingEstadisticas ? '...' : `${calcularPorcentajeVictorias(recordVisitante)}% victorias`}
+                               </Typography>
+                             </Box>
+                           </Box>
+                         </Box>
+
+                         {/* Estado de validación */}
+                         <Box sx={{ 
+                           display: 'flex',
+                           justifyContent: 'center'
+                         }}>
+                           <Chip 
+                             icon={<CheckCircleIcon />}
+                             label="Equipos listos" 
+                             color="success"
+                             size="small"
+                             sx={{ fontWeight: 'bold' }}
+                           />
+                         </Box>
+                       </Box>
+                     );
+                   })()}
+                 </Paper>
+               </Box>
+             )}
+         </Box>
+       </Stack>
+     );
+
+      case 2:
+        return (
+          <Stack spacing={4}>
+            <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <ScheduleIcon sx={{ color: '#64b5f6' }} />
+              Programación del Partido
+            </Typography>
+            
             <Grid container spacing={4}>
               <Grid item xs={12}>
                 <Paper elevation={0} sx={{ p: 4, backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 3 }}>
-                  <FormControl fullWidth error={errors.torneo} sx={{ mb: 3 }}>
-                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      Torneo *
-                    </InputLabel>
-                    <Select
-                      value={formData.torneo}
-                      label="Torneo *"
-                      onChange={(e) => handleInputChange('torneo', e.target.value)}
-                      sx={{
-                        color: 'white',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        '.MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.4)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#64b5f6',
-                        },
-                      }}
-                    >
-                      {torneos.map(torneo => (
-                        <MenuItem key={torneo._id} value={torneo._id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <EmojiEventsIcon sx={{ color: '#FFD700' }} />
-                            <Box>
-                              <Typography variant="body1">{torneo.nombre}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {torneo.equipos?.length || 0} equipos • {torneo.categorias?.length || 0} categorías
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Grid container spacing={4}>
+                    <Grid item xs={12} md={8}>
+                      <TextField
+                        fullWidth
+                        type="datetime-local"
+                        label="Fecha y Hora del Partido *"
+                        value={formData.fechaHora}
+                        onChange={(e) => handleInputChange('fechaHora', e.target.value)}
+                        error={errors.fechaHora}
+                        helperText={errors.fechaHora ? 'Selecciona fecha y hora válidas' : 'Selecciona cuándo se jugará el partido'}
+                        InputLabelProps={{
+                          shrink: true,
+                          sx: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            color: 'white',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            '& fieldset': {
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgba(255, 255, 255, 0.4)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#64b5f6',
+                            },
+                          }
+                        }}
+                      />
+                    </Grid>
 
-                  <FormControl fullWidth>
-                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      Categoría
-                    </InputLabel>
-                    <Select
-                      value={formData.categoria}
-                      label="Categoría"
-                      onChange={(e) => handleInputChange('categoria', e.target.value)}
-                      sx={{
-                        color: 'white',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        '.MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.4)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#64b5f6',
-                        },
-                      }}
-                    >
-                      {categorias.map(categoria => (
-                        <MenuItem key={categoria.value} value={categoria.value}>
-                          {categoria.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth>
+                        <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Duración
+                        </InputLabel>
+                        <Select
+                          value={formData.duracionMinutos}
+                          label="Duración"
+                          onChange={(e) => handleInputChange('duracionMinutos', e.target.value)}
+                          sx={{
+                            color: 'white',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            '.MuiOutlinedInput-notchedOutline': {
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                            },
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: 'rgba(255, 255, 255, 0.4)',
+                            },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              borderColor: '#64b5f6',
+                            },
+                          }}
+                        >
+                          {duracionesComunes.map(duracion => (
+                            <MenuItem key={duracion.value} value={duracion.value}>
+                              {duracion.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    {/* 🔥 NUEVO CAMPO: Jornada */}
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Jornada"
+                        value={formData.jornada}
+                        onChange={(e) => handleInputChange('jornada', e.target.value)}
+                        placeholder="Ej: Jornada 1, Semifinal, Final, etc."
+                        helperText="Escribe el nombre de la jornada. Campo opcional."
+                        InputProps={{
+                          startAdornment: (
+                            <CalendarTodayIcon sx={{ color: '#64b5f6', mr: 1 }} />
+                          )
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            color: 'white',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            '& fieldset': {
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgba(255, 255, 255, 0.4)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#64b5f6',
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                          },
+                          '& .MuiFormHelperText-root': {
+                            color: 'rgba(255, 255, 255, 0.5)',
+                          }
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  {(formData.fechaHora || formData.jornada) && (
+                    <Box sx={{ mt: 3, p: 2, backgroundColor: 'rgba(100, 181, 246, 0.1)', borderRadius: 2 }}>
+                      <Typography variant="subtitle1" sx={{ color: '#64b5f6', mb: 1 }}>
+                        Resumen de Programación
+                      </Typography>
+                      {formData.fechaHora && (
+                        <>
+                          <Typography variant="body2" color="text.secondary">
+                            Fecha: {new Date(formData.fechaHora).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Hora: {new Date(formData.fechaHora).toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Duración: {formData.duracionMinutos} minutos
+                          </Typography>
+                        </>
+                      )}
+                      {formData.jornada && (
+                        <Typography variant="body2" color="text.secondary">
+                          Jornada: {formData.jornada}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
                 </Paper>
               </Grid>
             </Grid>
           </Stack>
         );
 
-      case 1:
-        return (
-          <Stack spacing={4}>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <GroupIcon sx={{ color: '#64b5f6' }} />
-              Equipos Enfrentados
-            </Typography>
-            
-            {/* 🔥 NUEVO: Contenedor flexbox con altura fija */}
-            <Box sx={{ 
-              display: 'flex',
-              gap: 3,
-              minHeight: '400px', // Altura fija para consistencia
-              flexDirection: { xs: 'column', md: 'row' }, // Responsive
-              alignItems: 'stretch' // Hace que todos los elementos tengan la misma altura
-            }}>
-              {/* Equipo Local */}
-              <Box sx={{ 
-                flex: formData.equipoLocal && formData.equipoVisitante ? '1 1 300px' : '1 1 0',
-                minWidth: '280px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <Typography variant="h6" sx={{ 
-                  color: 'white', 
-                  mb: 3, 
-                  textAlign: 'center',
-                  height: '32px', // Altura fija para el título
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  Equipo Local
-                </Typography>
-                <Box sx={{ 
-                  width: '100%', 
-                  flex: 1, // Ocupa todo el espacio disponible
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}>
-                  <EquipoSelector
-                    label="Seleccionar Equipo Local *"
-                    value={formData.equipoLocal}
-                    onChange={(value) => handleInputChange('equipoLocal', value)}
-                    equipos={equipos}
-                    categoria={formData.categoria}
-                    equipoOpuesto={formData.equipoVisitante}
-                    error={errors.equipoLocal}
-                  />
-                </Box>
-              </Box>
-
-              {/* Equipo Visitante */}
-              <Box sx={{ 
-                flex: formData.equipoLocal && formData.equipoVisitante ? '1 1 300px' : '1 1 0',
-                minWidth: '280px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <Typography variant="h6" sx={{ 
-                  color: 'white', 
-                  mb: 3, 
-                  textAlign: 'center',
-                  height: '32px', // Altura fija para el título
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  Equipo Visitante
-                </Typography>
-                <Box sx={{ 
-                  width: '100%', 
-                  flex: 1, // Ocupa todo el espacio disponible
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}>
-                  <EquipoSelector
-                    label="Seleccionar Equipo Visitante *"
-                    value={formData.equipoVisitante}
-                    onChange={(value) => handleInputChange('equipoVisitante', value)}
-                    equipos={equipos}
-                    categoria={formData.categoria}
-                    equipoOpuesto={formData.equipoLocal}
-                    error={errors.equipoVisitante}
-                  />
-                </Box>
-              </Box>
-              {/* Preview mejorado - Solo aparece cuando ambos equipos están seleccionados */}
-              {formData.equipoLocal && formData.equipoVisitante && (
-                <Box sx={{ 
-                  flex: '1 1 350px',
-                  minWidth: '320px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}>
-                  <Typography variant="h6" sx={{ 
-                    color: '#4caf50', 
-                    mb: 3, 
-                    textAlign: 'center',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 1
-                  }}>
-                    <CheckCircleIcon />
-                    Vista Previa del Partido
-                  </Typography>
-                  
-                  <Paper 
-                    elevation={0}
-                    sx={{ 
-                      p: 3, 
-                      backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                      borderRadius: 3,
-                      border: '1px solid rgba(76, 175, 80, 0.3)',
-                      width: '100%',
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {(() => {
-                      const equipoLocal = equipos.find(e => e._id === formData.equipoLocal);
-                      const equipoVisitante = equipos.find(e => e._id === formData.equipoVisitante);
-                      const torneoSeleccionado = torneos.find(t => t._id === formData.torneo);
-                      const recordLocal = estadisticasEquipos[formData.equipoLocal] || { partidosGanados: 0, partidosPerdidos: 0 };
-                      const recordVisitante = estadisticasEquipos[formData.equipoVisitante] || { partidosGanados: 0, partidosPerdidos: 0 };
-                      
-                      // Calcular porcentaje de victorias
-                      const calcularPorcentaje = (record) => {
-                        const total = record.ganados + record.perdidos + record.empates;
-                        return total > 0 ? ((record.ganados / total) * 100).toFixed(1) : '0.0';
-                      };
-                      
-                      return (
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          height: '100%',
-                          gap: 2
-                        }}>
-                          {/* Información del Torneo */}
-                          {torneoSeleccionado && (
-                            <Box sx={{ 
-                              backgroundColor: 'rgba(100, 181, 246, 0.15)',
-                              borderRadius: 2,
-                              p: 1.5,
-                              textAlign: 'center',
-                              borderLeft: '4px solid #64b5f6'
-                            }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
-                                <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 18 }} />
-                                <Typography variant="subtitle2" sx={{ color: '#64b5f6', fontWeight: 'bold' }}>
-                                  {torneoSeleccionado.nombre}
-                                </Typography>
-                              </Box>
-                              <Typography variant="caption" color="text.secondary">
-                                {torneoSeleccionado.equipos?.length || 0} equipos participantes
-                              </Typography>
-                            </Box>
-                          )}
-
-                          {/* Información de Categoría */}
-                          {(equipoLocal?.categoria || formData.categoria) && (
-                            <Box sx={{ 
-                              backgroundColor: 'rgba(156, 39, 176, 0.15)',
-                              borderRadius: 2,
-                              p: 1.5,
-                              textAlign: 'center'
-                            }}>
-                              <Typography variant="subtitle2" sx={{ color: '#ab47bc', fontWeight: 'bold', mb: 0.5 }}>
-                                Categoría
-                              </Typography>
-                              <Chip 
-                                label={getCategoryName(equipoLocal?.categoria || formData.categoria)}
-                                size="small"
-                                sx={{ 
-                                  backgroundColor: '#ab47bc',
-                                  color: 'white',
-                                  fontWeight: 'bold'
-                                }}
-                              />
-                            </Box>
-                          )}
-
-                          {/* 🔥 ENFRENTAMIENTO HORIZONTAL */}
-                          <Box sx={{ 
-                            flex: 1,
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            gap: 2,
-                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                            borderRadius: 2,
-                            p: 2
-                          }}>
-                            {/* Equipo Local */}
-                            <Box sx={{ 
-                              flex: 1,
-                              textAlign: 'center',
-                              backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                              borderRadius: 2,
-                              p: 2,
-                              border: '2px solid rgba(33, 150, 243, 0.3)'
-                            }}>
-                              <Avatar 
-                                src={equipoLocal?.imagen} 
-                                sx={{ 
-                                  width: 60, 
-                                  height: 60, 
-                                  mx: 'auto', 
-                                  mb: 1,
-                                  border: '2px solid #2196f3',
-                                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
-                                }}
-                              >
-                                <GroupIcon sx={{ fontSize: 30 }} />
-                              </Avatar>
-                              <Typography variant="subtitle2" color="white" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                {equipoLocal?.nombre}
-                              </Typography>
-                              <Chip 
-                                label="LOCAL" 
-                                size="small" 
-                                color="primary"
-                                sx={{ fontSize: '0.65rem', mb: 1, height: 20 }}
-                              />
-                              
-                              {/* Récord del Equipo Local */}
-                              <Box sx={{ 
-                                backgroundColor: 'rgba(33, 150, 243, 0.2)',
-                                borderRadius: 1,
-                                p: 1,
-                                border: '1px solid rgba(33, 150, 243, 0.4)'
-                              }}>
-                                <Typography variant="subtitle1" sx={{ 
-                                  color: '#2196f3', 
-                                  fontWeight: 'bold',
-                                  fontFamily: 'monospace',
-                                  fontSize: '1rem'
-                                }}>
-                                  {loadingEstadisticas ? '...' : formatearRecord(recordLocal)}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                  {loadingEstadisticas ? '...' : `${calcularPorcentajeVictorias(recordLocal)}% victorias`}
-                                </Typography>
-                              </Box>
-                            </Box>
-                            
-                            {/* VS Central */}
-                            <Box sx={{ 
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              px: 1
-                            }}>
-                              <Typography variant="h5" sx={{ 
-                                color: '#64b5f6', 
-                                fontWeight: 'bold',
-                                textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-                                mb: 0.5
-                              }}>
-                                VS
-                              </Typography>
-                              
-                              {/* 🔥 ANÁLISIS RÁPIDO EN EL CENTRO */}
-                              {(() => {
-                                const diferencia = Math.abs(recordLocal.porcentajeVictorias - recordVisitante.porcentajeVictorias);
-                                
-                                let analisis = "";
-                                let color = "#64b5f6";
-                                
-                                if (diferencia < 10) {
-                                  analisis = "🔥 Parejo";
-                                  color = "#ff9800";
-                                } else if (diferencia < 25) {
-                                  analisis = "⚖️ Favorito";
-                                  color = "#2196f3";
-                                } else {
-                                  analisis = "🎯 Claro";
-                                  color = "#4caf50";
-                                }
-                                
-                                return (
-                                  <Typography variant="caption" sx={{ 
-                                    color: color, 
-                                    fontWeight: 'bold',
-                                    textAlign: 'center',
-                                    fontSize: '0.7rem'
-                                  }}>
-                                    {analisis}
-                                  </Typography>
-                                );
-                              })()}
-                            </Box>
-                            
-                            {/* Equipo Visitante */}
-                            <Box sx={{ 
-                              flex: 1,
-                              textAlign: 'center',
-                              backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                              borderRadius: 2,
-                              p: 2,
-                              border: '2px solid rgba(255, 152, 0, 0.3)'
-                            }}>
-                              <Avatar 
-                                src={equipoVisitante?.imagen} 
-                                sx={{ 
-                                  width: 60, 
-                                  height: 60, 
-                                  mx: 'auto', 
-                                  mb: 1,
-                                  border: '2px solid #ff9800',
-                                  boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)'
-                                }}
-                              >
-                                <GroupIcon sx={{ fontSize: 30 }} />
-                              </Avatar>
-                              <Typography variant="subtitle2" color="white" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                {equipoVisitante?.nombre}
-                              </Typography>
-                              <Chip 
-                                label="VISITANTE" 
-                                size="small" 
-                                sx={{ 
-                                  fontSize: '0.65rem', 
-                                  mb: 1,
-                                  height: 20,
-                                  backgroundColor: '#ff9800',
-                                  color: 'white'
-                                }}
-                              />
-                              
-                              {/* Récord del Equipo Visitante */}
-                              <Box sx={{ 
-                                backgroundColor: 'rgba(255, 152, 0, 0.2)',
-                                borderRadius: 1,
-                                p: 1,
-                                border: '1px solid rgba(255, 152, 0, 0.4)'
-                              }}>
-                                <Typography variant="subtitle1" sx={{ 
-                                  color: '#ff9800', 
-                                  fontWeight: 'bold',
-                                  fontFamily: 'monospace',
-                                  fontSize: '1rem'
-                                }}>
-                                  {loadingEstadisticas ? '...' : formatearRecord(recordVisitante)}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                  {loadingEstadisticas ? '...' : `${calcularPorcentajeVictorias(recordVisitante)}% victorias`}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </Box>
-
-                          {/* Estado de validación */}
-                          <Box sx={{ 
-                            display: 'flex',
-                            justifyContent: 'center'
-                          }}>
-                            <Chip 
-                              icon={<CheckCircleIcon />}
-                              label="Equipos listos" 
-                              color="success"
-                              size="small"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </Box>
-                        </Box>
-                      );
-                    })()}
-                  </Paper>
-                </Box>
-              )}
-          </Box>
-        </Stack>
-      );
-
-     case 2:
+      case 3:
        return (
          <Stack spacing={4}>
            <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-             <ScheduleIcon sx={{ color: '#64b5f6' }} />
-             Programación del Partido
+             <GavelIcon sx={{ color: '#64b5f6' }} />
+             Asignación de Árbitros
+           </Typography>
+           
+           {/* 🔥 NUEVO: Contenedor flexbox principal */}
+           <Box sx={{ 
+             display: 'flex',
+             flexDirection: 'column',
+             gap: 4,
+             minHeight: '500px' // Altura mínima para consistencia
+           }}>
+             {/* Árbitro Principal - Ocupa todo el ancho */}
+             <Box sx={{ 
+               display: 'flex',
+               justifyContent: 'center',
+               width: '100%'
+             }}>
+               <Box sx={{ 
+                 width: '100%', 
+                 maxWidth: '600px', // Ancho máximo para centrar
+                 display: 'flex',
+                 flexDirection: 'column',
+                 alignItems: 'center'
+               }}>
+                 <Typography variant="h6" sx={{ 
+                   color: 'white', 
+                   mb: 3, 
+                   textAlign: 'center',
+                   height: '32px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center'
+                 }}>
+                   Árbitro Principal *
+                 </Typography>
+                 <ArbitroSelector
+                   label="Árbitro Principal"
+                   value={formData.arbitros.principal}
+                   onChange={(value) => handleArbitroChange('principal', value)}
+                   arbitros={arbitros}
+                   arbitrosSeleccionados={arbitrosSeleccionados}
+                   error={errors.arbitroPrincipal}
+                 />
+               </Box>
+             </Box>
+
+             {/* Árbitros opcionales - Lado a lado */}
+             <Box sx={{ 
+               display: 'flex',
+               gap: 3,
+               flexDirection: { xs: 'column', md: 'row' }, // Responsive
+               alignItems: 'stretch' // Misma altura
+             }}>
+               {/* Back Judge */}
+               <Box sx={{ 
+                 flex: '1 1 0',
+                 minWidth: '280px',
+                 display: 'flex',
+                 flexDirection: 'column',
+                 alignItems: 'center'
+               }}>
+                 <Typography variant="h6" sx={{ 
+                   color: 'white', 
+                   mb: 3, 
+                   textAlign: 'center',
+                   height: '32px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center'
+                 }}>
+                   Back Judge (Opcional)
+                 </Typography>
+                 <Box sx={{ width: '100%', flex: 1 }}>
+                   <ArbitroSelector
+                     label="Back Judge"
+                     value={formData.arbitros.backeador}
+                     onChange={(value) => handleArbitroChange('backeador', value)}
+                     arbitros={arbitros}
+                     arbitrosSeleccionados={arbitrosSeleccionados}
+                     opcional={true}
+                   />
+                 </Box>
+               </Box>
+
+               {/* Estadístico */}
+               <Box sx={{ 
+                 flex: '1 1 0',
+                 minWidth: '280px',
+                 display: 'flex',
+                 flexDirection: 'column',
+                 alignItems: 'center'
+               }}>
+                 <Typography variant="h6" sx={{ 
+                   color: 'white', 
+                   mb: 3, 
+                   textAlign: 'center',
+                   height: '32px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center'
+                 }}>
+                   Estadístico (Opcional)
+                 </Typography>
+                 <Box sx={{ width: '100%', flex: 1 }}>
+                   <ArbitroSelector
+                     label="Estadístico"
+                     value={formData.arbitros.estadistico}
+                     onChange={(value) => handleArbitroChange('estadistico', value)}
+                     arbitros={arbitros}
+                     arbitrosSeleccionados={arbitrosSeleccionados}
+                     opcional={true}
+                   />
+                 </Box>
+               </Box>
+             </Box>
+           </Box>
+         </Stack>
+       );
+
+     case 4:
+       return (
+         <Stack spacing={4}>
+           <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+             <LocationIcon sx={{ color: '#64b5f6' }} />
+             Ubicación del Partido
            </Typography>
            
            <Grid container spacing={4}>
              <Grid item xs={12}>
-               <Paper elevation={0} sx={{ p: 4, backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 3 }}>
+                <Paper elevation={0} sx={{ p: 4, backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 3 }}>
                  <Grid container spacing={4}>
-                   <Grid item xs={12} md={8}>
+                   <Grid item xs={12} md={6}>
                      <TextField
                        fullWidth
-                       type="datetime-local"
-                       label="Fecha y Hora del Partido *"
-                       value={formData.fechaHora}
-                       onChange={(e) => handleInputChange('fechaHora', e.target.value)}
-                       error={errors.fechaHora}
-                       helperText={errors.fechaHora ? 'Selecciona fecha y hora válidas' : 'Selecciona cuándo se jugará el partido'}
+                       label="Nombre de la Sede"
+                       value={formData.sede.nombre}
+                       onChange={(e) => handleSedeChange('nombre', e.target.value)}
+                       placeholder="Ej: Campo de Fútbol Central"
+                       helperText="Nombre del lugar donde se jugará (opcional)"
                        InputLabelProps={{
-                         shrink: true,
                          sx: { color: 'rgba(255, 255, 255, 0.7)' }
                        }}
                        sx={{
@@ -1235,61 +1564,82 @@ export const CrearPartido = () => {
                      />
                    </Grid>
 
-                   <Grid item xs={12} md={4}>
-                     <FormControl fullWidth>
-                       <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                         Duración
-                       </InputLabel>
-                       <Select
-                         value={formData.duracionMinutos}
-                         label="Duración"
-                         onChange={(e) => handleInputChange('duracionMinutos', e.target.value)}
-                         sx={{
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       fullWidth
+                       label="Dirección"
+                       value={formData.sede.direccion}
+                       onChange={(e) => handleSedeChange('direccion', e.target.value)}
+                       placeholder="Ej: Av. Principal #123, Colonia Centro"
+                       helperText="Dirección completa del lugar (opcional)"
+                       InputLabelProps={{
+                         sx: { color: 'rgba(255, 255, 255, 0.7)' }
+                       }}
+                       sx={{
+                         '& .MuiOutlinedInput-root': {
                            color: 'white',
                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                           '.MuiOutlinedInput-notchedOutline': {
+                           '& fieldset': {
                              borderColor: 'rgba(255, 255, 255, 0.2)',
                            },
-                           '&:hover .MuiOutlinedInput-notchedOutline': {
+                           '&:hover fieldset': {
                              borderColor: 'rgba(255, 255, 255, 0.4)',
                            },
-                           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                           '&.Mui-focused fieldset': {
                              borderColor: '#64b5f6',
                            },
-                         }}
-                       >
-                         {duracionesComunes.map(duracion => (
-                           <MenuItem key={duracion.value} value={duracion.value}>
-                             {duracion.label}
-                           </MenuItem>
-                         ))}
-                       </Select>
-                     </FormControl>
+                         }
+                       }}
+                     />
+                   </Grid>
+
+                   <Grid item xs={12}>
+                     <TextField
+                       fullWidth
+                       multiline
+                       rows={4}
+                       label="Observaciones"
+                       value={formData.observaciones}
+                       onChange={(e) => handleInputChange('observaciones', e.target.value)}
+                       placeholder="Información adicional sobre el partido, instrucciones especiales, etc."
+                       helperText="Cualquier información adicional que sea útil para los equipos y árbitros"
+                       InputLabelProps={{
+                         sx: { color: 'rgba(255, 255, 255, 0.7)' }
+                       }}
+                       sx={{
+                         '& .MuiOutlinedInput-root': {
+                           color: 'white',
+                           backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                           '& fieldset': {
+                             borderColor: 'rgba(255, 255, 255, 0.2)',
+                           },
+                           '&:hover fieldset': {
+                             borderColor: 'rgba(255, 255, 255, 0.4)',
+                           },
+                           '&.Mui-focused fieldset': {
+                             borderColor: '#64b5f6',
+                           },
+                         }
+                       }}
+                     />
                    </Grid>
                  </Grid>
 
-                 {formData.fechaHora && (
+                 {(formData.sede.nombre || formData.sede.direccion) && (
                    <Box sx={{ mt: 3, p: 2, backgroundColor: 'rgba(100, 181, 246, 0.1)', borderRadius: 2 }}>
                      <Typography variant="subtitle1" sx={{ color: '#64b5f6', mb: 1 }}>
-                       Resumen de Programación
+                       Información de la Sede
                      </Typography>
-                     <Typography variant="body2" color="text.secondary">
-                       Fecha: {new Date(formData.fechaHora).toLocaleDateString('es-ES', { 
-                         weekday: 'long', 
-                         year: 'numeric', 
-                         month: 'long', 
-                         day: 'numeric' 
-                       })}
-                     </Typography>
-                     <Typography variant="body2" color="text.secondary">
-                       Hora: {new Date(formData.fechaHora).toLocaleTimeString('es-ES', { 
-                         hour: '2-digit', 
-                         minute: '2-digit' 
-                       })}
-                     </Typography>
-                     <Typography variant="body2" color="text.secondary">
-                       Duración: {formData.duracionMinutos} minutos
-                     </Typography>
+                     {formData.sede.nombre && (
+                       <Typography variant="body2" color="text.secondary">
+                         Sede: {formData.sede.nombre}
+                       </Typography>
+                     )}
+                     {formData.sede.direccion && (
+                       <Typography variant="body2" color="text.secondary">
+                         Dirección: {formData.sede.direccion}
+                       </Typography>
+                     )}
                    </Box>
                  )}
                </Paper>
@@ -1298,578 +1648,331 @@ export const CrearPartido = () => {
          </Stack>
        );
 
-       case 3:
-        return (
-          <Stack spacing={4}>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <GavelIcon sx={{ color: '#64b5f6' }} />
-              Asignación de Árbitros
-            </Typography>
-            
-            {/* 🔥 NUEVO: Contenedor flexbox principal */}
+     default:
+       return 'Unknown step';
+  }
+};
+
+// Animaciones
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { staggerChildren: 0.1 } 
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { 
+    y: 0, 
+    opacity: 1,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const cardStyle = {
+  backgroundColor: 'rgba(0, 0, 0, 0.85)',
+  borderRadius: 3,
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
+  }
+};
+
+if (loadingData) {
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center',
+      minHeight: '400px' 
+    }}>
+      <CircularProgress size={60} />
+      <Typography sx={{ ml: 2, color: 'white' }}>Cargando datos...</Typography>
+    </Box>
+  );
+}
+
+return (
+  <Box sx={{ 
+    width: '100%', 
+    p: { xs: 2, md: 4 },
+    backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
+    minHeight: 'calc(100vh - 64px)',
+    borderRadius: 2
+  }}>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      {/* Breadcrumbs */}
+      <motion.div variants={itemVariants}>
+        <Breadcrumbs 
+          separator={<NavigateNextIcon fontSize="small" />}
+          sx={{ mb: 3, color: 'rgba(255,255,255,0.7)' }}
+        >
+          <Typography 
+            component="span" 
+            sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
+            onClick={() => navigate('/partidos')}
+          >
+            Partidos
+          </Typography>
+          <Typography color="primary">Crear Partido</Typography>
+        </Breadcrumbs>
+      </motion.div>
+
+      {/* Header */}
+      <motion.div variants={itemVariants}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 4
+        }}>
+          <Typography variant="h4" component="h1" sx={{ 
+            color: 'white',
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+            fontWeight: 'bold',
+            borderLeft: '4px solid #3f51b5',
+            pl: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2
+          }}>
+            <SportsFootballIcon sx={{ color: '#64b5f6' }} />
+            Crear Nuevo Partido
+          </Typography>
+          
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/partidos')}
+            sx={{
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&:hover': {
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)'
+              }
+            }}
+          >
+            Volver
+          </Button>
+        </Box>
+      </motion.div>
+
+      {/* Stepper */}
+      <motion.div variants={itemVariants}>
+        <Card sx={{ ...cardStyle, mb: 4 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel sx={{ 
+                    '& .MuiStepLabel-label': { 
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      '&.Mui-active': {
+                        color: '#64b5f6'
+                      },
+                      '&.Mui-completed': {
+                        color: '#4caf50'
+                      }
+                    }
+                  }}>
+                    {label}
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Formulario */}
+      <motion.div variants={itemVariants}>
+        <Card sx={cardStyle}>
+          <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+            <form onSubmit={handleSubmit}>
+              {/* Contenido del step actual */}
+              <Box sx={{ minHeight: '400px', mb: 4 }}>
+                {renderStepContent(activeStep)}
+              </Box>
+
+              {/* Error General */}
+              {errors.general && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {errors.general}
+                </Alert>
+              )}
+
+              {/* Botones de navegación */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                pt: 3,
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <Button
+                  disabled={activeStep === 0}
+                  onClick={handleBack}
+                  variant="outlined"
+                  sx={{
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    '&:hover': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    '&:disabled': {
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.3)'
+                    }
+                  }}
+                >
+                  Anterior
+                </Button>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <InfoIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Paso {activeStep + 1} de {steps.length}
+                  </Typography>
+                </Box>
+
+                {activeStep === steps.length - 1 ? (
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                    disabled={loading}
+                    onClick={handleSubmit} // 🔥 AGREGAR onClick para el último step
+                    sx={{
+                      background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #388e3c 30%, #4caf50 90%)',
+                      },
+                      '&:disabled': {
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        color: 'rgba(255, 255, 255, 0.3)'
+                      },
+                      px: 4,
+                      py: 1.5
+                    }}
+                  >
+                    {loading ? 'Creando...' : 'Crear Partido'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    sx={{
+                      background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                      px: 4,
+                      py: 1.5
+                    }}
+                  >
+                    Siguiente
+                  </Button>
+                )}
+              </Box>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Información de Ayuda */}
+      <motion.div variants={itemVariants}>
+        <Card sx={{ ...cardStyle, mt: 3 }}>
+          <CardContent sx={{ p: 3 }}>
             <Box sx={{ 
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minHeight: '500px' // Altura mínima para consistencia
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2, 
+              mb: 2
             }}>
-              {/* Árbitro Principal - Ocupa todo el ancho */}
-              <Box sx={{ 
-                display: 'flex',
-                justifyContent: 'center',
-                width: '100%'
-              }}>
-                <Box sx={{ 
-                  width: '100%', 
-                  maxWidth: '600px', // Ancho máximo para centrar
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}>
-                  <Typography variant="h6" sx={{ 
-                    color: 'white', 
-                    mb: 3, 
-                    textAlign: 'center',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    Árbitro Principal *
-                  </Typography>
-                  <ArbitroSelector
-                    label="Árbitro Principal"
-                    value={formData.arbitros.principal}
-                    onChange={(value) => handleArbitroChange('principal', value)}
-                    arbitros={arbitros}
-                    arbitrosSeleccionados={arbitrosSeleccionados}
-                    error={errors.arbitroPrincipal}
-                  />
-                </Box>
-              </Box>
-
-              {/* Árbitros opcionales - Lado a lado */}
-              <Box sx={{ 
-                display: 'flex',
-                gap: 3,
-                flexDirection: { xs: 'column', md: 'row' }, // Responsive
-                alignItems: 'stretch' // Misma altura
-              }}>
-                {/* Back Judge */}
-                <Box sx={{ 
-                  flex: '1 1 0',
-                  minWidth: '280px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}>
-                  <Typography variant="h6" sx={{ 
-                    color: 'white', 
-                    mb: 3, 
-                    textAlign: 'center',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    Back Judge (Opcional)
-                  </Typography>
-                  <Box sx={{ width: '100%', flex: 1 }}>
-                    <ArbitroSelector
-                      label="Back Judge"
-                      value={formData.arbitros.backeador}
-                      onChange={(value) => handleArbitroChange('backeador', value)}
-                      arbitros={arbitros}
-                      arbitrosSeleccionados={arbitrosSeleccionados}
-                      opcional={true}
-                    />
-                  </Box>
-                </Box>
-
-                {/* Estadístico */}
-                <Box sx={{ 
-                  flex: '1 1 0',
-                  minWidth: '280px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}>
-                  <Typography variant="h6" sx={{ 
-                    color: 'white', 
-                    mb: 3, 
-                    textAlign: 'center',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    Estadístico (Opcional)
-                  </Typography>
-                  <Box sx={{ width: '100%', flex: 1 }}>
-                    <ArbitroSelector
-                      label="Estadístico"
-                      value={formData.arbitros.estadistico}
-                      onChange={(value) => handleArbitroChange('estadistico', value)}
-                      arbitros={arbitros}
-                      arbitrosSeleccionados={arbitrosSeleccionados}
-                      opcional={true}
-                    />
-                  </Box>
-                </Box>
-              </Box>
+              <InfoIcon sx={{ color: '#64b5f6' }} />
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                Consejos para Crear Partidos
+              </Typography>
             </Box>
-          </Stack>
-        );
 
-      case 4:
-        return (
-          <Stack spacing={4}>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <LocationIcon sx={{ color: '#64b5f6' }} />
-              Ubicación del Partido
-            </Typography>
-            
-            <Grid container spacing={4}>
-              <Grid item xs={12}>
-                <Paper elevation={0} sx={{ p: 4, backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 3 }}>
-                  <Grid container spacing={4}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Nombre de la Sede"
-                        value={formData.sede.nombre}
-                        onChange={(e) => handleSedeChange('nombre', e.target.value)}
-                        placeholder="Ej: Campo de Fútbol Central"
-                        helperText="Nombre del lugar donde se jugará (opcional)"
-                        InputLabelProps={{
-                          sx: { color: 'rgba(255, 255, 255, 0.7)' }
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            color: 'white',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            '& fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.4)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#64b5f6',
-                            },
-                          }
-                        }}
-                      />
-                    </Grid>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  backgroundColor: 'rgba(100, 181, 246, 0.1)',
+                  borderRadius: 2,
+                  p: 2
+                }}>
+                  <ScheduleIcon sx={{ color: '#64b5f6' }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      Programación
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Programa con al menos 24 horas de anticipación
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
 
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Dirección"
-                        value={formData.sede.direccion}
-                        onChange={(e) => handleSedeChange('direccion', e.target.value)}
-                        placeholder="Ej: Av. Principal #123, Colonia Centro"
-                        helperText="Dirección completa del lugar (opcional)"
-                        InputLabelProps={{
-                          sx: { color: 'rgba(255, 255, 255, 0.7)' }
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            color: 'white',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            '& fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.4)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#64b5f6',
-                            },
-                          }
-                        }}
-                      />
-                    </Grid>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                  borderRadius: 2,
+                  p: 2
+                }}>
+                  <GavelIcon sx={{ color: '#4caf50' }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      Árbitros
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Verifica disponibilidad antes de asignar
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
 
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        label="Observaciones"
-                        value={formData.observaciones}
-                        onChange={(e) => handleInputChange('observaciones', e.target.value)}
-                        placeholder="Información adicional sobre el partido, instrucciones especiales, etc."
-                        helperText="Cualquier información adicional que sea útil para los equipos y árbitros"
-                        InputLabelProps={{
-                          sx: { color: 'rgba(255, 255, 255, 0.7)' }
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            color: 'white',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            '& fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.2)',
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(255, 255, 255, 0.4)',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#64b5f6',
-                            },
-                          }
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-
-                  {(formData.sede.nombre || formData.sede.direccion) && (
-                    <Box sx={{ mt: 3, p: 2, backgroundColor: 'rgba(100, 181, 246, 0.1)', borderRadius: 2 }}>
-                      <Typography variant="subtitle1" sx={{ color: '#64b5f6', mb: 1 }}>
-                        Información de la Sede
-                      </Typography>
-                      {formData.sede.nombre && (
-                        <Typography variant="body2" color="text.secondary">
-                          Sede: {formData.sede.nombre}
-                        </Typography>
-                      )}
-                      {formData.sede.direccion && (
-                        <Typography variant="body2" color="text.secondary">
-                          Dirección: {formData.sede.direccion}
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-                </Paper>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                  borderRadius: 2,
+                  p: 2
+                }}>
+                  <LocationIcon sx={{ color: '#ff9800' }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      Ubicación
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Incluye direcciones claras
+                    </Typography>
+                  </Box>
+                </Box>
               </Grid>
             </Grid>
-          </Stack>
-        );
-
-      default:
-        return 'Unknown step';
-   }
- };
-
- // Animaciones
- const containerVariants = {
-   hidden: { opacity: 0 },
-   visible: { 
-     opacity: 1,
-     transition: { staggerChildren: 0.1 } 
-   }
- };
-
- const itemVariants = {
-   hidden: { y: 20, opacity: 0 },
-   visible: { 
-     y: 0, 
-     opacity: 1,
-     transition: { duration: 0.6, ease: "easeOut" }
-   }
- };
-
- const cardStyle = {
-   backgroundColor: 'rgba(0, 0, 0, 0.85)',
-   borderRadius: 3,
-   border: '1px solid rgba(255, 255, 255, 0.1)',
-   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-   '&:hover': {
-     transform: 'translateY(-2px)',
-     boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
-   }
- };
-
- if (loadingData) {
-   return (
-     <Box sx={{ 
-       display: 'flex', 
-       justifyContent: 'center', 
-       alignItems: 'center',
-       minHeight: '400px' 
-     }}>
-       <CircularProgress size={60} />
-       <Typography sx={{ ml: 2, color: 'white' }}>Cargando datos...</Typography>
-     </Box>
-   );
- }
-
- return (
-   <Box sx={{ 
-     width: '100%', 
-     p: { xs: 2, md: 4 },
-     backgroundImage: 'linear-gradient(to bottom right, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.95))',
-     minHeight: 'calc(100vh - 64px)',
-     borderRadius: 2
-   }}>
-     <motion.div
-       initial="hidden"
-       animate="visible"
-       variants={containerVariants}
-     >
-       {/* Breadcrumbs */}
-       <motion.div variants={itemVariants}>
-         <Breadcrumbs 
-           separator={<NavigateNextIcon fontSize="small" />}
-           sx={{ mb: 3, color: 'rgba(255,255,255,0.7)' }}
-         >
-           <Typography 
-             component="span" 
-             sx={{ color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
-             onClick={() => navigate('/partidos')}
-           >
-             Partidos
-           </Typography>
-           <Typography color="primary">Crear Partido</Typography>
-         </Breadcrumbs>
-       </motion.div>
-
-       {/* Header */}
-       <motion.div variants={itemVariants}>
-         <Box sx={{ 
-           display: 'flex', 
-           justifyContent: 'space-between', 
-           alignItems: 'center', 
-           mb: 4
-         }}>
-           <Typography variant="h4" component="h1" sx={{ 
-             color: 'white',
-             textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-             fontWeight: 'bold',
-             borderLeft: '4px solid #3f51b5',
-             pl: 2,
-             display: 'flex',
-             alignItems: 'center',
-             gap: 2
-           }}>
-             <SportsFootballIcon sx={{ color: '#64b5f6' }} />
-             Crear Nuevo Partido
-           </Typography>
-           
-           <Button
-             variant="outlined"
-             startIcon={<ArrowBackIcon />}
-             onClick={() => navigate('/partidos')}
-             sx={{
-               borderColor: 'rgba(255, 255, 255, 0.3)',
-               color: 'rgba(255, 255, 255, 0.7)',
-               '&:hover': {
-                 borderColor: 'rgba(255, 255, 255, 0.5)',
-                 backgroundColor: 'rgba(255, 255, 255, 0.05)'
-               }
-             }}
-           >
-             Volver
-           </Button>
-         </Box>
-       </motion.div>
-
-       {/* Stepper */}
-       <motion.div variants={itemVariants}>
-         <Card sx={{ ...cardStyle, mb: 4 }}>
-           <CardContent sx={{ p: 4 }}>
-             <Stepper activeStep={activeStep} alternativeLabel>
-               {steps.map((label) => (
-                 <Step key={label}>
-                   <StepLabel sx={{ 
-                     '& .MuiStepLabel-label': { 
-                       color: 'rgba(255, 255, 255, 0.7)',
-                       '&.Mui-active': {
-                         color: '#64b5f6'
-                       },
-                       '&.Mui-completed': {
-                         color: '#4caf50'
-                       }
-                     }
-                   }}>
-                     {label}
-                   </StepLabel>
-                 </Step>
-               ))}
-             </Stepper>
-           </CardContent>
-         </Card>
-       </motion.div>
-
-       {/* Formulario */}
-       <motion.div variants={itemVariants}>
-         <Card sx={cardStyle}>
-           <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-             <form onSubmit={handleSubmit}>
-               {/* Contenido del step actual */}
-               <Box sx={{ minHeight: '400px', mb: 4 }}>
-                 {renderStepContent(activeStep)}
-               </Box>
-
-               {/* Error General */}
-               {errors.general && (
-                 <Alert severity="error" sx={{ mb: 3 }}>
-                   {errors.general}
-                 </Alert>
-               )}
-
-               {/* Botones de navegación */}
-               <Box sx={{ 
-                 display: 'flex', 
-                 justifyContent: 'space-between', 
-                 alignItems: 'center',
-                 pt: 3,
-                 borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-               }}>
-                 <Button
-                   disabled={activeStep === 0}
-                   onClick={handleBack}
-                   variant="outlined"
-                   sx={{
-                     borderColor: 'rgba(255, 255, 255, 0.3)',
-                     color: 'rgba(255, 255, 255, 0.7)',
-                     '&:hover': {
-                       borderColor: 'rgba(255, 255, 255, 0.5)',
-                       backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                     },
-                     '&:disabled': {
-                       borderColor: 'rgba(255, 255, 255, 0.1)',
-                       color: 'rgba(255, 255, 255, 0.3)'
-                     }
-                   }}
-                 >
-                   Anterior
-                 </Button>
-
-                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                   <InfoIcon sx={{ color: '#64b5f6', fontSize: 20 }} />
-                   <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                     Paso {activeStep + 1} de {steps.length}
-                   </Typography>
-                 </Box>
-
-                 {activeStep === steps.length - 1 ? (
-                   <Button
-                     type="submit"
-                     variant="contained"
-                     size="large"
-                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-                     disabled={loading}
-                     sx={{
-                       background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
-                       boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
-                       '&:hover': {
-                         background: 'linear-gradient(45deg, #388e3c 30%, #4caf50 90%)',
-                       },
-                       '&:disabled': {
-                         background: 'rgba(255, 255, 255, 0.1)',
-                         color: 'rgba(255, 255, 255, 0.3)'
-                       },
-                       px: 4,
-                       py: 1.5
-                     }}
-                   >
-                     {loading ? 'Creando...' : 'Crear Partido'}
-                   </Button>
-                 ) : (
-                   <Button
-                     variant="contained"
-                     onClick={handleNext}
-                     sx={{
-                       background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                       boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                       px: 4,
-                       py: 1.5
-                     }}
-                   >
-                     Siguiente
-                   </Button>
-                 )}
-               </Box>
-             </form>
-           </CardContent>
-         </Card>
-       </motion.div>
-
-       {/* Información de Ayuda */}
-       <motion.div variants={itemVariants}>
-         <Card sx={{ ...cardStyle, mt: 3 }}>
-           <CardContent sx={{ p: 3 }}>
-             <Box sx={{ 
-               display: 'flex', 
-               alignItems: 'center', 
-               gap: 2, 
-               mb: 2
-             }}>
-               <InfoIcon sx={{ color: '#64b5f6' }} />
-               <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                 Consejos para Crear Partidos
-               </Typography>
-             </Box>
-
-             <Grid container spacing={3}>
-               <Grid item xs={12} md={4}>
-                 <Box sx={{ 
-                   display: 'flex', 
-                   alignItems: 'center', 
-                   gap: 2,
-                   backgroundColor: 'rgba(100, 181, 246, 0.1)',
-                   borderRadius: 2,
-                   p: 2
-                 }}>
-                   <ScheduleIcon sx={{ color: '#64b5f6' }} />
-                   <Box>
-                     <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
-                       Programación
-                     </Typography>
-                     <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                       Programa con al menos 24 horas de anticipación
-                     </Typography>
-                   </Box>
-                 </Box>
-               </Grid>
-
-               <Grid item xs={12} md={4}>
-                 <Box sx={{ 
-                   display: 'flex', 
-                   alignItems: 'center', 
-                   gap: 2,
-                   backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                   borderRadius: 2,
-                   p: 2
-                 }}>
-                   <GavelIcon sx={{ color: '#4caf50' }} />
-                   <Box>
-                     <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
-                       Árbitros
-                     </Typography>
-                     <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                       Verifica disponibilidad antes de asignar
-                     </Typography>
-                   </Box>
-                 </Box>
-               </Grid>
-
-               <Grid item xs={12} md={4}>
-                 <Box sx={{ 
-                   display: 'flex', 
-                   alignItems: 'center', 
-                   gap: 2,
-                   backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                   borderRadius: 2,
-                   p: 2
-                 }}>
-                   <LocationIcon sx={{ color: '#ff9800' }} />
-                   <Box>
-                     <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
-                       Ubicación
-                     </Typography>
-                     <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                       Incluye direcciones claras
-                     </Typography>
-                   </Box>
-                 </Box>
-               </Grid>
-             </Grid>
-           </CardContent>
-         </Card>
-       </motion.div>
-     </motion.div>
-   </Box>
- );
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
+  </Box>
+);
 };

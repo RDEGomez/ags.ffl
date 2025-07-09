@@ -63,6 +63,15 @@ const PartidoSchema = new mongoose.Schema({
     min: 20,
     max: 120
   },
+
+  // 🔥 NUEVO CAMPO: JORNADA
+  jornada: {
+    type: String,
+    trim: true,
+    maxlength: 50,
+    default: null, // Opcional inicialmente para compatibilidad con partidos existentes
+    index: true // Índice para optimizar consultas por jornada
+  },
   
   // 🎮 ESTADO DEL PARTIDO
   estado: {
@@ -374,6 +383,10 @@ PartidoSchema.index({ equipoLocal: 1, equipoVisitante: 1 });
 PartidoSchema.index({ 'arbitros.principal': 1 });
 PartidoSchema.index({ createdAt: -1 });
 
+// 🔥 NUEVOS ÍNDICES para jornada
+PartidoSchema.index({ jornada: 1 });
+PartidoSchema.index({ torneo: 1, categoria: 1, jornada: 1 });
+
 // Índice compuesto para consultas comunes
 PartidoSchema.index({ 
   torneo: 1, 
@@ -410,6 +423,24 @@ PartidoSchema.methods.obtenerDuracionReal = function() {
     return Math.round((this.tiempoJuego.tiempoFinalizacion - this.tiempoJuego.tiempoInicio) / (1000 * 60)); // minutos
   }
   return null;
+};
+
+// 🔥 NUEVO MÉTODO: Obtener nombre de jornada formateado
+PartidoSchema.methods.obtenerJornadaFormateada = function() {
+  if (!this.jornada) return 'Sin jornada';
+  
+  // Si ya contiene "Jornada" en el nombre, retornarlo tal como está
+  if (this.jornada.toLowerCase().includes('jornada')) {
+    return this.jornada;
+  }
+  
+  // Si es solo un número, agregar "Jornada" al principio
+  if (/^\d+$/.test(this.jornada)) {
+    return `Jornada ${this.jornada}`;
+  }
+  
+  // En otros casos, retornar tal como está
+  return this.jornada;
 };
 
 // Actualizar estadísticas automáticamente
@@ -474,6 +505,32 @@ PartidoSchema.methods.actualizarEstadisticas = function() {
 };
 
 // 🎯 MÉTODOS ESTÁTICOS
+
+// 🔥 NUEVO MÉTODO ESTÁTICO: Obtener jornadas disponibles por torneo y categoría
+PartidoSchema.statics.obtenerJornadasDisponibles = async function(torneoId, categoria = null) {
+  const filtro = { torneo: torneoId };
+  if (categoria) {
+    filtro.categoria = categoria;
+  }
+  
+  const jornadas = await this.distinct('jornada', filtro);
+  
+  // Filtrar valores null/undefined y ordenar
+  return jornadas
+    .filter(jornada => jornada != null)
+    .sort((a, b) => {
+      // Intentar ordenar numéricamente si ambos son números
+      const numA = parseInt(a.replace(/\D/g, ''));
+      const numB = parseInt(b.replace(/\D/g, ''));
+      
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      
+      // Ordenar alfabéticamente si no son números
+      return a.localeCompare(b);
+    });
+};
 
 // Buscar partidos por filtros comunes
 PartidoSchema.statics.buscarConFiltros = function(filtros = {}) {

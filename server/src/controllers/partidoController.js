@@ -513,6 +513,7 @@ exports.crearPartido = async (req, res) => {
       torneo, 
       fechaHora, 
       categoria,
+      jornada,
       sede,
       duracionMinutos,
       arbitros
@@ -545,6 +546,7 @@ exports.crearPartido = async (req, res) => {
       torneo,
       categoria: categoria || equipoLocalObj.categoria,
       fechaHora: new Date(fechaHora),
+      jornada,
       sede,
       duracionMinutos: duracionMinutos || 50,
       arbitros,
@@ -666,7 +668,7 @@ exports.actualizarPartido = async (req, res) => {
     // 🔥 MEJORA: Campos permitidos más específicos
     const camposPermitidos = [
       'equipoLocal', 'equipoVisitante', 'fechaHora', 'categoria', 
-      'sede', 'duracionMinutos', 'arbitros', 'observaciones', 'estado'
+      'sede', 'duracionMinutos', 'arbitros', 'observaciones', 'estado', 'jornada'
     ];
 
     const datosActualizados = {};
@@ -1771,6 +1773,278 @@ exports.asignarArbitros = async (req, res) => {
     
     res.status(500).json({ 
       mensaje: 'Error al asignar/desasignar árbitros', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * 📅 OBTENER JORNADAS DISPONIBLES
+ * Endpoint: GET /api/partidos/jornadas
+ * Query params: ?torneo={id}&categoria={cat}
+ */
+exports.obtenerJornadasDisponibles = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n📅 [${timestamp}] INICIO - Obtener jornadas disponibles`);
+
+  try {
+    const { torneo, categoria } = req.query;
+    
+    console.log('🔍 Parámetros recibidos:', { torneo, categoria });
+
+    // Validar que al menos torneo esté presente
+    if (!torneo) {
+      console.log('❌ ERROR: Parámetro torneo es requerido');
+      return res.status(400).json({ 
+        mensaje: 'El parámetro torneo es requerido',
+        ejemplo: '/api/partidos/jornadas?torneo=64f1b2c3d4e5f6789012345&categoria=mixgold'
+      });
+    }
+
+    // Verificar que el torneo existe
+    console.log('🏆 Verificando existencia del torneo...');
+    const torneoExistente = await Torneo.findById(torneo);
+    if (!torneoExistente) {
+      console.log('❌ ERROR: Torneo no encontrado');
+      return res.status(404).json({ mensaje: 'Torneo no encontrado' });
+    }
+
+    console.log(`✅ Torneo encontrado: ${torneoExistente.nombre}`);
+
+    // Construir filtro para la consulta
+    const filtro = { torneo: torneo };
+    
+    // Agregar filtro de categoría si se proporciona
+    if (categoria) {
+      console.log(`🏷️ Filtrando por categoría: ${categoria}`);
+      filtro.categoria = categoria;
+      
+      // Validar que la categoría existe en el torneo
+      if (!torneoExistente.categorias.includes(categoria)) {
+        console.log('⚠️ WARNING: Categoría no está en el torneo, pero continuando...');
+      }
+    }
+
+    console.log('📊 Filtro aplicado:', filtro);
+
+    // Usar el método estático del modelo para obtener jornadas
+    console.log('🔍 Consultando jornadas disponibles...');
+    const jornadas = await Partido.obtenerJornadasDisponibles(torneo, categoria);
+
+    console.log(`✅ Encontradas ${jornadas.length} jornadas:`);
+    jornadas.forEach((jornada, index) => {
+      console.log(`  ${index + 1}. ${jornada}`);
+    });
+
+    // Obtener información adicional por jornada
+    console.log('📈 Obteniendo estadísticas por jornada...');
+    const estadisticasPorJornada = await Promise.all(
+      jornadas.map(async (jornada) => {
+        const partidosJornada = await Partido.find({ ...filtro, jornada })
+          .select('estado fechaHora')
+          .lean();
+
+        const estadisticas = {
+          jornada: jornada,
+          totalPartidos: partidosJornada.length,
+          programados: partidosJornada.filter(p => p.estado === 'programado').length,
+          enCurso: partidosJornada.filter(p => ['en_curso', 'medio_tiempo'].includes(p.estado)).length,
+          finalizados: partidosJornada.filter(p => p.estado === 'finalizado').length,
+          otros: partidosJornada.filter(p => !['programado', 'en_curso', 'medio_tiempo', 'finalizado'].includes(p.estado)).length
+        };
+
+        // Calcular fechas de la jornada
+        if (partidosJornada.length > 0) {
+          const fechas = partidosJornada.map(p => new Date(p.fechaHora)).sort();
+          estadisticas.fechaInicio = fechas[0].toISOString().split('T')[0];
+          estadisticas.fechaFin = fechas[fechas.length - 1].toISOString().split('T')[0];
+        }
+
+        return estadisticas;
+      })
+    );
+
+    // Calcular totales generales
+    const totales = {
+      totalJornadas: jornadas.length,
+      totalPartidos: estadisticasPorJornada.reduce((sum, j) => sum + j.totalPartidos, 0),
+      totalProgramados: estadisticasPorJornada.reduce((sum, j) => sum + j.programados, 0),
+      totalEnCurso: estadisticasPorJornada.reduce((sum, j) => sum + j.enCurso, 0),
+      totalFinalizados: estadisticasPorJornada.reduce((sum, j) => sum + j.finalizados, 0)
+    };
+
+    console.log('📤 Enviando respuesta exitosa');
+    console.log(`✅ [${new Date().toISOString()}] FIN - Jornadas obtenidas\n`);
+
+    res.json({
+      mensaje: 'Jornadas disponibles obtenidas exitosamente',
+      torneo: {
+        id: torneoExistente._id,
+        nombre: torneoExistente.nombre
+      },
+      categoria: categoria || 'todas',
+      jornadas: jornadas,
+      estadisticasPorJornada: estadisticasPorJornada,
+      totales: totales,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener jornadas:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener jornadas fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener jornadas disponibles', 
+      error: error.message 
+    });
+  }
+};
+
+// 🔥 NUEVO ENDPOINT ALTERNATIVO: OBTENER PARTIDOS AGRUPADOS POR JORNADA
+// Endpoint: GET /api/partidos/agrupados-por-jornada
+/**
+ * 📊 OBTENER PARTIDOS AGRUPADOS POR JORNADA
+ * Útil para la vista de dashboard por jornadas
+ */
+exports.obtenerPartidosAgrupadosPorJornada = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n📊 [${timestamp}] INICIO - Obtener partidos agrupados por jornada`);
+
+  try {
+    const { torneo, categoria, jornada, incluirSinJornada = false } = req.query;
+    
+    console.log('🔍 Parámetros recibidos:', { torneo, categoria, jornada, incluirSinJornada });
+
+    // Validar que al menos torneo esté presente
+    if (!torneo) {
+      console.log('❌ ERROR: Parámetro torneo es requerido');
+      return res.status(400).json({ 
+        mensaje: 'El parámetro torneo es requerido'
+      });
+    }
+
+    // Construir filtro base
+    const filtro = { torneo: torneo };
+    
+    if (categoria) {
+      filtro.categoria = categoria;
+    }
+
+    // Si se especifica una jornada, filtrar solo esa
+    if (jornada) {
+      filtro.jornada = jornada;
+    } else if (!incluirSinJornada) {
+      // Por defecto, excluir partidos sin jornada
+      filtro.jornada = { $ne: null };
+    }
+
+    console.log('📊 Filtro aplicado:', filtro);
+
+    // Obtener partidos con populate
+    console.log('🔍 Consultando partidos...');
+    const partidos = await Partido.find(filtro)
+      .populate('equipoLocal', 'nombre imagen categoria')
+      .populate('equipoVisitante', 'nombre imagen categoria')
+      .populate('torneo', 'nombre')
+      .populate({
+        path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
+        populate: {
+          path: 'usuario',
+          select: 'nombre imagen'
+        }
+      })
+      .sort({ jornada: 1, fechaHora: 1 })
+      .lean();
+
+    console.log(`✅ Encontrados ${partidos.length} partidos`);
+
+    // Agrupar por jornada
+    console.log('📋 Agrupando partidos por jornada...');
+    const partidosAgrupados = {};
+    
+    partidos.forEach(partido => {
+      const jornadaKey = partido.jornada || 'Sin jornada';
+      
+      if (!partidosAgrupados[jornadaKey]) {
+        partidosAgrupados[jornadaKey] = {
+          jornada: jornadaKey,
+          partidos: [],
+          estadisticas: {
+            total: 0,
+            programados: 0,
+            enCurso: 0,
+            finalizados: 0,
+            otros: 0
+          }
+        };
+      }
+      
+      partidosAgrupados[jornadaKey].partidos.push(partido);
+      partidosAgrupados[jornadaKey].estadisticas.total++;
+      
+      // Contar por estado
+      switch (partido.estado) {
+        case 'programado':
+          partidosAgrupados[jornadaKey].estadisticas.programados++;
+          break;
+        case 'en_curso':
+        case 'medio_tiempo':
+          partidosAgrupados[jornadaKey].estadisticas.enCurso++;
+          break;
+        case 'finalizado':
+          partidosAgrupados[jornadaKey].estadisticas.finalizados++;
+          break;
+        default:
+          partidosAgrupados[jornadaKey].estadisticas.otros++;
+      }
+    });
+
+    // Convertir a array y ordenar
+    const jornadasArray = Object.values(partidosAgrupados).sort((a, b) => {
+      // Ordenar jornadas numéricamente si es posible
+      const numA = parseInt(a.jornada.replace(/\D/g, ''));
+      const numB = parseInt(b.jornada.replace(/\D/g, ''));
+      
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      
+      // Si no son números, ordenar alfabéticamente
+      // Pero poner "Sin jornada" al final
+      if (a.jornada === 'Sin jornada') return 1;
+      if (b.jornada === 'Sin jornada') return -1;
+      
+      return a.jornada.localeCompare(b.jornada);
+    });
+
+    // Enriquecer con URLs de imágenes
+    console.log('🖼️ Enriqueciendo con URLs de imágenes...');
+    for (let grupo of jornadasArray) {
+      for (let i = 0; i < grupo.partidos.length; i++) {
+        grupo.partidos[i] = await enriquecerPartidoConUrls(grupo.partidos[i], req);
+      }
+    }
+
+    console.log(`📤 Enviando ${jornadasArray.length} jornadas agrupadas`);
+    console.log(`✅ [${new Date().toISOString()}] FIN - Partidos agrupados obtenidos\n`);
+
+    res.json({
+      mensaje: 'Partidos agrupados por jornada obtenidos exitosamente',
+      filtros: { torneo, categoria, jornada, incluirSinJornada },
+      totalJornadas: jornadasArray.length,
+      totalPartidos: partidos.length,
+      jornadas: jornadasArray,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener partidos agrupados:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener partidos agrupados fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener partidos agrupados por jornada', 
       error: error.message 
     });
   }

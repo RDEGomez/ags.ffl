@@ -31,12 +31,14 @@ import {
   SportsSoccer as SoccerIcon,
   Schedule as ScheduleIcon,
   Person as PersonIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  CalendarToday as CalendarTodayIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { usePartidoEdit } from '../../hooks/usePartidoEdit';
 import { getCategoryName } from '../../helpers/mappings';
+import axiosInstance from '../../config/axios';
 
 // 🎨 Variantes de animación
 const containerVariants = {
@@ -276,6 +278,34 @@ export const EditarPartido = () => {
                           '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
                         },
                         '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' }
+                      }}
+                    />
+                  </Grid>
+
+                  {/* 🔥 NUEVO: Campo Jornada */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Jornada"
+                      value={cambios.jornada ?? partido.jornada ?? ''}
+                      onChange={(e) => setCampo('jornada', e.target.value || null)}
+                      disabled={!puedeEditarBasico}
+                      placeholder="Ej: Jornada 1, Semifinal, Final, etc."
+                      helperText="Escribe el nombre de la jornada. Deja vacío si no aplica."
+                      InputProps={{
+                        startAdornment: (
+                          <CalendarTodayIcon sx={{ color: '#64b5f6', mr: 1 }} />
+                        )
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'white',
+                          '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                          '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+                          '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
+                        },
+                        '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                        '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.5)' }
                       }}
                     />
                   </Grid>
@@ -538,7 +568,7 @@ export const EditarPartido = () => {
                   {Object.keys(cambios).map(campo => (
                     <Chip
                       key={campo}
-                      label={campo}
+                      label={campo === 'jornada' ? 'Jornada' : campo}
                       size="small"
                       sx={{
                         backgroundColor: 'rgba(100, 181, 246, 0.2)',
@@ -568,7 +598,9 @@ export const EditarPartido = () => {
             {Object.keys(cambios).length > 0 && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                  Campos modificados: {Object.keys(cambios).join(', ')}
+                  Campos modificados: {Object.keys(cambios).map(campo => 
+                    campo === 'jornada' ? 'Jornada' : campo
+                  ).join(', ')}
                 </Typography>
               </Box>
             )}

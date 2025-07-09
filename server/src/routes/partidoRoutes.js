@@ -5,8 +5,13 @@ const { check, body, param, query } = require('express-validator');
 const partidoController = require('../controllers/partidoController');
 const estadisticasController = require('../controllers/estadisticasController');
 const { auth, checkRole } = require('../middleware/authMiddleware');
+const Partido = require('../models/Partido'); // 🔥 AGREGADO para rutas inline
 
-// 🎲 GENERADOR DE ROL AUTOMÁTICO - FUNCIONALIDAD PRINCIPAL
+// ========================================
+// 🎲 GENERADOR DE ROL AUTOMÁTICO
+// ========================================
+
+// 🎲 GENERAR ROL DE TORNEO
 router.post('/generar-rol', 
   [
     auth,
@@ -76,23 +81,7 @@ router.post('/generar-rol',
   partidoController.generarRolTorneo
 );
 
-// 🗑️ ELIMINACIÓN DE ROL
-router.delete('/rol/:torneoId/:categoria', 
-  [
-    auth,
-    checkRole('admin', 'arbitro'),
-    [
-      param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
-      param('categoria', 'Categoría debe ser válida').isIn([
-        'mixgold', 'mixsilv', 'vargold', 'varsilv', 
-        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fam', 'u12var', 'u14fam', 'u14var', 'u16fam', 'u16var', 'u18fam', 'u18var'
-      ])
-    ]
-  ],
-  partidoController.eliminarRolTorneo
-);
-
-// 🔄 REGENERACIÓN DE ROL (elimina y genera nuevo)
+// 🔄 REGENERAR ROL (elimina y genera nuevo)
 router.post('/regenerar-rol', 
   [
     auth,
@@ -124,7 +113,153 @@ router.post('/regenerar-rol',
   partidoController.generarRolTorneo
 );
 
+// 🗑️ ELIMINAR ROL DE TORNEO
+router.delete('/rol/:torneoId/:categoria', 
+  [
+    auth,
+    checkRole('admin', 'arbitro'),
+    [
+      param('torneoId', 'ID de torneo debe ser válido').isMongoId(),
+      param('categoria', 'Categoría debe ser válida').isIn([
+        'mixgold', 'mixsilv', 'vargold', 'varsilv', 
+        'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fam', 'u12var', 'u14fam', 'u14var', 'u16fam', 'u16var', 'u18fam', 'u18var'
+      ])
+    ]
+  ],
+  partidoController.eliminarRolTorneo
+);
+
+// ========================================
+// 🔥 NUEVAS RUTAS: GESTIÓN DE JORNADAS
+// ========================================
+
+// 📅 OBTENER JORNADAS DISPONIBLES
+router.get('/jornadas', 
+  [
+    auth,
+    [
+      query('torneo', 'ID de torneo es requerido').isMongoId(),
+      query('categoria')
+        .optional()
+        .isIn([
+          'mixgold', 'mixsilv', 'vargold', 'varsilv', 
+          'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
+          'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
+          'u16fem', 'u16var', 'u18fem', 'u18var'
+        ])
+        .withMessage('Categoría debe ser válida')
+    ]
+  ],
+  partidoController.obtenerJornadasDisponibles
+);
+
+// 📊 OBTENER PARTIDOS AGRUPADOS POR JORNADA
+router.get('/agrupados-por-jornada', 
+  [
+    auth,
+    [
+      query('torneo', 'ID de torneo es requerido').isMongoId(),
+      query('categoria')
+        .optional()
+        .isIn([
+          'mixgold', 'mixsilv', 'vargold', 'varsilv', 
+          'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
+          'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
+          'u16fem', 'u16var', 'u18fem', 'u18var'
+        ])
+        .withMessage('Categoría debe ser válida'),
+      query('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
+      query('incluirSinJornada')
+        .optional()
+        .isBoolean()
+        .withMessage('incluirSinJornada debe ser booleano')
+    ]
+  ],
+  partidoController.obtenerPartidosAgrupadosPorJornada
+);
+
+// ========================================
+// 🔥 NUEVAS RUTAS: GESTIÓN DE JORNADAS
+// ========================================
+
+// 📅 OBTENER JORNADAS DISPONIBLES
+router.get('/jornadas', 
+  [
+    auth,
+    [
+      query('torneo', 'ID de torneo es requerido').isMongoId(),
+      query('categoria')
+        .optional()
+        .isIn([
+          'mixgold', 'mixsilv', 'vargold', 'varsilv', 
+          'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
+          'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
+          'u16fem', 'u16var', 'u18fem', 'u18var'
+        ])
+        .withMessage('Categoría debe ser válida')
+    ]
+  ],
+  partidoController.obtenerJornadasDisponibles
+);
+
+// 📊 OBTENER PARTIDOS AGRUPADOS POR JORNADA
+router.get('/agrupados-por-jornada', 
+  [
+    auth,
+    [
+      query('torneo', 'ID de torneo es requerido').isMongoId(),
+      query('categoria')
+        .optional()
+        .isIn([
+          'mixgold', 'mixsilv', 'vargold', 'varsilv', 
+          'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
+          'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
+          'u16fem', 'u16var', 'u18fem', 'u18var'
+        ])
+        .withMessage('Categoría debe ser válida'),
+      query('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
+      query('incluirSinJornada')
+        .optional()
+        .isBoolean()
+        .withMessage('incluirSinJornada debe ser booleano')
+    ]
+  ],
+  partidoController.obtenerPartidosAgrupadosPorJornada
+);
+
+// ========================================
+// 📅 RUTAS ESPECIALES DE CONSULTA
+// ========================================
+
+// 🗓️ PARTIDOS DE HOY
+router.get('/especiales/hoy', 
+  auth,
+  partidoController.obtenerPartidosHoy
+);
+
+// 📊 PARTIDOS DE LA SEMANA
+router.get('/especiales/semana', 
+  auth,
+  partidoController.obtenerPartidosSemana
+);
+
+// 🏃‍♂️ PARTIDOS EN VIVO
+router.get('/especiales/en-vivo', 
+  auth,
+  partidoController.obtenerPartidosEnVivo
+);
+
+// ========================================
 // 📋 CRUD BÁSICO DE PARTIDOS
+// ========================================
 
 // ➕ CREAR PARTIDO INDIVIDUAL
 router.post('/', 
@@ -150,6 +285,13 @@ router.post('/',
         .optional()
         .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fem', 'u12var', 'u14fem', 'u14var', 'u16fem', 'u16var', 'u18fem', 'u18var'])
         .withMessage('Categoría no válida'),
+      
+      // 🔥 NUEVA VALIDACIÓN: Campo jornada
+      check('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
       
       check('duracionMinutos')
         .optional()
@@ -215,6 +357,20 @@ router.get('/',
         .isIn(['programado', 'en_curso', 'medio_tiempo', 'finalizado', 'suspendido', 'cancelado'])
         .withMessage('Estado no válido'),
       
+      // 🔥 NUEVO FILTRO: Por jornada
+      query('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
+      
+      // 🔥 NUEVO FILTRO: Por jornada
+      query('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
+      
       query('fecha')
         .optional()
         .isISO8601()
@@ -275,6 +431,20 @@ router.put('/:id',
         .isIn(['programado', 'en_curso', 'medio_tiempo', 'finalizado', 'suspendido', 'cancelado'])
         .withMessage('Estado no válido'),
       
+      // 🔥 NUEVA VALIDACIÓN: Actualizar jornada
+      check('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
+      
+      // 🔥 NUEVA VALIDACIÓN: Actualizar jornada
+      check('jornada')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres'),
+      
       // Validación personalizada: no actualizar si ya empezó
       body('*').custom(async (value, { req }) => {
         const Partido = require('../models/Partido');
@@ -308,122 +478,9 @@ router.delete('/:id',
   partidoController.eliminarPartido
 );
 
-// ⚽ GESTIÓN EN VIVO - FASE 2/3 (preparado para futuro)
-
-// // 🎮 INICIAR PARTIDO
-// router.patch('/:id/iniciar', 
-//   [
-//     auth,
-//     checkRole('admin', 'arbitro'),
-//     [
-//       param('id', 'ID de partido debe ser válido').isMongoId()
-//     ]
-//   ],
-//   partidoController.iniciarPartido
-// );
-
-// // 📝 REGISTRAR JUGADA
-// router.post('/:id/jugadas', 
-//   [
-//     auth,
-//     checkRole('admin', 'arbitro'),
-//     [
-//       param('id', 'ID de partido debe ser válido').isMongoId(),
-      
-//       check('tipoJugada', 'Tipo de jugada es obligatorio').isIn([
-//         'pase_completo', 'pase_incompleto', 'intercepcion', 'corrida', 
-//         'touchdown', 'conversion_1pt', 'conversion_2pt', 'safety', 
-//         'timeout', 'sack', 'tackleo'
-//       ]),
-      
-//       check('equipoEnPosesion', 'Equipo en posesión es obligatorio').isMongoId(),
-//       check('jugadorPrincipal', 'Jugador principal es obligatorio').isMongoId(),
-      
-//       check('jugadorSecundario')
-//         .optional()
-//         .isMongoId()
-//         .withMessage('ID de jugador secundario debe ser válido'),
-      
-//       check('descripcion')
-//         .optional()
-//         .trim()
-//         .isLength({ max: 200 })
-//         .withMessage('La descripción no puede exceder 200 caracteres'),
-      
-//       check('resultado.puntos')
-//         .optional()
-//         .isInt({ min: 0, max: 6 })
-//         .withMessage('Los puntos deben estar entre 0 y 6')
-//     ]
-//   ],
-//   partidoController.registrarJugada
-// );
-
-// // 🏁 FINALIZAR PARTIDO
-// router.patch('/:id/finalizar', 
-//   [
-//     auth,
-//     checkRole('admin', 'arbitro'),
-//     [
-//       param('id', 'ID de partido debe ser válido').isMongoId(),
-      
-//       // Validaciones opcionales para datos finales
-//       check('observaciones')
-//         .optional()
-//         .trim()
-//         .isLength({ max: 500 })
-//         .withMessage('Las observaciones no pueden exceder 500 caracteres'),
-      
-//       check('clima.temperatura')
-//         .optional()
-//         .isFloat({ min: -10, max: 50 })
-//         .withMessage('La temperatura debe estar entre -10 y 50 grados'),
-      
-//       check('clima.condiciones')
-//         .optional()
-//         .trim()
-//         .isLength({ max: 100 })
-//         .withMessage('Las condiciones climáticas no pueden exceder 100 caracteres')
-//     ]
-//   ],
-//   partidoController.finalizarPartido
-// );
-
-// // 📊 ESTADÍSTICAS Y REPORTES
-
-// // 📈 OBTENER ESTADÍSTICAS DE PARTIDO
-// router.get('/:id/estadisticas', 
-//   [
-//     auth,
-//     [
-//       param('id', 'ID de partido debe ser válido').isMongoId()
-//     ]
-//   ],
-//   partidoController.obtenerEstadisticasPartido
-// );
-
-// // 🏆 OBTENER HISTORIAL ENTRE EQUIPOS
-// router.get('/equipos/:equipoId/historial', 
-//   [
-//     auth,
-//     [
-//       param('equipoId', 'ID de equipo debe ser válido').isMongoId(),
-      
-//       query('vsEquipo')
-//         .optional()
-//         .isMongoId()
-//         .withMessage('ID del equipo rival debe ser válido'),
-      
-//       query('limite')
-//         .optional()
-//         .isInt({ min: 1, max: 50 })
-//         .withMessage('El límite debe estar entre 1 y 50 partidos')
-//     ]
-//   ],
-//   partidoController.obtenerHistorialEquipo
-// );
-
-// 🔄 GESTIÓN DE ESTADO
+// ========================================
+// 🎯 GESTIÓN DE ESTADO Y CONFIGURACIÓN
+// ========================================
 
 // 🎯 CAMBIAR ESTADO DE PARTIDO
 router.patch('/:id/estado', 
@@ -446,7 +503,59 @@ router.patch('/:id/estado',
   partidoController.cambiarEstado
 );
 
-// ⚖️ ASIGNAR ÁRBITROS - VALIDACIONES CORREGIDAS
+// 🔥 ACTUALIZAR JORNADA DE UN PARTIDO
+router.patch('/:id/jornada', 
+  [
+    auth,
+    checkRole('admin'),
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      body('jornada')
+        .optional({ nullable: true })
+        .trim()
+        .isLength({ min: 1, max: 50 })
+        .withMessage('Jornada debe tener entre 1 y 50 caracteres')
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const { jornada } = req.body;
+      
+      const partido = await Partido.findById(req.params.id);
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      // Actualizar jornada
+      partido.jornada = jornada || null;
+      partido.ultimaActualizacion = {
+        fecha: new Date(),
+        por: req.usuario.id,
+        razon: `Jornada ${jornada ? 'actualizada a: ' + jornada : 'removida'}`
+      };
+      
+      await partido.save();
+      
+      res.json({ 
+        mensaje: 'Jornada actualizada exitosamente',
+        partido: {
+          _id: partido._id,
+          jornada: partido.jornada,
+          jornadaFormateada: partido.obtenerJornadaFormateada()
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error al actualizar jornada:', error);
+      res.status(500).json({ 
+        mensaje: 'Error al actualizar jornada del partido',
+        error: error.message 
+      });
+    }
+  }
+);
+
+// ⚖️ ASIGNAR ÁRBITROS
 router.post('/:id/arbitros', 
   [
     auth,
@@ -511,26 +620,11 @@ router.post('/:id/arbitros',
   partidoController.asignarArbitros
 );
 
-// 📅 RUTAS ESPECIALES DE CONSULTA
+// ========================================
+// 🎮 GESTIÓN DE JUGADAS
+// ========================================
 
-// 🗓️ PARTIDOS DE HOY
-router.get('/especiales/hoy', 
-  auth,
-  partidoController.obtenerPartidosHoy
-);
-
-// 📊 PARTIDOS DE LA SEMANA
-router.get('/especiales/semana', 
-  auth,
-  partidoController.obtenerPartidosSemana
-);
-
-// 🏃‍♂️ PARTIDOS EN VIVO
-router.get('/especiales/en-vivo', 
-  auth,
-  partidoController.obtenerPartidosEnVivo
-);
-
+// 📝 REGISTRAR JUGADA
 router.post('/:id/jugadas', 
   [
     auth,
@@ -556,17 +650,17 @@ router.post('/:id/jugadas',
       check('numeroJugadorPrincipal')
         .optional()
         .isInt({ min: 0, max: 99 })
-        .withMessage('Número de jugador principal debe ser entre 1 y 99'),
+        .withMessage('Número de jugador principal debe ser entre 0 y 99'),
       
       check('numeroJugadorSecundario')
         .optional()
         .isInt({ min: 0, max: 99 })
-        .withMessage('Número de jugador secundario debe ser entre 1 y 99'),
+        .withMessage('Número de jugador secundario debe ser entre 0 y 99'),
       
       check('numeroJugadorTouchdown')
         .optional()
         .isInt({ min: 0, max: 99 })
-        .withMessage('Número de jugador touchdown debe ser entre 1 y 99'),
+        .withMessage('Número de jugador touchdown debe ser entre 0 y 99'),
       
       // Validación de descripción (opcional)
       check('descripcion')
@@ -612,132 +706,6 @@ router.post('/:id/jugadas',
   ],
   partidoController.registrarJugada
 );
-
-// 🔥 NUEVA RUTA: VALIDAR NÚMEROS DE JUGADORES (ÚTIL PARA EL FRONTEND)
-router.post('/:id/validar-jugadores',
-  [
-    auth,
-    [
-      param('id', 'ID de partido debe ser válido').isMongoId(),
-      check('equipoId', 'ID de equipo es obligatorio').isMongoId(),
-      check('numeros', 'Lista de números es obligatoria').isArray({ min: 0 }),
-      check('numeros.*', 'Cada número debe ser entre 0 y 99').isInt({ min: 0, max: 99 })
-    ]
-  ],
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { equipoId, numeros } = req.body;
-      
-      const partido = await Partido.findById(id)
-        .populate('equipoLocal', 'jugadores')
-        .populate('equipoVisitante', 'jugadores');
-      
-      if (!partido) {
-        return res.status(404).json({ mensaje: 'Partido no encontrado' });
-      }
-      
-      // Determinar qué equipo usar
-      let equipoJugadores = [];
-      if (equipoId === partido.equipoLocal._id.toString()) {
-        equipoJugadores = partido.equipoLocal.jugadores || [];
-      } else if (equipoId === partido.equipoVisitante._id.toString()) {
-        equipoJugadores = partido.equipoVisitante.jugadores || [];
-      } else {
-        return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
-      }
-      
-      // Validar cada número
-      const validacion = numeros.map(numero => {
-        const jugador = equipoJugadores.find(j => j.numero === parseInt(numero));
-        return {
-          numero: parseInt(numero),
-          valido: !!jugador,
-          jugador: jugador ? {
-            _id: jugador._id,
-            nombre: jugador.nombre,
-            numero: jugador.numero
-          } : null
-        };
-      });
-      
-      const todosValidos = validacion.every(v => v.valido);
-      
-      res.json({
-        valido: todosValidos,
-        validacion,
-        mensaje: todosValidos ? 'Todos los números son válidos' : 'Algunos números no son válidos'
-      });
-      
-    } catch (error) {
-      console.error('Error al validar jugadores:', error);
-      res.status(500).json({ mensaje: 'Error al validar jugadores' });
-    }
-  }
-);
-
-// 🔥 NUEVA RUTA: OBTENER JUGADORES DE UN EQUIPO EN EL PARTIDO (PARA REFERENCIA)
-router.get('/:id/jugadores/:equipoId',
-  [
-    auth,
-    [
-      param('id', 'ID de partido debe ser válido').isMongoId(),
-      param('equipoId', 'ID de equipo debe ser válido').isMongoId()
-    ]
-  ],
-  async (req, res) => {
-    try {
-      const { id, equipoId } = req.params;
-      
-      const partido = await Partido.findById(id)
-        .populate('equipoLocal', 'nombre jugadores')
-        .populate('equipoVisitante', 'nombre jugadores');
-      
-      if (!partido) {
-        return res.status(404).json({ mensaje: 'Partido no encontrado' });
-      }
-      
-      let equipo = null;
-      let jugadores = [];
-      
-      if (equipoId === partido.equipoLocal._id.toString()) {
-        equipo = partido.equipoLocal;
-        jugadores = partido.equipoLocal.jugadores || [];
-      } else if (equipoId === partido.equipoVisitante._id.toString()) {
-        equipo = partido.equipoVisitante;
-        jugadores = partido.equipoVisitante.jugadores || [];
-      } else {
-        return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
-      }
-      
-      // Formatear respuesta
-      const jugadoresFormateados = jugadores
-        .sort((a, b) => a.numero - b.numero) // Ordenar por número
-        .map(j => ({
-          _id: j._id,
-          nombre: j.nombre,
-          numero: j.numero,
-          posicion: j.posicion
-        }));
-      
-      res.json({
-        equipo: {
-          _id: equipo._id,
-          nombre: equipo.nombre
-        },
-        jugadores: jugadoresFormateados,
-        total: jugadoresFormateados.length
-      });
-      
-    } catch (error) {
-      console.error('Error al obtener jugadores:', error);
-      res.status(500).json({ mensaje: 'Error al obtener jugadores' });
-    }
-  }
-);
-
-
-// 🔥 TAMBIÉN AGREGAR ESTAS RUTAS ÚTILES SI NO LAS TIENES:
 
 // 📊 OBTENER JUGADAS DE UN PARTIDO
 router.get('/:id/jugadas', 
@@ -829,6 +797,133 @@ router.delete('/:partidoId/jugadas/:jugadaId',
     ]
   ],
   partidoController.eliminarJugada
+);
+
+// ========================================
+// 🛠️ UTILIDADES PARA JUGADORES
+// ========================================
+
+// 🔥 VALIDAR NÚMEROS DE JUGADORES (ÚTIL PARA EL FRONTEND)
+router.post('/:id/validar-jugadores',
+  [
+    auth,
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      check('equipoId', 'ID de equipo es obligatorio').isMongoId(),
+      check('numeros', 'Lista de números es obligatoria').isArray({ min: 0 }),
+      check('numeros.*', 'Cada número debe ser entre 0 y 99').isInt({ min: 0, max: 99 })
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { equipoId, numeros } = req.body;
+      
+      const partido = await Partido.findById(id)
+        .populate('equipoLocal', 'jugadores')
+        .populate('equipoVisitante', 'jugadores');
+      
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      // Determinar qué equipo usar
+      let equipoJugadores = [];
+      if (equipoId === partido.equipoLocal._id.toString()) {
+        equipoJugadores = partido.equipoLocal.jugadores || [];
+      } else if (equipoId === partido.equipoVisitante._id.toString()) {
+        equipoJugadores = partido.equipoVisitante.jugadores || [];
+      } else {
+        return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
+      }
+      
+      // Validar cada número
+      const validacion = numeros.map(numero => {
+        const jugador = equipoJugadores.find(j => j.numero === parseInt(numero));
+        return {
+          numero: parseInt(numero),
+          valido: !!jugador,
+          jugador: jugador ? {
+            _id: jugador._id,
+            nombre: jugador.nombre,
+            numero: jugador.numero
+          } : null
+        };
+      });
+      
+      const todosValidos = validacion.every(v => v.valido);
+      
+      res.json({
+        valido: todosValidos,
+        validacion,
+        mensaje: todosValidos ? 'Todos los números son válidos' : 'Algunos números no son válidos'
+      });
+      
+    } catch (error) {
+      console.error('Error al validar jugadores:', error);
+      res.status(500).json({ mensaje: 'Error al validar jugadores' });
+    }
+  }
+);
+
+// 🔥 OBTENER JUGADORES DE UN EQUIPO EN EL PARTIDO (PARA REFERENCIA)
+router.get('/:id/jugadores/:equipoId',
+  [
+    auth,
+    [
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      param('equipoId', 'ID de equipo debe ser válido').isMongoId()
+    ]
+  ],
+  async (req, res) => {
+    try {
+      const { id, equipoId } = req.params;
+      
+      const partido = await Partido.findById(id)
+        .populate('equipoLocal', 'nombre jugadores')
+        .populate('equipoVisitante', 'nombre jugadores');
+      
+      if (!partido) {
+        return res.status(404).json({ mensaje: 'Partido no encontrado' });
+      }
+      
+      let equipo = null;
+      let jugadores = [];
+      
+      if (equipoId === partido.equipoLocal._id.toString()) {
+        equipo = partido.equipoLocal;
+        jugadores = partido.equipoLocal.jugadores || [];
+      } else if (equipoId === partido.equipoVisitante._id.toString()) {
+        equipo = partido.equipoVisitante;
+        jugadores = partido.equipoVisitante.jugadores || [];
+      } else {
+        return res.status(400).json({ mensaje: 'Equipo no válido para este partido' });
+      }
+      
+      // Formatear respuesta
+      const jugadoresFormateados = jugadores
+        .sort((a, b) => a.numero - b.numero) // Ordenar por número
+        .map(j => ({
+          _id: j._id,
+          nombre: j.nombre,
+          numero: j.numero,
+          posicion: j.posicion
+        }));
+      
+      res.json({
+        equipo: {
+          _id: equipo._id,
+          nombre: equipo.nombre
+        },
+        jugadores: jugadoresFormateados,
+        total: jugadoresFormateados.length
+      });
+      
+    } catch (error) {
+      console.error('Error al obtener jugadores:', error);
+      res.status(500).json({ mensaje: 'Error al obtener jugadores' });
+    }
+  }
 );
 
 module.exports = router;

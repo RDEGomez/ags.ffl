@@ -1,5 +1,5 @@
 // server/src/controllers/configController.js
-// Nuevo controlador para gestionar la configuración de inscripciones
+// Controlador para gestionar la configuración de inscripciones con persistencia
 
 const fs = require('fs').promises;
 const path = require('path');
@@ -7,6 +7,57 @@ const inscripcionesConfig = require('../config/inscripcionesConfig');
 
 // Ruta del archivo de configuración
 const CONFIG_FILE_PATH = path.join(__dirname, '../config/inscripcionesConfig.js');
+
+/**
+ * Función auxiliar para guardar la configuración en el archivo
+ */
+async function guardarConfiguracion() {
+  try {
+    const configContent = `// server/src/config/inscripcionesConfig.js
+// Configuración para habilitar/deshabilitar inscripciones por categoría
+
+const inscripcionesConfig = {
+  // Configuración por categoría - true = habilitada, false = deshabilitada
+  categorias: ${JSON.stringify(inscripcionesConfig.categorias, null, 4)},
+  
+  // Configuración global - permite deshabilitar todas las inscripciones
+  inscripcionesGlobales: ${inscripcionesConfig.inscripcionesGlobales},
+  
+  // Mensaje personalizado por categoría (opcional)
+  mensajesPersonalizados: ${JSON.stringify(inscripcionesConfig.mensajesPersonalizados, null, 4)},
+  
+  // Función para verificar si una categoría está habilitada
+  estaHabilitada: function(categoria) {
+    // Verificar primero si las inscripciones están habilitadas globalmente
+    if (!this.inscripcionesGlobales) {
+      return false;
+    }
+    
+    // Verificar la configuración específica de la categoría
+    return this.categorias[categoria] === true;
+  },
+  
+  // Función para obtener el mensaje de error personalizado
+  obtenerMensajeError: function(categoria, nombreCategoria) {
+    // Si hay un mensaje personalizado, usarlo
+    if (this.mensajesPersonalizados[categoria]) {
+      return this.mensajesPersonalizados[categoria];
+    }
+    
+    // Mensaje por defecto
+    return 'Las inscripciones para la categoría \\'' + nombreCategoria + '\\' han finalizado';
+  }
+};
+
+module.exports = inscripcionesConfig;`;
+
+    await fs.writeFile(CONFIG_FILE_PATH, configContent, 'utf8');
+    console.log('✅ Configuración guardada en archivo');
+  } catch (error) {
+    console.error('❌ Error al guardar configuración:', error);
+    throw error;
+  }
+}
 
 /**
  * Obtener la configuración actual de inscripciones
@@ -52,6 +103,9 @@ exports.actualizarInscripcionesGlobales = async (req, res) => {
     
     // Actualizar en memoria
     inscripcionesConfig.inscripcionesGlobales = habilitadas;
+
+    // 🔥 NUEVO: Guardar en archivo
+    await guardarConfiguracion();
 
     res.json({
       mensaje: `Inscripciones globales ${habilitadas ? 'habilitadas' : 'deshabilitadas'} correctamente`,
@@ -103,6 +157,9 @@ exports.actualizarCategoria = async (req, res) => {
       inscripcionesConfig.mensajesPersonalizados[categoria] = 
         `Las inscripciones para la categoría '${nombreCategoria}' han finalizado`;
     }
+
+    // 🔥 NUEVO: Guardar en archivo
+    await guardarConfiguracion();
 
     res.json({
       mensaje: `Categoría ${categoria} actualizada correctamente`,
@@ -204,6 +261,9 @@ exports.actualizarMultiplesCategorias = async (req, res) => {
         errores.push(`Error en categoría ${categoria}: ${error.message}`);
       }
     }
+
+    // 🔥 NUEVO: Guardar en archivo después de todas las actualizaciones
+    await guardarConfiguracion();
 
     res.json({
       mensaje: `${resultados.length} categorías actualizadas correctamente`,

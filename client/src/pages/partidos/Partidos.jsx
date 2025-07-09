@@ -27,7 +27,8 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   ViewList as ViewListIcon,
-  ViewModule as ViewModuleIcon
+  ViewModule as ViewModuleIcon,
+  CalendarToday as CalendarTodayIcon // 🔥 NUEVO ICONO
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +36,7 @@ import { useAuth } from '../../context/AuthContext';
 import axiosInstance from '../../config/axios';
 import { PartidoCard } from './PartidoCard';
 import { ListaPartidosCompacta } from './ListaPartidosCompacta';
+import { VistaJornada } from './VistaJornada'; // 🔥 NUEVO IMPORT
 import Swal from 'sweetalert2';
 
 // 🔥 Constantes para paginación FRONTEND
@@ -75,6 +77,13 @@ const CATEGORIAS = [
   { value: 'u18var', label: 'U-18 Varonil' }
 ];
 
+// 🔥 NUEVO: Tipos de vista disponibles
+const TIPOS_VISTA = [
+  { value: 'tarjeta', label: 'Tarjeta', icon: ViewModuleIcon },
+  { value: 'lista', label: 'Lista', icon: ViewListIcon },
+  { value: 'jornada', label: 'Jornada', icon: CalendarTodayIcon } // 🔥 NUEVA VISTA
+];
+
 const OPCIONES_ORDENAMIENTO = [
   { value: 'fecha_desc', label: 'Fecha (Más reciente)' },
   { value: 'fecha_asc', label: 'Fecha (Más antigua)' },
@@ -104,7 +113,7 @@ const itemVariants = {
   }
 };
 
-// 🔥 Componente de filtros optimizado
+// 🔥 Componente de filtros optimizado - ACTUALIZADO CON NUEVOS PROPS
 const FiltrosAvanzados = ({ 
   searchTerm, 
   setSearchTerm, 
@@ -117,8 +126,8 @@ const FiltrosAvanzados = ({
   onRefresh,
   onClearFilters,
   stats,
-  vistaCompacta,
-  setVistaCompacta,
+  tipoVista, // 🔥 NUEVO PROP
+  setTipoVista, // 🔥 NUEVO PROP
   obtenerCategoriasDisponibles
 }) => {
   const clearSearch = () => {
@@ -140,14 +149,14 @@ const FiltrosAvanzados = ({
         display: 'flex', 
         gap: 2, 
         flexWrap: 'wrap',
-        alignItems: 'stretch', // Cambiar a stretch para misma altura
-        justifyContent: 'flex-start', // Distribuir uniformemente
+        alignItems: 'stretch',
+        justifyContent: 'flex-start',
         mb: 2,
-        width: '100%' // Usar todo el ancho disponible
+        width: '100%'
       }}>
         {/* Campo de búsqueda */}
         <TextField
-          size="small" // Cambiar a size="small" para consistencia
+          size="small"
           placeholder="Buscar por equipos, torneo, sede o árbitro..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -178,15 +187,15 @@ const FiltrosAvanzados = ({
             }
           }}
           sx={{
-            flex: 1, // Usar flex para que se expanda
-            minWidth: 250, // Ancho mínimo
+            flex: 1,
+            minWidth: 250,
             '& .MuiInputLabel-root': {
               color: 'rgba(255, 255, 255, 0.7)'
             }
           }}
         />
 
-        {/* 🔥 Filtro por Categoría */}
+        {/* Filtro por Categoría */}
         <FormControl size="small" sx={{ minWidth: 160, flex: '0 0 auto' }}>
           <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Categoría</InputLabel>
           <Select
@@ -249,36 +258,38 @@ const FiltrosAvanzados = ({
           </Select>
         </FormControl>
 
-        {/* Filtro de ordenamiento */}
-        <FormControl size="small" sx={{ minWidth: 160, flex: '0 0 auto' }}>
-          <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Ordenar por</InputLabel>
-          <Select
-            value={sortBy}
-            label="Ordenar por"
-            onChange={(e) => setSortBy(e.target.value)}
-            sx={{
-              color: 'white',
-              '.MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255, 255, 255, 0.5)',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#64b5f6',
-              },
-              '.MuiSelect-icon': {
-                color: 'rgba(255, 255, 255, 0.7)',
-              },
-            }}
-          >
-            {OPCIONES_ORDENAMIENTO.map(opcion => (
-              <MenuItem key={opcion.value} value={opcion.value}>
-                {opcion.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {/* Filtro de ordenamiento - Solo para vistas tarjeta y lista */}
+        {tipoVista !== 'jornada' && (
+          <FormControl size="small" sx={{ minWidth: 160, flex: '0 0 auto' }}>
+            <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Ordenar por</InputLabel>
+            <Select
+              value={sortBy}
+              label="Ordenar por"
+              onChange={(e) => setSortBy(e.target.value)}
+              sx={{
+                color: 'white',
+                '.MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255, 255, 255, 0.5)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#64b5f6',
+                },
+                '.MuiSelect-icon': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+              }}
+            >
+              {OPCIONES_ORDENAMIENTO.map(opcion => (
+                <MenuItem key={opcion.value} value={opcion.value}>
+                  {opcion.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
         {/* Botón para limpiar filtros */}
         {hasActiveFilters && (
@@ -343,7 +354,7 @@ const FiltrosAvanzados = ({
         )}
       </Box>
 
-      {/* Estadísticas */}
+      {/* Estadísticas y controles de vista - ACTUALIZADO */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -356,15 +367,35 @@ const FiltrosAvanzados = ({
           Mostrando {stats.filtrados} de {stats.total} partidos
         </Typography>
         
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* 🔥 Selector de tipo de vista */}
+          <Box sx={{ display: 'flex', gap: 0.5, mr: 2 }}>
+            {TIPOS_VISTA.map((vista) => {
+              const IconComponent = vista.icon;
+              return (
+                <Tooltip key={vista.value} title={vista.label}>
+                  <IconButton
+                    onClick={() => setTipoVista(vista.value)}
+                    size="small"
+                    sx={{
+                      color: tipoVista === vista.value ? '#64b5f6' : 'rgba(255, 255, 255, 0.7)',
+                      backgroundColor: tipoVista === vista.value ? 'rgba(100, 181, 246, 0.2)' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        color: '#64b5f6'
+                      }
+                    }}
+                  >
+                    <IconComponent />
+                  </IconButton>
+                </Tooltip>
+              );
+            })}
+          </Box>
+
           <Tooltip title="Actualizar">
             <IconButton onClick={onRefresh} size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
               <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={vistaCompacta ? "Vista normal" : "Vista compacta"}>
-            <IconButton onClick={() => setVistaCompacta(!vistaCompacta)} size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              {vistaCompacta ? <ViewListIcon /> : <ViewModuleIcon />}
             </IconButton>
           </Tooltip>
         </Box>
@@ -373,16 +404,16 @@ const FiltrosAvanzados = ({
   );
 };
 
-// 🔥 Componente principal
+// 🔥 Componente principal - ACTUALIZADO
 export const Partidos = () => {
   const navigate = useNavigate();
   const { puedeGestionarPartidos } = useAuth();
 
   // Estados principales
-  const [todosLosPartidos, setTodosLosPartidos] = useState([]); // 🔥 TODOS los partidos
+  const [todosLosPartidos, setTodosLosPartidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [vistaCompacta, setVistaCompacta] = useState(false);
+  const [tipoVista, setTipoVista] = useState('tarjeta'); // 🔥 NUEVO ESTADO
 
   // Estados de paginación FRONTEND
   const [currentPage, setCurrentPage] = useState(1);
@@ -392,7 +423,7 @@ export const Partidos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('fecha_desc');
   const [estadoFiltro, setEstadoFiltro] = useState('todos');
-  const [categoriaFiltro, setCategoriaFiltro] = useState(''); // 🔥 NUEVO
+  const [categoriaFiltro, setCategoriaFiltro] = useState('');
 
   // 🔥 Función para obtener categorías disponibles
   const obtenerCategoriasDisponibles = useMemo(() => {
@@ -422,7 +453,7 @@ export const Partidos = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // 🔥 SIN DEPENDENCIAS - Solo se ejecuta una vez
+  }, []);
 
   // 🔥 Cargar datos al montar el componente
   useEffect(() => {
@@ -501,8 +532,13 @@ export const Partidos = () => {
     return partidosFiltradosPorBusqueda.filter(partido => partido.estado === estadoFiltro);
   }, [partidosFiltradosPorBusqueda, estadoFiltro]);
 
-  // 🔥 ORDENAMIENTO (instantáneo)
+  // 🔥 ORDENAMIENTO (instantáneo) - Solo para vistas tarjeta y lista
   const partidosOrdenados = useMemo(() => {
+    if (tipoVista === 'jornada') {
+      // Para vista jornada, no aplicar ordenamiento aquí
+      return partidosFiltrados;
+    }
+    
     return [...partidosFiltrados].sort((a, b) => {
       switch (sortBy) {
         case 'fecha_desc':
@@ -525,13 +561,18 @@ export const Partidos = () => {
           return 0;
       }
     });
-  }, [partidosFiltrados, sortBy]);
+  }, [partidosFiltrados, sortBy, tipoVista]);
 
-  // 🔥 PAGINACIÓN FRONTEND (instantánea)
+  // 🔥 PAGINACIÓN FRONTEND (instantánea) - Solo para vistas tarjeta y lista
   const partidosPaginados = useMemo(() => {
+    if (tipoVista === 'jornada') {
+      // Para vista jornada, retornar todos los partidos filtrados
+      return partidosOrdenados;
+    }
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     return partidosOrdenados.slice(startIndex, startIndex + itemsPerPage);
-  }, [partidosOrdenados, currentPage, itemsPerPage]);
+  }, [partidosOrdenados, currentPage, itemsPerPage, tipoVista]);
 
   // 🔥 CÁLCULOS DE PAGINACIÓN
   const totalPages = Math.ceil(partidosOrdenados.length / itemsPerPage);
@@ -548,10 +589,10 @@ export const Partidos = () => {
   // 🔥 VERIFICAR SI HAY FILTROS ACTIVOS
   const hasActiveFilters = searchTerm || estadoFiltro !== 'todos' || categoriaFiltro;
 
-  // 🔥 RESETEAR PÁGINA CUANDO CAMBIAN LOS FILTROS
+  // 🔥 RESETEAR PÁGINA CUANDO CAMBIAN LOS FILTROS - ACTUALIZADO
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, estadoFiltro, categoriaFiltro]);
+  }, [searchTerm, estadoFiltro, categoriaFiltro, tipoVista]);
 
   // 🔥 MANEJAR CAMBIO DE PÁGINA
   const handlePageChange = (event, newPage) => {
@@ -648,7 +689,7 @@ export const Partidos = () => {
           )}
         </Box>
 
-        {/* Filtros */}
+        {/* Filtros - ACTUALIZADO CON NUEVOS PROPS */}
         <FiltrosAvanzados
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -667,12 +708,12 @@ export const Partidos = () => {
             enCurso: todosLosPartidos.filter(p => p.estado === 'en_curso').length,
             finalizados: todosLosPartidos.filter(p => p.estado === 'finalizado').length
           }}
-          vistaCompacta={vistaCompacta}
-          setVistaCompacta={setVistaCompacta}
+          tipoVista={tipoVista} // 🔥 NUEVO PROP
+          setTipoVista={setTipoVista} // 🔥 NUEVO PROP
           obtenerCategoriasDisponibles={obtenerCategoriasDisponibles}
         />
 
-        {/* Contenido principal */}
+        {/* Contenido principal - ACTUALIZADO CON VISTA JORNADA */}
         <AnimatePresence mode="wait">
           {!hasResults ? (
             <motion.div
@@ -720,13 +761,21 @@ export const Partidos = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Lista de partidos */}
-              {vistaCompacta ? (
+              {/* 🔥 RENDERIZADO CONDICIONAL SEGÚN TIPO DE VISTA */}
+              {tipoVista === 'jornada' ? (
+                // Vista por jornada - nueva funcionalidad
+                <VistaJornada
+                  partidos={partidosPaginados}
+                  onEliminar={eliminarPartido}
+                />
+              ) : tipoVista === 'lista' ? (
+                // Vista compacta existente
                 <ListaPartidosCompacta
                   partidos={partidosPaginados}
                   onEliminar={eliminarPartido}
                 />
               ) : (
+                // Vista de tarjetas existente
                 <Box sx={{
                   display: 'grid',
                   gridTemplateColumns: {
@@ -758,8 +807,8 @@ export const Partidos = () => {
                 </Box>
               )}
 
-              {/* Paginación */}
-              {totalPages > 1 && (
+              {/* Paginación - Solo mostrar para vistas tarjeta y lista */}
+              {tipoVista !== 'jornada' && totalPages > 1 && (
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'center', 
