@@ -20,7 +20,8 @@ import {
   Timeline as TimelineIcon,
   Star as StarIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
+  ExpandLess as ExpandLessIcon,
+  Shield as ShieldIcon 
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLideresPartido } from '../hooks/useLideresPartido';
@@ -62,6 +63,13 @@ const categoriasConfig = {
     color: '#e91e63',
     bgColor: 'rgba(233, 30, 99, 0.1)',
     description: 'Más intercepciones realizadas'
+  },
+  sacks: {
+    label: 'Sacks',
+    icon: <ShieldIcon sx={{ fontSize: 16 }} />,
+    color: '#f44336',
+    bgColor: 'rgba(244, 67, 54, 0.1)',
+    description: 'Más capturas al quarterback'
   }
 };
 
@@ -340,7 +348,8 @@ export const LideresPartido = ({ partidoId }) => {
     qbrating: true, // 🔥 Expandir QB rating por defecto para testing
     recepciones: true,
     tackleos: true,
-    intercepciones: true
+    intercepciones: true,
+    sacks: true
   });
 
   const { lideres, loading, error, recargar } = useLideresPartido(partidoId);

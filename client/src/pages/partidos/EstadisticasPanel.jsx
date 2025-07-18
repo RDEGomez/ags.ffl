@@ -93,42 +93,58 @@ const EstadisticasPanel = ({ partido }) => {
           
         case 'corrida':
           if (esLocal) {
+            // El LOCAL realiza la corrida
             statsLocal.corridas.intentos++;
             if (jugada.resultado?.touchdown) statsLocal.corridas.touchdowns++;
+            
+            // ⚠️ NUEVO: Si hay un tackleador (jugadorSecundario), el VISITANTE hizo el tackleo
+            if (jugada.jugadorSecundario) {
+              statsVisitante.defensiva.tackleos++;
+            }
           } else {
+            // El VISITANTE realiza la corrida
             statsVisitante.corridas.intentos++;
             if (jugada.resultado?.touchdown) statsVisitante.corridas.touchdowns++;
+            
+            // ⚠️ NUEVO: Si hay un tackleador (jugadorSecundario), el LOCAL hizo el tackleo
+            if (jugada.jugadorSecundario) {
+              statsLocal.defensiva.tackleos++;
+            }
           }
           break;
           
         case 'intercepcion':
-          // ⚠️ CLAVE: La intercepción se anota al equipo DEFENSOR (el que NO tenía posesión)
+          // ⚠️ CORRECCIÓN: equipoEnPosesion = equipo que REALIZA la intercepción
           if (esLocal) {
-            // Si el local tenía posesión, el visitante hace la intercepción
-            statsVisitante.defensiva.intercepciones++;
-            if (jugada.resultado?.touchdown) statsVisitante.pases.touchdowns++;
-          } else {
-            // Si el visitante tenía posesión, el local hace la intercepción
+            // El LOCAL realizó la intercepción
             statsLocal.defensiva.intercepciones++;
             if (jugada.resultado?.touchdown) statsLocal.pases.touchdowns++;
+          } else {
+            // El VISITANTE realizó la intercepción
+            statsVisitante.defensiva.intercepciones++;
+            if (jugada.resultado?.touchdown) statsVisitante.pases.touchdowns++;
           }
           break;
           
         case 'sack':
-          // ⚠️ CLAVE: El sack se anota al equipo DEFENSOR
+          // ⚠️ CORRECCIÓN: equipoEnPosesion = equipo que REALIZA el sack
           if (esLocal) {
-            statsVisitante.defensiva.sacks++;
-          } else {
+            // El LOCAL realizó el sack
             statsLocal.defensiva.sacks++;
+          } else {
+            // El VISITANTE realizó el sack
+            statsVisitante.defensiva.sacks++;
           }
           break;
           
         case 'tackleo':
-          // ⚠️ CLAVE: El tackleo se anota al equipo DEFENSOR
+          // ⚠️ CORRECCIÓN: equipoEnPosesion = equipo que REALIZA el tackleo
           if (esLocal) {
-            statsVisitante.defensiva.tackleos++;
-          } else {
+            // El LOCAL realizó el tackleo
             statsLocal.defensiva.tackleos++;
+          } else {
+            // El VISITANTE realizó el tackleo
+            statsVisitante.defensiva.tackleos++;
           }
           break;
           

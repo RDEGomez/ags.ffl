@@ -2323,13 +2323,17 @@ exports.obtenerLideresPartido = async (req, res) => {
               break;
 
             case 'corrida':
-              // equipoEnPosesion = equipo ofensivo que ejecutó la corrida
               if (esPrincipal) {
+                // Jugador principal = Corredor
                 if (jugada.resultado?.touchdown) {
                   playerStats.stats.puntos.total += 6;
                   playerStats.stats.puntos.touchdowns++;
                 }
                 console.log(`🏃 Corredor: ${jugador.nombre} - corrida`);
+              } else if (esSecundario) {
+                // Jugador secundario = Tackleador
+                playerStats.stats.tackleos.total++;
+                console.log(`🛡️ Tackleador: ${jugador.nombre} - tackleo en corrida`);
               }
               break;
           }
