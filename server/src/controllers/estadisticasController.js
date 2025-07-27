@@ -153,13 +153,26 @@ exports.obtenerTablaPosiciones = async (req, res) => {
       }
     }
 
-    console.log('🔄 Ordenando tabla de posiciones...');
-    // Ordenar por: 1) Victorias, 2) Diferencia de puntos, 3) Puntos a favor, 4) Nombre (para equipos sin partidos)
+    console.log('🔄 Ordenando tabla de posiciones con criterios NFL...');
+    // Ordenar por: 1) Porcentaje de Victorias (NFL), 2) Diferencia de puntos, 3) Puntos a favor, 4) Nombre
     tablaPosiciones.sort((a, b) => {
-      if (a.victorias !== b.victorias) return b.victorias - a.victorias;
-      if (a.diferenciaPuntos !== b.diferenciaPuntos) return b.diferenciaPuntos - a.diferenciaPuntos;
-      if (a.puntosFavor !== b.puntosFavor) return b.puntosFavor - a.puntosFavor;
-      return a.equipo.nombre.localeCompare(b.equipo.nombre); // Alfabético para empates
+      // 1. PORCENTAJE DE VICTORIAS (criterio principal NFL)
+      if (a.porcentajeVictorias !== b.porcentajeVictorias) {
+        return b.porcentajeVictorias - a.porcentajeVictorias;
+      }
+      
+      // 2. DIFERENCIA DE PUNTOS (tiebreaker similar a NFL)
+      if (a.diferenciaPuntos !== b.diferenciaPuntos) {
+        return b.diferenciaPuntos - a.diferenciaPuntos;
+      }
+      
+      // 3. PUNTOS A FAVOR (tiebreaker adicional)
+      if (a.puntosFavor !== b.puntosFavor) {
+        return b.puntosFavor - a.puntosFavor;
+      }
+      
+      // 4. NOMBRE ALFABÉTICO (para equipos con estadísticas idénticas)
+      return a.equipo.nombre.localeCompare(b.equipo.nombre);
     });
 
     // Agregar posición final
