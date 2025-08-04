@@ -63,8 +63,6 @@ const PartidoSchema = new mongoose.Schema({
     min: 20,
     max: 120
   },
-
-  // 🔥 NUEVO CAMPO: JORNADA
   jornada: {
     type: String,
     trim: true,
@@ -72,7 +70,19 @@ const PartidoSchema = new mongoose.Schema({
     default: null, // Opcional inicialmente para compatibilidad con partidos existentes
     index: true // Índice para optimizar consultas por jornada
   },
-  
+  // 🆕 NUEVO CAMPO: TIPO DE PARTIDO POR EQUIPO
+  tipoPartido: {
+    equipoLocal: {
+      type: String,
+      enum: ['oficial', 'amistoso'],
+      default: 'oficial'
+    },
+    equipoVisitante: {
+      type: String,
+      enum: ['oficial', 'amistoso'], 
+      default: 'oficial'
+    }
+  },
   // 🎮 ESTADO DEL PARTIDO
   estado: {
     type: String,
@@ -387,6 +397,9 @@ PartidoSchema.index({ createdAt: -1 });
 PartidoSchema.index({ jornada: 1 });
 PartidoSchema.index({ torneo: 1, categoria: 1, jornada: 1 });
 
+// 🔥 AGREGAR NUEVO ÍNDICE para tipoPartido
+PartidoSchema.index({ 'tipoPartido.equipoLocal': 1, 'tipoPartido.equipoVisitante': 1 });
+
 // Índice compuesto para consultas comunes
 PartidoSchema.index({ 
   torneo: 1, 
@@ -596,6 +609,55 @@ PartidoSchema.statics.obtenerEstadisticasTorneo = function(torneoId, categoria =
       }
     }
   ]);
+};
+
+// 🆕 NUEVO MÉTODO: Verificar si el partido es oficial para un equipo específico
+PartidoSchema.methods.esOficialPara = function(equipoId) {
+  const equipoIdStr = equipoId.toString();
+  const equipoLocalStr = this.equipoLocal._id?.toString() || this.equipoLocal.toString();
+  const equipoVisitanteStr = this.equipoVisitante._id?.toString() || this.equipoVisitante.toString();
+  
+  if (equipoIdStr === equipoLocalStr) {
+    return this.tipoPartido.equipoLocal === 'oficial';
+  } else if (equipoIdStr === equipoVisitanteStr) {
+    return this.tipoPartido.equipoVisitante === 'oficial';
+  }
+  
+  return false; // El equipo no participa en este partido
+};
+
+// 🆕 NUEVO MÉTODO: Obtener tipo de partido para un equipo específico
+PartidoSchema.methods.obtenerTipoParaEquipo = function(equipoId) {
+  const equipoIdStr = equipoId.toString();
+  const equipoLocalStr = this.equipoLocal._id?.toString() || this.equipoLocal.toString();
+  const equipoVisitanteStr = this.equipoVisitante._id?.toString() || this.equipoVisitante.toString();
+  
+  if (equipoIdStr === equipoLocalStr) {
+    return this.tipoPartido.equipoLocal;
+  } else if (equipoIdStr === equipoVisitanteStr) {
+    return this.tipoPartido.equipoVisitante;
+  }
+  
+  return null; // El equipo no participa en este partido
+};
+
+// 🆕 NUEVO MÉTODO: Verificar si el partido tiene algún equipo en modo amistoso
+PartidoSchema.methods.tieneAmistoso = function() {
+  return this.tipoPartido.equipoLocal === 'amistoso' || this.tipoPartido.equipoVisitante === 'amistoso';
+};
+
+// 🆕 NUEVO MÉTODO: Obtener resumen del tipo de partido
+PartidoSchema.methods.obtenerResumenTipo = function() {
+  const tipoLocal = this.tipoPartido.equipoLocal;
+  const tipoVisitante = this.tipoPartido.equipoVisitante;
+  
+  if (tipoLocal === 'oficial' && tipoVisitante === 'oficial') {
+    return 'oficial'; // Partido completamente oficial
+  } else if (tipoLocal === 'amistoso' && tipoVisitante === 'amistoso') {
+    return 'amistoso'; // Partido completamente amistoso
+  } else {
+    return 'mixto'; // Partido mixto (oficial para uno, amistoso para otro)
+  }
 };
 
 // 🔄 MIDDLEWARE PRE-SAVE
