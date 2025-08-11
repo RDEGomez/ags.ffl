@@ -4,24 +4,20 @@ const Usuario = require('../src/models/Usuario');
 const Equipo = require('../src/models/Equipo');
 const fs = require('fs').promises;
 
-/**
- * Generador de Reporte TOP 15 - SIMPLE Y DIRECTO
- */
 class GeneradorReporteTop15 {
   
   async generarReporteCompleto(torneoId, categoria) {
     try {
-      console.log(`🏆 Generando reporte TOP 15 estadísticas`);
-      console.log(`   Torneo: ${torneoId}`);
-      console.log(`   Categoría: ${categoria}`);
+      console.log('Generando reporte TOP 15 estadisticas');
+      console.log('   Torneo:', torneoId);
+      console.log('   Categoria:', categoria);
       
-      // 1. Buscar partidos en BD
       const partidos = await Partido.find({
         torneo: torneoId,
         categoria: categoria
       }).populate('jugadas.jugadorPrincipal jugadas.jugadorSecundario jugadas.jugadorTouchdown', 'nombre imagen');
       
-      console.log(`📊 Partidos encontrados: ${partidos.length}`);
+      console.log('Partidos encontrados:', partidos.length);
       
       if (partidos.length === 0) {
         return {
@@ -30,7 +26,6 @@ class GeneradorReporteTop15 {
         };
       }
       
-      // 2. Procesar jugadas y calcular estadísticas
       const estadisticas = new Map();
       
       partidos.forEach(partido => {
@@ -41,10 +36,8 @@ class GeneradorReporteTop15 {
         }
       });
       
-      // 3. Enriquecer con datos de usuario
       await this.enriquecerDatos(estadisticas);
       
-      // 4. Generar rankings
       const reporte = {
         metadatos: {
           torneoId,
@@ -64,17 +57,16 @@ class GeneradorReporteTop15 {
         }
       };
       
-      console.log(`✅ Reporte generado con ${estadisticas.size} jugadores`);
+      console.log('Reporte generado con', estadisticas.size, 'jugadores');
       return reporte;
       
     } catch (error) {
-      console.error('❌ Error:', error);
+      console.error('Error:', error);
       throw error;
     }
   }
   
   procesarJugada(jugada, estadisticas) {
-    // Función para inicializar jugador
     const inicializar = (jugadorId, jugadorObj) => {
       if (!estadisticas.has(jugadorId)) {
         estadisticas.set(jugadorId, {
@@ -97,7 +89,6 @@ class GeneradorReporteTop15 {
       }
     };
     
-    // Procesar jugador principal
     if (jugada.jugadorPrincipal && jugada.jugadorPrincipal._id) {
       const id = jugada.jugadorPrincipal._id.toString();
       inicializar(id, jugada.jugadorPrincipal);
@@ -106,18 +97,13 @@ class GeneradorReporteTop15 {
       switch (jugada.tipoJugada) {
         case 'pase_completo':
           stats.pases_completados++;
-          if (jugada.resultado?.touchdown) {
+          if (jugada.resultado && jugada.resultado.touchdown) {
             stats.pases_touchdowns++;
-          }
-          break;
-        case 'corrida':
-          if (jugada.resultado?.touchdown) {
-            stats.puntos += 6;
           }
           break;
         case 'intercepcion':
           stats.intercepciones++;
-          if (jugada.resultado?.touchdown) {
+          if (jugada.resultado && jugada.resultado.touchdown) {
             stats.puntos += 6;
           }
           break;
@@ -127,16 +113,22 @@ class GeneradorReporteTop15 {
         case 'tackleo':
           stats.tackleos++;
           break;
+        case 'corrida':
+          if (jugada.resultado && jugada.resultado.touchdown) {
+            stats.puntos += 6;
+          }
+          break;
         case 'conversion_1pt':
+          stats.pases_completados++;
           stats.puntos += 1;
           break;
         case 'conversion_2pt':
+          stats.pases_completados++;
           stats.puntos += 2;
           break;
       }
     }
     
-    // Procesar jugador secundario
     if (jugada.jugadorSecundario && jugada.jugadorSecundario._id) {
       const id = jugada.jugadorSecundario._id.toString();
       inicializar(id, jugada.jugadorSecundario);
@@ -145,24 +137,24 @@ class GeneradorReporteTop15 {
       switch (jugada.tipoJugada) {
         case 'pase_completo':
           stats.recepciones_total++;
-          if (jugada.resultado?.touchdown) {
+          if (jugada.resultado && jugada.resultado.touchdown) {
             stats.recepciones_touchdowns++;
             stats.puntos += 6;
           }
           break;
-        case 'corrida':
-          stats.tackleos++;
+        case 'conversion_1pt':
+        case 'conversion_2pt':
+          stats.recepciones_total++;
           break;
       }
     }
     
-    // Procesar jugador touchdown
     if (jugada.jugadorTouchdown && jugada.jugadorTouchdown._id) {
       const id = jugada.jugadorTouchdown._id.toString();
       inicializar(id, jugada.jugadorTouchdown);
       const stats = estadisticas.get(id).stats;
       
-      if (jugada.resultado?.touchdown) {
+      if (jugada.resultado && jugada.resultado.touchdown) {
         stats.puntos += 6;
       }
     }
@@ -172,20 +164,19 @@ class GeneradorReporteTop15 {
     const jugadorIds = Array.from(estadisticas.keys());
     const usuarios = await Usuario.find({
       _id: { $in: jugadorIds }
-    }).populate('equipos.equipo', 'nombre categoria'); // <--- Asegúrate de incluir "categoria"
-
+    }).populate('equipos.equipo', 'nombre');
+    
     usuarios.forEach(usuario => {
       const jugadorId = usuario._id.toString();
       if (estadisticas.has(jugadorId)) {
         const statsJugador = estadisticas.get(jugadorId);
         
         statsJugador.jugador.curp = usuario.curp || usuario.documento || 'N/A';
-
-        // Filtrar equipo que coincida con la categoría actual
-        const equipoValido = usuario.equipos.find(eq =>
-          eq && eq.equipo && eq.equipo.categoria === 'vargold'
+        
+        const equipoValido = usuario.equipos && usuario.equipos.find(eq => 
+          eq && eq.equipo && eq.equipo.nombre
         );
-
+        
         if (equipoValido) {
           statsJugador.jugador.equipoPrincipal = equipoValido.equipo.nombre;
           statsJugador.jugador.numero = equipoValido.numero || 'N/A';
@@ -215,40 +206,31 @@ class GeneradorReporteTop15 {
   
   async guardarReporte(reporte) {
     const fechaHora = new Date().toISOString().replace(/[:.]/g, '-');
-    const archivo = `./reportes/reporte_top15_${fechaHora}.json`;
+    const archivo = './reportes/reporte_top15_' + fechaHora + '.json';
     
     try {
       await fs.mkdir('./reportes', { recursive: true });
       await fs.writeFile(archivo, JSON.stringify(reporte, null, 2), 'utf8');
-      console.log(`💾 Reporte guardado: ${archivo}`);
+      console.log('Reporte guardado:', archivo);
       return archivo;
     } catch (error) {
-      console.error('❌ Error guardando:', error);
+      console.error('Error guardando:', error);
       throw error;
     }
   }
 }
 
-// Función principal
 async function main() {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/agsffl');
-    console.log('✅ Conectado a MongoDB');
+    console.log('Conectado a MongoDB');
     
     const args = process.argv.slice(2);
     const [comando, torneoId, categoria] = args;
     
     if (comando !== 'generar' || !torneoId || !categoria) {
-      console.log(`
-🏆 REPORTE TOP 15 ESTADÍSTICAS
-============================
-
-USO:
-  node reporte_top15.js generar <torneoId> <categoria>
-
-EJEMPLO:
-  node reporte_top15.js generar 6847830fd8999883558396b9 vargold
-      `);
+      console.log('USO: node reporte_top15.js generar <torneoId> <categoria>');
+      console.log('EJEMPLO: node reporte_top15.js generar 6847830fd8999883558396b9 vargold');
       process.exit(1);
     }
     
@@ -256,11 +238,11 @@ EJEMPLO:
     const reporte = await generador.generarReporteCompleto(torneoId, categoria);
     await generador.guardarReporte(reporte);
     
-    console.log(`\n🎉 ¡Listo!`);
-    console.log(`📊 Jugadores procesados: ${reporte.metadatos.totalJugadores}`);
+    console.log('Listo!');
+    console.log('Jugadores procesados:', reporte.metadatos.totalJugadores);
     
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('Error:', error.message);
     process.exit(1);
   } finally {
     await mongoose.disconnect();

@@ -1,0 +1,972 @@
+{
+  "metadatos": {
+    "torneoId": "684d17a96cee86e883467450",
+    "categoria": "vargold",
+    "fechaGeneracion": "2025-08-11T23:39:07.088Z",
+    "totalJugadores": 190
+  },
+  "rankings": {
+    "puntos": [
+      {
+        "posicion": 1,
+        "nombre": "Andres Imanol Lozano Delgadillo",
+        "numero": 1,
+        "equipo": "Axolotls",
+        "curp": "LODA001120HASZLNA3",
+        "valor": 84
+      },
+      {
+        "posicion": 2,
+        "nombre": "Santiago Eduardo",
+        "numero": 11,
+        "equipo": "Lobos",
+        "curp": "VERS061220HASLDNA5",
+        "valor": 79
+      },
+      {
+        "posicion": 3,
+        "nombre": "Luis Gabriel Diaz Lopez",
+        "numero": 1,
+        "equipo": "Sharkinos",
+        "curp": "DILL060414HASZPSA0",
+        "valor": 78
+      },
+      {
+        "posicion": 4,
+        "numero": "N/A",
+        "equipo": "PITBULLS",
+        "curp": "COGD061028HASRNNA5",
+        "valor": 78
+      },
+      {
+        "posicion": 5,
+        "nombre": "Daniel Orozco Franco",
+        "numero": 13,
+        "equipo": "Intochables",
+        "curp": "OOFD970929HDFRRN05",
+        "valor": 74
+      },
+      {
+        "posicion": 6,
+        "nombre": "Cesar Noe Cano Vizcaíno",
+        "numero": 20,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "CAVC961222HDFNZS03",
+        "valor": 68
+      },
+      {
+        "posicion": 7,
+        "nombre": "Leonardo Constantino Campos Santana",
+        "numero": 10,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "CASL000527HASMNNA6",
+        "valor": 66
+      },
+      {
+        "posicion": 8,
+        "nombre": "Alejandro Solórzano Ortiz",
+        "numero": 40,
+        "equipo": "Kenais",
+        "curp": "SOOA040930HMCLRLA0",
+        "valor": 57
+      },
+      {
+        "posicion": 9,
+        "nombre": "José Alejandro",
+        "numero": 12,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "BAPA020226HDFHRLA7",
+        "valor": 55
+      },
+      {
+        "posicion": 10,
+        "nombre": "Gustavo Orozco Franco",
+        "numero": 11,
+        "equipo": "Storms",
+        "curp": "OOFG950125HDFRRS02",
+        "valor": 54
+      },
+      {
+        "posicion": 11,
+        "nombre": "David Alejandro Tristán Hernández",
+        "numero": 24,
+        "equipo": "Bunnies",
+        "curp": "TIHD960828HASRRV05",
+        "valor": 54
+      },
+      {
+        "posicion": 12,
+        "nombre": "Yahel Marquez",
+        "numero": 3,
+        "equipo": "Leones",
+        "curp": "MACG051024HASRHRA7",
+        "valor": 54
+      },
+      {
+        "posicion": 13,
+        "nombre": "Antetokacho",
+        "numero": 34,
+        "equipo": "Kenais",
+        "curp": "GOCE890208HSPMRD06",
+        "valor": 48
+      },
+      {
+        "posicion": 14,
+        "nombre": "Matis",
+        "numero": 15,
+        "equipo": "Leones",
+        "curp": "NALM071222HMCVTTA5",
+        "valor": 48
+      },
+      {
+        "posicion": 15,
+        "numero": 14,
+        "equipo": "Ronins",
+        "curp": "ROHR090414HASJRDA6",
+        "valor": 48
+      }
+    ],
+    "pases_completados": [
+      {
+        "posicion": 1,
+        "nombre": "Jaime Amezquita",
+        "numero": 7,
+        "equipo": "Leones",
+        "curp": "AEIJ790601HASMBM09",
+        "valor": 171
+      },
+      {
+        "posicion": 2,
+        "nombre": "David Morán González",
+        "numero": 2,
+        "equipo": "Bunnies",
+        "curp": "MOGD270697HDFRNV07",
+        "valor": 133
+      },
+      {
+        "posicion": 3,
+        "nombre": "Juan Antonio Macías Cedillo",
+        "numero": 7,
+        "equipo": "PITBULLS",
+        "curp": "MACJ030325HASCDNA9",
+        "valor": 133
+      },
+      {
+        "posicion": 4,
+        "nombre": "Santiago Amezquita",
+        "numero": 18,
+        "equipo": "Sharkinos",
+        "curp": "AELS060411HASMPNA7",
+        "valor": 132
+      },
+      {
+        "posicion": 5,
+        "nombre": "Omar Jasso",
+        "numero": 10,
+        "equipo": "Axolotls",
+        "curp": "NAJO010617HASVSMA3",
+        "valor": 125
+      },
+      {
+        "posicion": 6,
+        "nombre": "CARLOS IVAN SALGADO ZAMORA",
+        "numero": 43,
+        "equipo": "Ronins",
+        "curp": "SAZC931014HASLMR02",
+        "valor": 118
+      },
+      {
+        "posicion": 7,
+        "nombre": "Francisco Barba",
+        "numero": 11,
+        "equipo": "Kenais",
+        "curp": "BACF940825HASRBR06",
+        "valor": 109
+      },
+      {
+        "posicion": 8,
+        "nombre": "Axel Alejandro Velasco Vera",
+        "numero": 3,
+        "equipo": "Lobos",
+        "curp": "VEVA090403HASLRXA7",
+        "valor": 107
+      },
+      {
+        "posicion": 9,
+        "numero": 18,
+        "equipo": "RICK’S",
+        "curp": "HEQK090827HQRRNRA7",
+        "valor": 106
+      },
+      {
+        "posicion": 10,
+        "numero": 51,
+        "equipo": "Bengals",
+        "curp": "CALE950816HASSRD09",
+        "valor": 101
+      },
+      {
+        "posicion": 11,
+        "nombre": "José Alejandro",
+        "numero": 12,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "BAPA020226HDFHRLA7",
+        "valor": 100
+      },
+      {
+        "posicion": 12,
+        "nombre": "Roman Martinez",
+        "numero": 24,
+        "equipo": "Thundercats",
+        "curp": "EAMC820207HASSRS09",
+        "valor": 70
+      },
+      {
+        "posicion": 13,
+        "nombre": "Carlos Andres Cortes Peineman",
+        "numero": 3,
+        "equipo": "WARGOS",
+        "curp": "COPC981029HASRNR04",
+        "valor": 68
+      },
+      {
+        "posicion": 14,
+        "nombre": "Damian Jaramillo",
+        "numero": 55,
+        "equipo": "BLACK MAMBA",
+        "curp": "JACS820804",
+        "valor": 55
+      },
+      {
+        "posicion": 15,
+        "nombre": "Emiliano Herrera",
+        "numero": 5,
+        "equipo": "UPA",
+        "curp": "HEPO051115HASRRMA4",
+        "valor": 53
+      }
+    ],
+    "pases_touchdowns": [
+      {
+        "posicion": 1,
+        "nombre": "José Alejandro",
+        "numero": 12,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "BAPA020226HDFHRLA7",
+        "valor": 31
+      },
+      {
+        "posicion": 2,
+        "nombre": "David Morán González",
+        "numero": 2,
+        "equipo": "Bunnies",
+        "curp": "MOGD270697HDFRNV07",
+        "valor": 29
+      },
+      {
+        "posicion": 3,
+        "nombre": "Santiago Amezquita",
+        "numero": 18,
+        "equipo": "Sharkinos",
+        "curp": "AELS060411HASMPNA7",
+        "valor": 29
+      },
+      {
+        "posicion": 4,
+        "nombre": "Jaime Amezquita",
+        "numero": 7,
+        "equipo": "Leones",
+        "curp": "AEIJ790601HASMBM09",
+        "valor": 28
+      },
+      {
+        "posicion": 5,
+        "nombre": "Omar Jasso",
+        "numero": 10,
+        "equipo": "Axolotls",
+        "curp": "NAJO010617HASVSMA3",
+        "valor": 28
+      },
+      {
+        "posicion": 6,
+        "nombre": "Juan Antonio Macías Cedillo",
+        "numero": 7,
+        "equipo": "PITBULLS",
+        "curp": "MACJ030325HASCDNA9",
+        "valor": 23
+      },
+      {
+        "posicion": 7,
+        "nombre": "CARLOS IVAN SALGADO ZAMORA",
+        "numero": 43,
+        "equipo": "Ronins",
+        "curp": "SAZC931014HASLMR02",
+        "valor": 22
+      },
+      {
+        "posicion": 8,
+        "numero": 18,
+        "equipo": "RICK’S",
+        "curp": "HEQK090827HQRRNRA7",
+        "valor": 20
+      },
+      {
+        "posicion": 9,
+        "nombre": "Axel Alejandro Velasco Vera",
+        "numero": 3,
+        "equipo": "Lobos",
+        "curp": "VEVA090403HASLRXA7",
+        "valor": 20
+      },
+      {
+        "posicion": 10,
+        "nombre": "Francisco Barba",
+        "numero": 11,
+        "equipo": "Kenais",
+        "curp": "BACF940825HASRBR06",
+        "valor": 16
+      },
+      {
+        "posicion": 11,
+        "nombre": "Efrain Hdz 'Pada'",
+        "numero": 12,
+        "equipo": "Hellcats",
+        "curp": "MUHE910603HASXRF06",
+        "valor": 12
+      },
+      {
+        "posicion": 12,
+        "nombre": "Carlos Andres Cortes Peineman",
+        "numero": 3,
+        "equipo": "WARGOS",
+        "curp": "COPC981029HASRNR04",
+        "valor": 12
+      },
+      {
+        "posicion": 13,
+        "numero": 51,
+        "equipo": "Bengals",
+        "curp": "CALE950816HASSRD09",
+        "valor": 12
+      },
+      {
+        "posicion": 14,
+        "nombre": "Roman Martinez",
+        "numero": 24,
+        "equipo": "Thundercats",
+        "curp": "EAMC820207HASSRS09",
+        "valor": 11
+      },
+      {
+        "posicion": 15,
+        "nombre": "Aldo Gaytán",
+        "numero": 82,
+        "equipo": "Tuzos UAZ",
+        "curp": "GARA860324HZSYVL07",
+        "valor": 10
+      }
+    ],
+    "recepciones_total": [
+      {
+        "posicion": 1,
+        "nombre": "Marco",
+        "numero": 43,
+        "equipo": "Leones",
+        "curp": "NAPM920918HDFRRR04",
+        "valor": 45
+      },
+      {
+        "posicion": 2,
+        "nombre": "Yahel Marquez",
+        "numero": 3,
+        "equipo": "Leones",
+        "curp": "MACG051024HASRHRA7",
+        "valor": 44
+      },
+      {
+        "posicion": 3,
+        "nombre": "Andres Imanol Lozano Delgadillo",
+        "numero": 1,
+        "equipo": "Axolotls",
+        "curp": "LODA001120HASZLNA3",
+        "valor": 43
+      },
+      {
+        "posicion": 4,
+        "nombre": "Santiago Eduardo",
+        "numero": 11,
+        "equipo": "Lobos",
+        "curp": "VERS061220HASLDNA5",
+        "valor": 43
+      },
+      {
+        "posicion": 5,
+        "numero": "N/A",
+        "equipo": "PITBULLS",
+        "curp": "COGD061028HASRNNA5",
+        "valor": 41
+      },
+      {
+        "posicion": 6,
+        "nombre": "Matis",
+        "numero": 15,
+        "equipo": "Leones",
+        "curp": "NALM071222HMCVTTA5",
+        "valor": 38
+      },
+      {
+        "posicion": 7,
+        "nombre": "Luis Gabriel Diaz Lopez",
+        "numero": 1,
+        "equipo": "Sharkinos",
+        "curp": "DILL060414HASZPSA0",
+        "valor": 38
+      },
+      {
+        "posicion": 8,
+        "nombre": "Gustavo Orozco Franco",
+        "numero": 11,
+        "equipo": "Storms",
+        "curp": "OOFG950125HDFRRS02",
+        "valor": 36
+      },
+      {
+        "posicion": 9,
+        "nombre": "Omar Vázquez",
+        "numero": 6,
+        "equipo": "Ronins",
+        "curp": "VAGR880425HASZLB06",
+        "valor": 36
+      },
+      {
+        "posicion": 10,
+        "nombre": "Cesar Noe Cano Vizcaíno",
+        "numero": 20,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "CAVC961222HDFNZS03",
+        "valor": 34
+      },
+      {
+        "posicion": 11,
+        "nombre": "Efrain Hdz 'Pada'",
+        "numero": 12,
+        "equipo": "Hellcats",
+        "curp": "MUHE910603HASXRF06",
+        "valor": 32
+      },
+      {
+        "posicion": 12,
+        "nombre": "André Sebastián Berumen Garza",
+        "numero": 24,
+        "equipo": "PITBULLS",
+        "curp": "BEGA070112HASRRNA7",
+        "valor": 32
+      },
+      {
+        "posicion": 13,
+        "nombre": "Antetokacho",
+        "numero": 34,
+        "equipo": "Kenais",
+        "curp": "GOCE890208HSPMRD06",
+        "valor": 30
+      },
+      {
+        "posicion": 14,
+        "nombre": "Ivan Eduardo Soto Castillo",
+        "numero": 15,
+        "equipo": "Bengals",
+        "curp": "SOCI921129HASTVS03",
+        "valor": 29
+      },
+      {
+        "posicion": 15,
+        "nombre": "Alejandro Solórzano Ortiz",
+        "numero": 40,
+        "equipo": "Kenais",
+        "curp": "SOOA040930HMCLRLA0",
+        "valor": 28
+      }
+    ],
+    "recepciones_touchdowns": [
+      {
+        "posicion": 1,
+        "nombre": "Andres Imanol Lozano Delgadillo",
+        "numero": 1,
+        "equipo": "Axolotls",
+        "curp": "LODA001120HASZLNA3",
+        "valor": 13
+      },
+      {
+        "posicion": 2,
+        "nombre": "Luis Gabriel Diaz Lopez",
+        "numero": 1,
+        "equipo": "Sharkinos",
+        "curp": "DILL060414HASZPSA0",
+        "valor": 13
+      },
+      {
+        "posicion": 3,
+        "numero": "N/A",
+        "equipo": "PITBULLS",
+        "curp": "COGD061028HASRNNA5",
+        "valor": 13
+      },
+      {
+        "posicion": 4,
+        "nombre": "Santiago Eduardo",
+        "numero": 11,
+        "equipo": "Lobos",
+        "curp": "VERS061220HASLDNA5",
+        "valor": 10
+      },
+      {
+        "posicion": 5,
+        "nombre": "Yahel Marquez",
+        "numero": 3,
+        "equipo": "Leones",
+        "curp": "MACG051024HASRHRA7",
+        "valor": 9
+      },
+      {
+        "posicion": 6,
+        "nombre": "Matis",
+        "numero": 15,
+        "equipo": "Leones",
+        "curp": "NALM071222HMCVTTA5",
+        "valor": 8
+      },
+      {
+        "posicion": 7,
+        "nombre": "Daniel Orozco Franco",
+        "numero": 13,
+        "equipo": "Intochables",
+        "curp": "OOFD970929HDFRRN05",
+        "valor": 8
+      },
+      {
+        "posicion": 8,
+        "nombre": "Antetokacho",
+        "numero": 34,
+        "equipo": "Kenais",
+        "curp": "GOCE890208HSPMRD06",
+        "valor": 7
+      },
+      {
+        "posicion": 9,
+        "nombre": "Alejandro Solórzano Ortiz",
+        "numero": 40,
+        "equipo": "Kenais",
+        "curp": "SOOA040930HMCLRLA0",
+        "valor": 7
+      },
+      {
+        "posicion": 10,
+        "numero": 2,
+        "equipo": "WARGOS",
+        "curp": "YOPS971119HASNRB03",
+        "valor": 7
+      },
+      {
+        "posicion": 11,
+        "nombre": "Gustavo Orozco Franco",
+        "numero": 11,
+        "equipo": "Storms",
+        "curp": "OOFG950125HDFRRS02",
+        "valor": 7
+      },
+      {
+        "posicion": 12,
+        "nombre": "David Alejandro Tristán Hernández",
+        "numero": 24,
+        "equipo": "Bunnies",
+        "curp": "TIHD960828HASRRV05",
+        "valor": 7
+      },
+      {
+        "posicion": 13,
+        "nombre": "Octavio Argáez",
+        "numero": 46,
+        "equipo": "MAMBAS ELITE",
+        "curp": "AAPO140106HASRLCA4",
+        "valor": 7
+      },
+      {
+        "posicion": 14,
+        "nombre": "Christian Abel Salazar",
+        "numero": 5,
+        "equipo": "RABBITS AGS.",
+        "curp": "SALC000207HASLRHA9",
+        "valor": 7
+      },
+      {
+        "posicion": 15,
+        "nombre": "Emilio García",
+        "numero": 56,
+        "equipo": "WARGOS",
+        "curp": "GAPE010306HSLRRMA3",
+        "valor": 6
+      }
+    ],
+    "tackleos": [
+      {
+        "posicion": 1,
+        "nombre": "Santiago Eduardo",
+        "numero": 11,
+        "equipo": "Lobos",
+        "curp": "VERS061220HASLDNA5",
+        "valor": 31
+      },
+      {
+        "posicion": 2,
+        "nombre": "Sergio Alejandro Díaz Barba",
+        "numero": 8,
+        "equipo": "Storms",
+        "curp": "DIBS911126HASZRR07",
+        "valor": 31
+      },
+      {
+        "posicion": 3,
+        "numero": 7,
+        "equipo": "Bunnies",
+        "curp": "RUDS030116HASZLBA5",
+        "valor": 30
+      },
+      {
+        "posicion": 4,
+        "nombre": "Andres Imanol Lozano Delgadillo",
+        "numero": 1,
+        "equipo": "Axolotls",
+        "curp": "LODA001120HASZLNA3",
+        "valor": 25
+      },
+      {
+        "posicion": 5,
+        "nombre": "Alejandro Martínez",
+        "numero": 52,
+        "equipo": "Leones",
+        "curp": "MATA940910HASRRL02",
+        "valor": 23
+      },
+      {
+        "posicion": 6,
+        "nombre": "Luis Enrique Perez Lopez",
+        "numero": 13,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "Pell960305hasrps00",
+        "valor": 23
+      },
+      {
+        "posicion": 7,
+        "nombre": "Zaid Aguilera",
+        "numero": 4,
+        "equipo": "Tuzos UAZ",
+        "curp": "AURZ030128HZSGSDA6",
+        "valor": 22
+      },
+      {
+        "posicion": 8,
+        "nombre": "Jesús Groba",
+        "numero": 81,
+        "equipo": "Kenais",
+        "curp": "GOHJ931201HSPRRS08",
+        "valor": 21
+      },
+      {
+        "posicion": 9,
+        "nombre": "Omar Alejandro Padilla Ramírez",
+        "numero": 12,
+        "equipo": "Bengals",
+        "curp": "PARO910417HASDMM04",
+        "valor": 20
+      },
+      {
+        "posicion": 10,
+        "nombre": "Angello Rocha",
+        "numero": 25,
+        "equipo": "Hellcats",
+        "curp": "RORA931214HASCBN05",
+        "valor": 19
+      },
+      {
+        "posicion": 11,
+        "nombre": "CARLOS IVAN SALGADO ZAMORA",
+        "numero": 43,
+        "equipo": "Ronins",
+        "curp": "SAZC931014HASLMR02",
+        "valor": 19
+      },
+      {
+        "posicion": 12,
+        "nombre": "Jorge Alejandro Salazar Roque",
+        "numero": "N/A",
+        "equipo": "Sharkinos",
+        "curp": "SARJ070324HASLQRA8",
+        "valor": 18
+      },
+      {
+        "posicion": 13,
+        "nombre": "Víctor Manuel Hernández Ramírez",
+        "numero": 13,
+        "equipo": "PITBULLS",
+        "curp": "HERV950728HDFRMC07",
+        "valor": 18
+      },
+      {
+        "posicion": 14,
+        "nombre": "Erik Carreño",
+        "numero": 20,
+        "equipo": "Bengals",
+        "curp": "CAFE880916HDFRLR00",
+        "valor": 18
+      },
+      {
+        "posicion": 15,
+        "nombre": "Javier Valencia Dávila",
+        "numero": 32,
+        "equipo": "BLACK MAMBA",
+        "curp": "VADJ990902HASLVV02",
+        "valor": 18
+      }
+    ],
+    "intercepciones": [
+      {
+        "posicion": 1,
+        "numero": 10,
+        "equipo": "WARGOS",
+        "curp": "ZAPF050324HASMRRA1",
+        "valor": 7
+      },
+      {
+        "posicion": 2,
+        "nombre": "Alejandro Martínez",
+        "numero": 52,
+        "equipo": "Leones",
+        "curp": "MATA940910HASRRL02",
+        "valor": 6
+      },
+      {
+        "posicion": 3,
+        "nombre": "Gustavo Orozco Franco",
+        "numero": 11,
+        "equipo": "Storms",
+        "curp": "OOFG950125HDFRRS02",
+        "valor": 6
+      },
+      {
+        "posicion": 4,
+        "numero": 14,
+        "equipo": "Ronins",
+        "curp": "ROHR090414HASJRDA6",
+        "valor": 6
+      },
+      {
+        "posicion": 5,
+        "nombre": "Alan Guzmán",
+        "numero": 3,
+        "equipo": "Axolotls",
+        "curp": "GURA030816HASZRMAZ",
+        "valor": 6
+      },
+      {
+        "posicion": 6,
+        "nombre": "Omar Alejandro Padilla Ramírez",
+        "numero": 12,
+        "equipo": "Bengals",
+        "curp": "PARO910417HASDMM04",
+        "valor": 5
+      },
+      {
+        "posicion": 7,
+        "nombre": "Zaid Aguilera",
+        "numero": 4,
+        "equipo": "Tuzos UAZ",
+        "curp": "AURZ030128HZSGSDA6",
+        "valor": 5
+      },
+      {
+        "posicion": 8,
+        "nombre": "Antetokacho",
+        "numero": 34,
+        "equipo": "Kenais",
+        "curp": "GOCE890208HSPMRD06",
+        "valor": 4
+      },
+      {
+        "posicion": 9,
+        "nombre": "Eliel Alexey García Díaz",
+        "numero": 6,
+        "equipo": "Leones",
+        "curp": "GADE030711HASRZLA2",
+        "valor": 4
+      },
+      {
+        "posicion": 10,
+        "nombre": "CARLOS IVAN SALGADO ZAMORA",
+        "numero": 43,
+        "equipo": "Ronins",
+        "curp": "SAZC931014HASLMR02",
+        "valor": 4
+      },
+      {
+        "posicion": 11,
+        "nombre": "José Alejandro",
+        "numero": 12,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "BAPA020226HDFHRLA7",
+        "valor": 4
+      },
+      {
+        "posicion": 12,
+        "nombre": "Daniel Orozco Franco",
+        "numero": 13,
+        "equipo": "Intochables",
+        "curp": "OOFD970929HDFRRN05",
+        "valor": 4
+      },
+      {
+        "posicion": 13,
+        "nombre": "Oscar Flores Moraz",
+        "numero": 5,
+        "equipo": "Bengals",
+        "curp": "FOMO900116HZSLRS01",
+        "valor": 3
+      },
+      {
+        "posicion": 14,
+        "numero": 33,
+        "equipo": "RICK’S",
+        "curp": "PEGH000601HASDRCA5",
+        "valor": 3
+      },
+      {
+        "posicion": 15,
+        "numero": 2,
+        "equipo": "WARGOS",
+        "curp": "YOPS971119HASNRB03",
+        "valor": 3
+      }
+    ],
+    "sacks": [
+      {
+        "posicion": 1,
+        "nombre": "Beto Chávez Arratia",
+        "numero": 12,
+        "equipo": "Leones",
+        "curp": "CAAH940913HASHRM02",
+        "valor": 9
+      },
+      {
+        "posicion": 2,
+        "nombre": "Juan Carlos Perez Cantarey",
+        "numero": 23,
+        "equipo": "Ronins",
+        "curp": "PECJ781009HDFRNN04",
+        "valor": 4
+      },
+      {
+        "posicion": 3,
+        "nombre": "Juan Carlos",
+        "numero": 40,
+        "equipo": "Bengals",
+        "curp": "Pemj761222hdfrr02",
+        "valor": 4
+      },
+      {
+        "posicion": 4,
+        "nombre": "Naoki",
+        "numero": 19,
+        "equipo": "Chiquibanda",
+        "curp": "SALN050615HDFNPKA5",
+        "valor": 3
+      },
+      {
+        "posicion": 5,
+        "nombre": "Alejandro Solórzano Ortiz",
+        "numero": 40,
+        "equipo": "Kenais",
+        "curp": "SOOA040930HMCLRLA0",
+        "valor": 2
+      },
+      {
+        "posicion": 6,
+        "nombre": "Tayauh Melgarejo Basaldua",
+        "numero": 31,
+        "equipo": "Diablos del Sol",
+        "curp": "MEBR890311HTCLSC04",
+        "valor": 2
+      },
+      {
+        "posicion": 7,
+        "nombre": "Javier García",
+        "numero": 17,
+        "equipo": "WARGOS",
+        "curp": "Gapj960210HSLRRV02",
+        "valor": 2
+      },
+      {
+        "posicion": 8,
+        "nombre": "Sergio Zuñiga",
+        "numero": 22,
+        "equipo": "Sharkinos",
+        "curp": "ZUCS080912HASXSRA7",
+        "valor": 2
+      },
+      {
+        "posicion": 9,
+        "nombre": "André Sebastián Berumen Garza",
+        "numero": 24,
+        "equipo": "PITBULLS",
+        "curp": "BEGA070112HASRRNA7",
+        "valor": 2
+      },
+      {
+        "posicion": 10,
+        "nombre": "Emiliano Torres",
+        "numero": 87,
+        "equipo": "CUERNOS LARGOS DE AGS",
+        "curp": "TOAJ000120HMCRNNA6",
+        "valor": 2
+      },
+      {
+        "posicion": 11,
+        "nombre": "EDUARDO GUZMAN GUZMAN",
+        "numero": 44,
+        "equipo": "WARGOS",
+        "curp": "GUGE030221HASZZDA6",
+        "valor": 2
+      },
+      {
+        "posicion": 12,
+        "nombre": "Erick Angel Martínez Bracho",
+        "numero": 14,
+        "equipo": "Bunnies",
+        "curp": "MABE961001HASRRR07",
+        "valor": 2
+      },
+      {
+        "posicion": 13,
+        "nombre": "Caleb Felix",
+        "numero": 3,
+        "equipo": "Tuzos UAZ",
+        "curp": "FEJB010322HZSLMRA0",
+        "valor": 2
+      },
+      {
+        "posicion": 14,
+        "nombre": "Alexis García Cruz",
+        "numero": 88,
+        "equipo": "Hellcats",
+        "curp": "GACA021029HDFRRLA9",
+        "valor": 1
+      },
+      {
+        "posicion": 15,
+        "nombre": "Angello Rocha",
+        "numero": 25,
+        "equipo": "Hellcats",
+        "curp": "RORA931214HASCBN05",
+        "valor": 1
+      }
+    ]
+  }
+}
