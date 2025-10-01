@@ -5,32 +5,32 @@ const inscripcionesConfig = {
   // Configuración por categoría - true = habilitada, false = deshabilitada
   categorias: {
     // Categorías Mixtas
-    'mixgold': false,
-    'mixsilv': false,
+    'mixgold': true,
+    'mixsilv': true,
     
     // Categorías Varoniles
-    'vargold': false,
-    'varsilv': false,
-    'varmast': false, // Ejemplo: inscripciones cerradas
+    'vargold': true,
+    'varsilv': true,
+    'varmast': true,
     
     // Categorías Femeniles
-    'femgold': false,
-    'femsilv': false,
-    'femmast': false, // Ejemplo: inscripciones cerradas
+    'femgold': true,
+    'femsilv': true,
+    'femmast': true,
     
     // Categoría Tocho
     'tocho7v7': false,
     
     // Categorías Menores
-    'u8': true,
-    'u10': true,
-    'u12fem': true, // Ejemplo: inscripciones cerradas
-    'u12var': true,
-    'u14fem': true,
-    'u14var': true,
-    'u16fem': true, // Ejemplo: inscripciones cerradas
-    'u16var': true,
-    'u18fem': true,
+    'u8': false,
+    'u10': false,
+    'u12fem': false,
+    'u12var': false,
+    'u14fem': false,
+    'u14var': false,
+    'u16fem': false,
+    'u16var': false,
+    'u18fem': false,
     'u18var': false, // Ejemplo: inscripciones cerradas
   },
   
