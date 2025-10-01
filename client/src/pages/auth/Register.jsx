@@ -387,7 +387,7 @@ export const Register = () => {
                   fontSize: 14
                 }}
               >
-                Documento
+                Documento (CURP)
               </Typography>
               <TextField
                 fullWidth
