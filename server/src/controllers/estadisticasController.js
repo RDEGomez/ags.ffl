@@ -123,7 +123,7 @@ exports.obtenerTablaPosiciones = async (req, res) => {
       const tienePartidos = totalPartidos > 0;
       
       // Solo agregar a la tabla si tiene partidos O si queremos mostrar todos
-      const mostrarEquiposSinPartidos = true; // 🔧 Configurable
+      const mostrarEquiposSinPartidos = false; // 🔧 Configurable
       
       if (tienePartidos || mostrarEquiposSinPartidos) {
         console.log(`  📈 Stats: ${victorias}V-${derrotas}D, ${puntosFavor}PF-${puntosContra}PC`);
