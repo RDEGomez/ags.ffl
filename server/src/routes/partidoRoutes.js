@@ -649,17 +649,17 @@ router.post('/:id/jugadas',
       // Validación de números de jugador
       check('numeroJugadorPrincipal')
         .optional()
-        .isInt({ min: 0, max: 99 })
+        .isInt({ min: 0 })
         .withMessage('Número de jugador principal debe ser entre 0 y 99'),
       
       check('numeroJugadorSecundario')
         .optional()
-        .isInt({ min: 0, max: 99 })
+        .isInt({ min: 0 })
         .withMessage('Número de jugador secundario debe ser entre 0 y 99'),
       
       check('numeroJugadorTouchdown')
         .optional()
-        .isInt({ min: 0, max: 99 })
+        .isInt({ min: 0 })
         .withMessage('Número de jugador touchdown debe ser entre 0 y 99'),
       
       // Validación de descripción (opcional)
@@ -811,7 +811,7 @@ router.post('/:id/validar-jugadores',
       param('id', 'ID de partido debe ser válido').isMongoId(),
       check('equipoId', 'ID de equipo es obligatorio').isMongoId(),
       check('numeros', 'Lista de números es obligatoria').isArray({ min: 0 }),
-      check('numeros.*', 'Cada número debe ser entre 0 y 99').isInt({ min: 0, max: 99 })
+      check('numeros.*', 'Cada número debe ser entre 0 y 99').isInt({ min: 0 })
     ]
   ],
   async (req, res) => {

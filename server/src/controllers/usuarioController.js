@@ -566,8 +566,12 @@ exports.agregarJugadorAEquipo = async (req, res) => {
     // 🔥 VALIDACIÓN 2: Verificar número disponible
     console.log('🔍 Verificando número disponible...');
     const numeroExistente = await Usuario.findOne({
-      'equipos.equipo': equipoId,
-      'equipos.numero': numero
+      equipos: {
+        $elemMatch: {
+          equipo: equipoId,
+          numero: numero
+        }
+      }
     });
     if (numeroExistente) {
       console.log('❌ ERROR: Número ya en uso');
