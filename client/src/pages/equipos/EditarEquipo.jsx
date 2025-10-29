@@ -443,6 +443,8 @@ export const EditarEquipo = () => {
                             <MenuItem value="u14var">U-14 Varonil</MenuItem>
                             <MenuItem value="u16fem">U-16 Femenil</MenuItem>
                             <MenuItem value="u16var">U-16 Varonil</MenuItem>
+                            <MenuItem value="u17fem">U-17 Femenil</MenuItem>
+                            <MenuItem value="u17var">U-17 Varonil</MenuItem>
                             <MenuItem value="u18fem">U-18 Femenil</MenuItem>
                             <MenuItem value="u18var">U-18 Varonil</MenuItem>
                           </TextField>
@@ -500,6 +502,8 @@ export const EditarEquipo = () => {
                                   'u14var': 'U-14 Varonil',
                                   'u16fem': 'U-16 Femenil',
                                   'u16var': 'U-16 Varonil',
+                                  'u17fem': 'U-17 Femenil',
+                                  'u17var': 'U-17 Varonil',
                                   'u18fem': 'U-18 Femenil',
                                   'u18var': 'U-18 Varonil'
                                 }[categoriaActual] : 'Categoría del equipo'

@@ -49,6 +49,8 @@ const categorias = [
   { value: 'u14var', label: 'U-14 Varonil' },
   { value: 'u16fem', label: 'U-16 Femenil' },
   { value: 'u16var', label: 'U-16 Varonil' },
+  { value: 'u17fem', label: 'U-17 Femenil' },
+  { value: 'u17var', label: 'U-17 Varonil' },
   { value: 'u18fem', label: 'U-18 Femenil' },
   { value: 'u18var', label: 'U-18 Varonil' }
 ];

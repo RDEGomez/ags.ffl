@@ -19,6 +19,7 @@ const EquipoSchema = new mongoose.Schema({
       'u10', 'u12fem', 'u12var',
       'u14fem', 'u14var',
       'u16fem', 'u16var',
+      'u17fem', 'u17var',
       'u18fem', 'u18var'
     ]
   },

@@ -145,7 +145,7 @@ router.get('/jornadas',
           'mixgold', 'mixsilv', 'vargold', 'varsilv', 
           'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
           'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
-          'u16fem', 'u16var', 'u18fem', 'u18var'
+          'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'
         ])
         .withMessage('Categoría debe ser válida')
     ]
@@ -165,7 +165,7 @@ router.get('/agrupados-por-jornada',
           'mixgold', 'mixsilv', 'vargold', 'varsilv', 
           'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
           'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
-          'u16fem', 'u16var', 'u18fem', 'u18var'
+          'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'
         ])
         .withMessage('Categoría debe ser válida'),
       query('jornada')
@@ -198,7 +198,7 @@ router.get('/jornadas',
           'mixgold', 'mixsilv', 'vargold', 'varsilv', 
           'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
           'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
-          'u16fem', 'u16var', 'u18fem', 'u18var'
+          'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'
         ])
         .withMessage('Categoría debe ser válida')
     ]
@@ -218,7 +218,7 @@ router.get('/agrupados-por-jornada',
           'mixgold', 'mixsilv', 'vargold', 'varsilv', 
           'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8',
           'u10', 'u12fem', 'u12var', 'u14fem', 'u14var',
-          'u16fem', 'u16var', 'u18fem', 'u18var'
+          'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'
         ])
         .withMessage('Categoría debe ser válida'),
       query('jornada')
@@ -283,7 +283,7 @@ router.post('/',
       // Validaciones opcionales
       check('categoria')
         .optional()
-        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fem', 'u12var', 'u14fem', 'u14var', 'u16fem', 'u16var', 'u18fem', 'u18var'])
+        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fem', 'u12var', 'u14fem', 'u14var', 'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'])
         .withMessage('Categoría no válida'),
       
       // 🔥 NUEVA VALIDACIÓN: Campo jornada
@@ -349,7 +349,7 @@ router.get('/',
       
       query('categoria')
         .optional()
-        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fem', 'u12var', 'u14fem', 'u14var', 'u16fem', 'u16var', 'u18fem', 'u18var'])
+        .isIn(['mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv', 'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fem', 'u12var', 'u14fem', 'u14var', 'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'])
         .withMessage('Categoría no válida'),
       
       query('estado')

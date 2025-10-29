@@ -30,6 +30,8 @@ const inscripcionesConfig = {
     'u14var': true,
     'u16fem': true, // Ejemplo: inscripciones cerradas
     'u16var': true,
+    'u17fem': true,
+    'u17var': true,
     'u18fem': true,
     'u18var': true, // Ejemplo: inscripciones cerradas
   },

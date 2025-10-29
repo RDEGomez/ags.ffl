@@ -180,7 +180,7 @@ async function ejecutarMigracion() {
     console.log('  - mixgold, mixsilv, vargold, varsilv');
     console.log('  - femgold, femsilv, varmast, femmast');
     console.log('  - tocho7v7, u8, u10, u12fem, u12var');
-    console.log('  - u14fem, u14var, u16fem, u16var, u18fem, u18var');
+    console.log('  - u14fem, u14var, u16fem, u16var, u17fem, u17var, u18fem, u18var');
     console.log('\n📅 FORMATO DE FECHA: YYYY-MM-DD');
     process.exit(1);
   }

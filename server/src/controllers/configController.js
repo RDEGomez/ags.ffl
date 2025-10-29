@@ -190,7 +190,7 @@ exports.obtenerEstadoInscripciones = async (req, res) => {
     const categorias = [
       'mixgold', 'mixsilv', 'vargold', 'varsilv', 'femgold', 'femsilv',
       'varmast', 'femmast', 'tocho7v7', 'u8', 'u10', 'u12fem', 'u12var',
-      'u14fem', 'u14var', 'u16fem', 'u16var', 'u18fem', 'u18var'
+      'u14fem', 'u14var', 'u16fem', 'u16var', 'u17fem', 'u17var', 'u18fem', 'u18var'
     ];
 
     for (const categoria of categorias) {

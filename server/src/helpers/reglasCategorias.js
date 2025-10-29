@@ -74,7 +74,7 @@ const reglasCategorias = {
     tipoBase: 'u12fem'
   },
   u12var: {
-    sexoPermitido: ['M'],
+    sexoPermitido: ['M', 'F'],
     edadMin: 0,
     edadMax: 12,
     tipoBase: 'u12var'
@@ -86,7 +86,7 @@ const reglasCategorias = {
     tipoBase: 'u14fem'
   },
   u14var: {
-    sexoPermitido: ['M'],
+    sexoPermitido: ['M', 'F'],
     edadMin: 0,
     edadMax: 14,
     tipoBase: 'u14var'
@@ -98,10 +98,22 @@ const reglasCategorias = {
     tipoBase: 'u16fem'
   },
   u16var: {
-    sexoPermitido: ['M'],
+    sexoPermitido: ['M', 'F'],
     edadMin: 0,
     edadMax: 16,
     tipoBase: 'u16var'
+  },
+  u17fem: {
+    sexoPermitido: ['F'],
+    edadMin: 0,
+    edadMax: 17,
+    tipoBase: 'u17fem'
+  },
+  u17var: {
+    sexoPermitido: ['M', 'F'],
+    edadMin: 0,
+    edadMax: 17,
+    tipoBase: 'u17var'
   },
   u18fem: {
     sexoPermitido: ['F'],
@@ -110,7 +122,7 @@ const reglasCategorias = {
     tipoBase: 'u18fem'
   },
   u18var: {
-    sexoPermitido: ['M'],
+    sexoPermitido: ['M', 'F'],
     edadMin: 0,
     edadMax: 18,
     tipoBase: 'u18var'

@@ -19,6 +19,8 @@ export const CATEGORY_NAMES = {
   'u14var': '👦 U-14 Varonil',
   'u16fem': '👧 U-16 Femenil',
   'u16var': '👦 U-16 Varonil',
+  'u17fem': '👧 U-17 Femenil',
+  'u17var': '👦 U-17 Varonil',
   'u18fem': '👧 U-18 Femenil',
   'u18var': '👦 U-18 Varonil'
 };
@@ -42,6 +44,8 @@ export const CATEGORY_COLORS = {
   'u14var': '#42A5F5',
   'u16fem': '#29B6F6',
   'u16var': '#26C6DA',
+  'u17fem': '#00ACC1',
+  'u17var': '#009688',
   'u18fem': '#26A69A',
   'u18var': '#66BB6A'
 };
@@ -65,6 +69,8 @@ export const CATEGORY_ICONS = {
   'u14var': '👦',
   'u16fem': '👧',
   'u16var': '👦',
+  'u17fem': '👧',
+  'u17var': '👦',
   'u18fem': '👧',
   'u18var': '👦'
 };
@@ -134,6 +140,8 @@ export const agruparCategoriasPorTipo = () => {
       { codigo: 'u14var', nombre: CATEGORY_NAMES.u14var },
       { codigo: 'u16fem', nombre: CATEGORY_NAMES.u16fem },
       { codigo: 'u16var', nombre: CATEGORY_NAMES.u16var },
+      { codigo: 'u17fem', nombre: CATEGORY_NAMES.u17fem },
+      { codigo: 'u17var', nombre: CATEGORY_NAMES.u17var },
       { codigo: 'u18fem', nombre: CATEGORY_NAMES.u18fem },
       { codigo: 'u18var', nombre: CATEGORY_NAMES.u18var }
     ]
