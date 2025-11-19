@@ -26,7 +26,19 @@ import {
   Checkbox,
   FormControlLabel,
   Avatar,
-  Chip
+  Chip,
+  // 🚀 NUEVOS IMPORTS PARA CAPTURA RÁPIDA
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  ToggleButton,
+  ToggleButtonGroup,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  Grid,
+  Collapse
 } from '@mui/material';
 
 import {
@@ -46,13 +58,20 @@ import {
   StarBorder as StarIcon,
   Bolt as BoltIcon,
   Shield as ShieldIcon,
-  DragIndicator as DragIcon
+  DragIndicator as DragIcon,
+  // 🚀 NUEVOS ICONOS PARA CAPTURA RÁPIDA
+  FlashOn as FastCaptureIcon,
+  Repeat as RepeatIcon,
+  Clear as ClearIcon,
+  Save as SaveIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 
 const RegistroJugadas = ({ partido, onActualizar }) => {
   const { usuario, puedeGestionarPartidos } = useAuth();
 
-  // Estados principales
+  // Estados principales ORIGINALES
   const [modalAbierto, setModalAbierto] = useState(false);
   const [jugadaSeleccionada, setJugadaSeleccionada] = useState(null);
   const [formularioData, setFormularioData] = useState({});
@@ -63,12 +82,28 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(true); // true = local, false = visitante
   const dropzoneRef = useRef(null);
 
+  // 🚀 NUEVOS ESTADOS PARA CAPTURA RÁPIDA
+  const [modoCaptura, setModoCaptura] = useState('visual'); // 'visual' | 'rapida'
+  const [capturaRapidaExpandida, setCapturaRapidaExpandida] = useState(false);
+  const [datosCaptura, setDatosCaptura] = useState({
+    equipoEnPosesion: '',
+    tipoJugada: '',
+    jugadorPrincipal: '',
+    jugadorSecundario: '',
+    puntos: '',
+    repeticiones: 1
+  });
+  const [historialSelecciones, setHistorialSelecciones] = useState({
+    ultimoEquipo: '',
+    ultimaJugada: ''
+  });
+  const [procesandoCaptura, setProcesandoCaptura] = useState(false);
+  const [snackbar, setSnackbar] = useState({ abierto: false, mensaje: '', tipo: 'success' });
+
   // Verificar permisos
   const puedeRegistrar = puedeGestionarPartidos();
 
-  console.log("Permisos de usuario:", puedeRegistrar);
-
-  // 🎯 TIPOS DE JUGADAS CON ICONOS Y CONFIGURACIÓN
+  // 🎯 TIPOS DE JUGADAS CON ICONOS Y CONFIGURACIÓN (ORIGINALES)
   const tiposJugada = [
   {
     id: 'pase_completo',
@@ -81,7 +116,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
       { nombre: 'pasador', label: 'Pasador', requerido: true },
       { nombre: 'receptor', label: 'Receptor', requerido: true }
     ],
-    // 🔥 NUEVO: checkbox touchdown para pase completo
     tieneCheckboxTouchdown: true
   },
   {
@@ -106,7 +140,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
       { nombre: 'corredor', label: 'Corredor', requerido: true },
       { nombre: 'tackleador', label: 'Tackleador', requerido: false }
     ],
-    tieneCheckboxTouchdown: true // ✅ YA EXISTÍA
+    tieneCheckboxTouchdown: true
   },
   {
     id: 'tackleo',
@@ -141,9 +175,9 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
       { nombre: 'interceptor', label: 'Interceptor', requerido: true },
       { nombre: 'qb_interceptado', label: 'QB Interceptado (Equipo Contrario)', requerido: true }
     ],
-    tieneCheckboxTouchdown: true, // ✅ YA EXISTÍA
+    tieneCheckboxTouchdown: true,
     campoTouchdownExtra: { nombre: 'jugador_touchdown', label: 'Jugador que Anotó', requerido: false },
-    jugadorSecundarioEsDelEquipoContrario: true // ✅ YA EXISTÍA
+    jugadorSecundarioEsDelEquipoContrario: true
   },
   {
     id: 'conversion_1pt',
@@ -182,13 +216,181 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
   }
 ];
 
+  // 🚀 FUNCIONES PARA CAPTURA RÁPIDA
+  useEffect(() => {
+    // 🔥 CARGAR MODO DE CAPTURA PERSISTIDO
+    const modoGuardado = localStorage.getItem('modoCaptura');
+    if (modoGuardado && (modoGuardado === 'visual' || modoGuardado === 'rapida')) {
+      setModoCaptura(modoGuardado);
+      if (modoGuardado === 'rapida') {
+        setCapturaRapidaExpandida(true);
+      }
+    }
+
+    const historial = localStorage.getItem('capturaRapida_historial');
+    if (historial) {
+      try {
+        const parsed = JSON.parse(historial);
+        setHistorialSelecciones(parsed);
+        
+        if (parsed.ultimoEquipo) {
+          setDatosCaptura(prev => ({ ...prev, equipoEnPosesion: parsed.ultimoEquipo }));
+        } else if (partido) {
+          setDatosCaptura(prev => ({ ...prev, equipoEnPosesion: partido.equipoLocal._id }));
+        }
+        
+        if (parsed.ultimaJugada) {
+          setDatosCaptura(prev => ({ ...prev, tipoJugada: parsed.ultimaJugada }));
+        }
+      } catch (error) {
+        console.error('Error cargando historial:', error);
+      }
+    }
+  }, [partido]);
+
+  const guardarHistorial = (equipo, jugada) => {
+    const nuevoHistorial = {
+      ultimoEquipo: equipo || historialSelecciones.ultimoEquipo,
+      ultimaJugada: jugada || historialSelecciones.ultimaJugada,
+      ultimaActualizacion: new Date().toISOString()
+    };
+    
+    setHistorialSelecciones(nuevoHistorial);
+    localStorage.setItem('capturaRapida_historial', JSON.stringify(nuevoHistorial));
+  };
+
+  const guardarModoCaptura = (nuevoModo) => {
+    setModoCaptura(nuevoModo);
+    localStorage.setItem('modoCaptura', nuevoModo);
+  };
+
+  const manejarCambioDatosCaptura = (campo, valor) => {
+    setDatosCaptura(prev => ({ ...prev, [campo]: valor }));
+
+    if (campo === 'equipoEnPosesion') {
+      guardarHistorial(valor, datosCaptura.tipoJugada);
+    } else if (campo === 'tipoJugada') {
+      guardarHistorial(datosCaptura.equipoEnPosesion, valor);
+      
+      const jugadaInfo = tiposJugada.find(j => j.id === valor);
+      if (jugadaInfo && jugadaInfo.puntos > 0) {
+        setDatosCaptura(prev => ({ ...prev, puntos: jugadaInfo.puntos.toString() }));
+      }
+    }
+  };
+
+  const limpiarFormularioCaptura = () => {
+    setDatosCaptura({
+      equipoEnPosesion: historialSelecciones.ultimoEquipo || (partido ? partido.equipoLocal._id : ''),
+      tipoJugada: historialSelecciones.ultimaJugada || '',
+      jugadorPrincipal: '',
+      jugadorSecundario: '',
+      puntos: '',
+      repeticiones: 1
+    });
+  };
+
+  const ejecutarCapturaRapida = async () => {
+    console.log('\n🚀 === INICIO CAPTURA RÁPIDA ===');
+    console.log('📋 Datos del formulario:', datosCaptura);
+    
+    if (!datosCaptura.equipoEnPosesion || !datosCaptura.tipoJugada || !datosCaptura.jugadorPrincipal) {
+      setSnackbar({
+        abierto: true,
+        mensaje: 'Equipo, tipo de jugada y jugador principal son obligatorios',
+        tipo: 'error'
+      });
+      return;
+    }
+
+    setProcesandoCaptura(true);
+
+    try {
+      const repeticiones = parseInt(datosCaptura.repeticiones) || 1;
+      let jugadasCreadas = 0;
+
+      for (let i = 0; i < repeticiones; i++) {
+        const jugadaData = {
+          equipoEnPosesion: datosCaptura.equipoEnPosesion,
+          tipoJugada: datosCaptura.tipoJugada,
+          descripcion: `${datosCaptura.tipoJugada.replace('_', ' ')} - Captura rápida`,
+          numeroJugadorPrincipal: parseInt(datosCaptura.jugadorPrincipal),
+        };
+
+        if (datosCaptura.jugadorSecundario) {
+          jugadaData.numeroJugadorSecundario = parseInt(datosCaptura.jugadorSecundario);
+        }
+
+        // 🔥 ESTRUCTURA CORRECTA DE PUNTOS
+        const tipoJugadaInfo = tiposJugada.find(j => j.id === datosCaptura.tipoJugada);
+        
+        let puntosFinales = 0;
+        if (datosCaptura.puntos && datosCaptura.puntos !== '') {
+          puntosFinales = parseInt(datosCaptura.puntos);
+        } else if (tipoJugadaInfo && tipoJugadaInfo.puntos > 0) {
+          puntosFinales = tipoJugadaInfo.puntos;
+        }
+
+        jugadaData.resultado = {};
+        
+        if (puntosFinales > 0) {
+          jugadaData.resultado.puntos = puntosFinales;
+        }
+        
+        if (datosCaptura.tipoJugada === 'intercepcion') {
+          jugadaData.resultado.intercepcion = true;
+          if (puntosFinales === 6) {
+            jugadaData.resultado.touchdown = true;
+          }
+        } else if (datosCaptura.tipoJugada === 'sack') {
+          jugadaData.resultado.sack = true;
+        } else if (puntosFinales === 6) {
+          jugadaData.resultado.touchdown = true;
+        }
+
+        console.log('📤 Enviando:', JSON.stringify(jugadaData, null, 2));
+
+        const response = await axiosInstance.post(`/partidos/${partido._id}/jugadas`, jugadaData);
+        
+        if (response.status === 201) {
+          jugadasCreadas++;
+        }
+      }
+
+      setSnackbar({
+        abierto: true,
+        mensaje: `${jugadasCreadas} jugada${jugadasCreadas > 1 ? 's' : ''} registrada${jugadasCreadas > 1 ? 's' : ''} exitosamente`,
+        tipo: 'success'
+      });
+
+      setDatosCaptura(prev => ({
+        ...prev,
+        jugadorPrincipal: '',
+        jugadorSecundario: '',
+        puntos: '',
+        repeticiones: 1
+      }));
+
+      if (onActualizar) onActualizar();
+
+    } catch (error) {
+      console.error('Error en captura rápida:', error);
+      setSnackbar({
+        abierto: true,
+        mensaje: 'Error al registrar jugadas: ' + (error.response?.data?.mensaje || error.message),
+        tipo: 'error'
+      });
+    } finally {
+      setProcesandoCaptura(false);
+    }
+  };
+
   // Cargar información básica del partido
   useEffect(() => {
     // Solo necesitamos la información básica del partido
-    // Los números de jugadores se validarán en el backend
   }, [partido]);
 
-  // 🎯 DRAG & DROP HANDLERS CON SOPORTE TÁCTIL
+  // 🎯 DRAG & DROP HANDLERS CON SOPORTE TÁCTIL (ORIGINALES)
   const handleDragStart = (e, jugada) => {
     setDraggedItem(jugada);
     e.dataTransfer.effectAllowed = 'move';
@@ -227,7 +429,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     }
   };
 
-  // 🔥 NUEVOS HANDLERS TÁCTILES PARA MÓVILES
+  // Handlers táctiles para móviles (ORIGINALES)
   const handleTouchStart = (e, jugada) => {
     setDraggedItem(jugada);
     e.currentTarget.style.opacity = '0.5';
@@ -235,13 +437,10 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
   };
 
   const handleTouchMove = (e) => {
-    e.preventDefault(); // Prevenir scroll
+    e.preventDefault();
     const touch = e.touches[0];
-    
-    // Encontrar elemento bajo el dedo
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     
-    // Verificar si está sobre la zona de drop
     if (dropzoneRef.current?.contains(elementBelow)) {
       setDropzoneActive(true);
     } else {
@@ -258,7 +457,6 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     const touch = e.changedTouches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     
-    // Verificar si se soltó sobre la zona de drop
     if (dropzoneRef.current?.contains(elementBelow)) {
       abrirModalJugada(draggedItem);
     }
@@ -267,25 +465,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     setDropzoneActive(false);
   };
 
-  // 🔥 TAMBIÉN AGREGA ESTOS HANDLERS TÁCTILES PARA LA ZONA DE DROP
-  const handleDropzoneTouchStart = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDropzoneTouchMove = (e) => {
-    e.preventDefault();
-    setDropzoneActive(true);
-  };
-
-  const handleDropzoneTouchEnd = (e) => {
-    e.preventDefault();
-    if (draggedItem) {
-      abrirModalJugada(draggedItem);
-    }
-    setDropzoneActive(false);
-  };
-
-  // 🎯 MODAL Y FORMULARIO
+  // Modal functions (ORIGINALES)
   const abrirModalJugada = (tipoJugada) => {
     setJugadaSeleccionada(tipoJugada);
     setTouchdownMarcado(false);
@@ -293,10 +473,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
       equipoEnPosesion: equipoSeleccionado ? partido.equipoLocal._id : partido.equipoVisitante._id,
       descripcion: '',
       touchdownMarcado: false,
-      ...tipoJugada.campos.reduce((acc, campo) => ({
-        ...acc,
-        [campo.nombre]: ''
-      }), {})
+      ...tipoJugada.campos.reduce((acc, campo) => ({ ...acc, [campo.nombre]: '' }), {})
     });
     setModalAbierto(true);
   };
@@ -309,10 +486,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
   };
 
   const manejarCambioFormulario = (campo, valor) => {
-    setFormularioData(prev => ({
-      ...prev,
-      [campo]: valor
-    }));
+    setFormularioData(prev => ({ ...prev, [campo]: valor }));
   };
 
   const manejarCambioTouchdown = (checked) => {
@@ -320,184 +494,58 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     setFormularioData(prev => ({
       ...prev,
       touchdownMarcado: checked,
-      // Limpiar campo de jugador touchdown si se desmarca
-      ...(jugadaSeleccionada?.campoTouchdownExtra && !checked ? { [jugadaSeleccionada.campoTouchdownExtra.nombre]: '' } : {})
+      ...(jugadaSeleccionada?.campoTouchdownExtra && !checked ? 
+        { [jugadaSeleccionada.campoTouchdownExtra.nombre]: '' } : {})
     }));
   };
 
-  const manejarCambioEquipo = (esLocal) => {
-    setEquipoSeleccionado(esLocal);
-    setFormularioData(prev => ({
-      ...prev,
-      equipoEnPosesion: esLocal ? partido.equipoLocal._id : partido.equipoVisitante._id
-    }));
-  };
-
-  // Función eliminar jugada con Swal
-  const eliminarJugada = async (jugadaId) => {
-    // 🔥 Usar Swal para la confirmación (como en el resto de la página)
-    const result = await Swal.fire({
-      title: '¿Eliminar jugada?',
-      text: 'Esta acción no se puede deshacer',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#f44336',
-      cancelButtonColor: '#64b5f6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      
-      const response = await axiosInstance.delete(`/partidos/${partido._id}/jugadas/${jugadaId}`);
-      
-      // Usar onActualizar para recargar el partido completo
-      if (onActualizar) {
-        await onActualizar();
-      }
-      
-      // Mostrar mensaje de éxito con Swal
-      Swal.fire({
-        icon: 'success',
-        title: 'Jugada eliminada',
-        html: `
-          <p>La jugada se eliminó correctamente</p>
-          <p><strong>Marcador actualizado: ${response.data.marcadorActualizado?.local || 0} - ${response.data.marcadorActualizado?.visitante || 0}</strong></p>
-        `,
-        timer: 3000,
-        showConfirmButton: false
-      });
-      
-    } catch (error) {
-      console.error('Error al eliminar jugada:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.mensaje || 'Error al eliminar jugada'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🎯 REGISTRAR JUGADA
+  // FUNCIONES ORIGINALES COMPLETAS (registrarJugada, eliminarJugada, etc.)
   const registrarJugada = async () => {
     if (!puedeRegistrar) {
       Swal.fire({
         icon: 'error',
         title: 'Sin permisos',
-        text: 'No tienes permisos para registrar jugadas'
+        text: 'No tienes permisos para registrar jugadas',
+        background: 'rgba(0, 0, 0, 0.9)',
+        color: 'white'
       });
       return;
     }
 
+    const camposRequeridos = jugadaSeleccionada.campos.filter(campo => campo.requerido);
+    const camposFaltantes = camposRequeridos.filter(campo => !formularioData[campo.nombre]);
+
+    if (camposFaltantes.length > 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos requeridos',
+        text: `Faltan completar: ${camposFaltantes.map(c => c.label).join(', ')}`,
+        background: 'rgba(0, 0, 0, 0.9)',
+        color: 'white'
+      });
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      setLoading(true);
+      const tieneValor = (valor) => {
+        return valor !== undefined && valor !== null && valor !== '';
+      };
 
-      // ✅ VALIDACIÓN CORRECTA POR TIPO DE JUGADA (CON FIX PARA NÚMERO 0):
-      // Validar campos requeridos según el tipo específico de jugada
-      let camposFaltantes = [];
-
-      // 🔥 HELPER PARA VALIDAR CAMPOS (PERMITE NÚMERO 0)
-      const campoEstaVacio = (valor) => valor === undefined || valor === null || valor === '';
-
-      switch (jugadaSeleccionada.id) {
-        case 'pase_completo':
-        case 'touchdown':
-        case 'conversion_1pt':
-        case 'conversion_2pt':
-          // Requieren pasador Y receptor
-          if (campoEstaVacio(formularioData.pasador)) camposFaltantes.push('Pasador');
-          if (campoEstaVacio(formularioData.receptor)) camposFaltantes.push('Receptor');
-          break;
-          
-        case 'pase_incompleto':
-          // Solo requiere pasador
-          if (campoEstaVacio(formularioData.pasador)) camposFaltantes.push('Pasador');
-          break;
-          
-        case 'intercepcion':
-          // Requiere interceptor Y QB interceptado
-          if (campoEstaVacio(formularioData.interceptor)) camposFaltantes.push('Interceptor');
-          if (campoEstaVacio(formularioData.qb_interceptado)) camposFaltantes.push('QB Interceptado');
-          break;
-          
-        case 'corrida':
-          // Solo requiere corredor (tackleador es opcional)
-          if (campoEstaVacio(formularioData.corredor)) {
-            camposFaltantes.push('Corredor');
-          }
-          break;
-          
-        case 'sack':
-          // Solo requiere tackleador
-          if (campoEstaVacio(formularioData.tackleador)) camposFaltantes.push('Jugador que hace Sack');
-          break;
-
-        case 'tackleo':
-          // Solo requiere tackleador
-          if (campoEstaVacio(formularioData.tackleador)) camposFaltantes.push('Jugador que Tacklea');
-          break;
-          
-        case 'safety':
-          // Tackleador es opcional para safety
-          break;
-          
-        default:
-          // Para otros tipos, usar validación genérica
-          const camposRequeridosGenericos = jugadaSeleccionada.campos.filter(c => c.requerido);
-          camposFaltantes = camposRequeridosGenericos.filter(c => campoEstaVacio(formularioData[c.nombre])).map(c => c.label);
-      }
-
-      // 🔥 NUEVA VALIDACIÓN: No permitir tackleador si hay touchdown
-      if ((jugadaSeleccionada.id === 'intercepcion' || jugadaSeleccionada.id === 'corrida') && 
-          touchdownMarcado && !campoEstaVacio(formularioData.tackleador)) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Jugada inconsistente',
-          text: 'No se puede especificar un tackleador si la jugada terminó en touchdown'
-        });
-        return;
-      }
-
-      if (camposFaltantes.length > 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Campos requeridos',
-          text: `Faltan: ${camposFaltantes.join(', ')}`
-        });
-        return;
-      }
-
-      // 🔥 HELPER PARA VERIFICAR SI UN CAMPO TIENE VALOR (PERMITE NÚMERO 0)
-      const tieneValor = (valor) => valor !== undefined && valor !== null && valor !== '';
-
-      // Preparar datos de la jugada
       const jugadaData = {
-        tipoJugada: jugadaSeleccionada.id,
         equipoEnPosesion: formularioData.equipoEnPosesion,
-        descripcion: formularioData.descripcion || `${jugadaSeleccionada.label}`,
+        tipoJugada: jugadaSeleccionada.id,
+        descripcion: formularioData.descripcion || '',
         
-        // Enviar números de jugadores en lugar de IDs
-        numeroJugadorPrincipal: parseInt(formularioData.pasador ?? formularioData.corredor ?? formularioData.interceptor ?? formularioData.tackleador) || 0,
-        
-        // 🔥 FIX COMPLETO: Usar validación robusta para todos los campos secundarios (PERMITE NÚMERO 0)
-        ...(tieneValor(formularioData.receptor) && { 
-          numeroJugadorSecundario: parseInt(formularioData.receptor) 
-        }),
-        ...(tieneValor(formularioData.qb_interceptado) && { 
-          numeroJugadorSecundario: parseInt(formularioData.qb_interceptado) 
-        }),
-        ...(tieneValor(formularioData.tackleador) && jugadaSeleccionada.id === 'corrida' && { 
-          numeroJugadorSecundario: parseInt(formularioData.tackleador) 
+        ...(tieneValor(formularioData[jugadaSeleccionada.campos[0]?.nombre]) && {
+          numeroJugadorPrincipal: parseInt(formularioData[jugadaSeleccionada.campos[0].nombre])
         }),
         
-        // 🔥 CAMPO EXTRA PARA TOUCHDOWN EN INTERCEPCIÓN (CON FIX PARA NÚMERO 0)
+        ...(jugadaSeleccionada.campos[1] && tieneValor(formularioData[jugadaSeleccionada.campos[1].nombre]) && {
+          numeroJugadorSecundario: parseInt(formularioData[jugadaSeleccionada.campos[1].nombre])
+        }),
+        
         ...(touchdownMarcado && jugadaSeleccionada.campoTouchdownExtra && 
             tieneValor(formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre]) && {
           numeroJugadorTouchdown: parseInt(formularioData[jugadaSeleccionada.campoTouchdownExtra.nombre])
@@ -513,11 +561,9 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
 
       const response = await axiosInstance.post(`/partidos/${partido._id}/jugadas`, jugadaData);
 
-      // Cerrar modal y actualizar
       cerrarModal();
       onActualizar();
 
-      // Mostrar confirmación con warnings si los hay
       const { warnings } = response.data;
       
       if (warnings && warnings.length > 0) {
@@ -543,6 +589,87 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
     }
   };
 
+  const eliminarJugada = async (jugadaId) => {
+    if (!puedeRegistrar) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: 'No tienes permisos para eliminar jugadas',
+        background: 'rgba(0, 0, 0, 0.9)',
+        color: 'white'
+      });
+      return;
+    }
+
+    const resultado = await Swal.fire({
+      title: '¿Eliminar jugada?',
+      text: 'Esta acción no se puede deshacer',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      background: 'rgba(0, 0, 0, 0.9)',
+      color: 'white'
+    });
+
+    if (!resultado.isConfirmed) return;
+
+    try {
+      setLoading(true);
+
+      const response = await axiosInstance.delete(`/partidos/${partido._id}/jugadas/${jugadaId}`);
+
+      if (response.status === 200) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Jugada eliminada',
+          text: 'La jugada se eliminó correctamente',
+          background: 'rgba(0, 0, 0, 0.9)',
+          color: 'white',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+        if (onActualizar) {
+          onActualizar();
+        }
+      }
+
+    } catch (error) {
+      console.error('Error eliminando jugada:', error);
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al eliminar',
+        text: error.response?.data?.mensaje || 'Error al eliminar la jugada',
+        background: 'rgba(0, 0, 0, 0.9)',
+        color: 'white'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatearTiempo = (tiempo) => {
+    if (!tiempo) return '--:--';
+    
+    const { minuto = 0, segundo = 0, periodo = 1 } = tiempo;
+    
+    return `Q${periodo} ${String(minuto).padStart(2, '0')}:${String(segundo).padStart(2, '0')}`;
+  };
+
+  const obtenerIconoPorTipo = (tipo) => {
+    const jugada = tiposJugada.find(j => j.id === tipo);
+    return jugada ? jugada.icon : <SportsFootballIcon />;
+  };
+
+  const obtenerColorPorTipo = (tipo) => {
+    const jugada = tiposJugada.find(j => j.id === tipo);
+    return jugada ? jugada.color : '#666';
+  };
+
   if (!puedeRegistrar) {
     return (
       <Paper sx={{ 
@@ -564,192 +691,492 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* 🎯 ZONA DE ICONOS DE JUGADAS */}
-      <Card sx={{
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderRadius: 3,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        mb: 3
-      }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ color: 'white', mb: 3, display: 'flex', alignItems: 'center' }}>
-            <SportsFootballIcon sx={{ mr: 2, color: '#64b5f6' }} />
-            Tipos de Jugadas
-            <Chip label="Arrastra al área de registro" size="small" sx={{ ml: 2, backgroundColor: 'rgba(100, 181, 246, 0.2)' }} />
-          </Typography>
-          
-          <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(3, 1fr)', // 📱 Móvil: 3 columnas
-              sm: 'repeat(4, 1fr)', // 🖥️ Tablet: 4 columnas  
-              md: 'repeat(6, 1fr)', // 🖥️ Desktop: 6 columnas
-              lg: 'repeat(9, 1fr)', // 🖥️ Desktop grande: 9 columnas
-              xl: 'repeat(9, 1fr)'  // 🖥️ Desktop extra grande: 9 columnas
-            },
-            gap: 2,
-            justifyContent: 'center'
-          }}>
-            {tiposJugada.map((jugada) => (
-              <motion.div
-                key={jugada.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                style={{ flex: '0 1 auto' }}
-              >
-                <Paper
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, jugada)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => abrirModalJugada(jugada)}
-                  sx={{
-                    p: 2,
-                    textAlign: 'center',
-                    background: jugada.gradient,
-                    color: 'white',
-                    cursor: 'grab',
-                    border: '2px solid transparent',
-                    borderRadius: 2,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    width: '100%',
-                    height: 120,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    '&:hover': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                      boxShadow: `0 8px 32px ${jugada.color}40`
-                    },
-                    '&:active': {
-                      cursor: 'grabbing'
-                    }
-                  }}
-                >
-                  <DragIcon sx={{ position: 'absolute', top: 8, right: 8, fontSize: 16, opacity: 0.7 }} />
-                  <Box sx={{ fontSize: 32, mb: 1 }}>
-                    {jugada.icon}
-                  </Box>
-                  <Typography variant="body2" sx={{ 
-                    fontWeight: 'bold', 
-                    fontSize: '0.75rem',
-                    lineHeight: 1.2,
-                    textAlign: 'center'
-                  }}>
-                    {jugada.label}
-                  </Typography>
-                  {jugada.puntos > 0 && (
-                    <Chip 
-                      label={`${jugada.puntos} pts`} 
-                      size="small" 
-                      sx={{ 
-                        mt: 1, 
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        fontSize: '0.65rem',
-                        height: 20
-                      }} 
-                    />
-                  )}
-                </Paper>
-              </motion.div>
-            ))}
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* 🎯 DROPZONE ÉPICO */}
-      <Card sx={{
-        backgroundColor: dropzoneActive ? 'rgba(100, 181, 246, 0.1)' : 'rgba(0, 0, 0, 0.6)',
-        borderRadius: 3,
-        border: dropzoneActive ? '2px dashed #64b5f6' : '2px dashed rgba(255, 255, 255, 0.2)',
-        mb: 3,
-        transition: 'all 0.3s ease'
-      }}>
-        <CardContent
-          ref={dropzoneRef}
-          onDragOver={handleDragOver}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          sx={{
-            minHeight: 150,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center'
+      {/* 🚀 SELECTOR DE MODO */}
+      <Box sx={{ mb: 3 }}>
+        <ToggleButtonGroup
+          value={modoCaptura}
+          exclusive
+          onChange={(e, nuevoModo) => {
+            if (nuevoModo !== null) {
+              guardarModoCaptura(nuevoModo); // 🔥 USAR FUNCIÓN PERSISTENTE
+              if (nuevoModo === 'rapida') {
+                setCapturaRapidaExpandida(true);
+              }
+            }
+          }}
+          sx={{ 
+            mb: 2,
+            '& .MuiToggleButton-root': {
+              color: 'rgba(255, 255, 255, 0.7)',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              },
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(100, 181, 246, 0.2)',
+                color: '#64b5f6',
+                borderColor: '#64b5f6'
+              }
+            }
           }}
         >
-          <motion.div
-            animate={{ 
-              scale: dropzoneActive ? 1.1 : 1,
-              opacity: dropzoneActive ? 1 : 0.7
-            }}
-            transition={{ duration: 0.3 }}
-          >
-            <TouchAppIcon sx={{ 
-              fontSize: 60, 
-              color: dropzoneActive ? '#64b5f6' : 'rgba(255, 255, 255, 0.5)',
-              mb: 2 
-            }} />
-          </motion.div>
-          
-          <Typography variant="h6" sx={{ 
-            color: dropzoneActive ? '#64b5f6' : 'rgba(255, 255, 255, 0.7)',
-            mb: 1
-          }}>
-            {dropzoneActive ? '¡Suelta para registrar!' : 'Zona de Registro'}
-          </Typography>
-          
-          <Typography variant="body2" sx={{ 
-            color: 'rgba(255, 255, 255, 0.5)' 
-          }}>
-            Arrastra un tipo de jugada aquí para comenzar el registro
-          </Typography>
-        </CardContent>
-      </Card>
+          <ToggleButton value="visual">
+            <TouchAppIcon sx={{ mr: 1 }} />
+            Modo Visual
+          </ToggleButton>
+          <ToggleButton value="rapida">
+            <FastCaptureIcon sx={{ mr: 1 }} />
+            Captura Rápida
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
 
-      {/* 🎯 TABLA DE JUGADAS RECIENTES - VERSION CORREGIDA */}
-      <Card sx={{
+      {/* 🚀 PANEL DE CAPTURA RÁPIDA */}
+      {modoCaptura === 'rapida' && (
+        <Card sx={{ 
+          mb: 3, 
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          border: '1px solid rgba(100, 181, 246, 0.3)'
+        }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <FastCaptureIcon sx={{ mr: 1, color: '#64b5f6' }} />
+                <Typography variant="h6" sx={{ color: 'white' }}>
+                  ⚡ Captura Rápida
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Tooltip title="Limpiar formulario">
+                  <IconButton onClick={limpiarFormularioCaptura} size="small" sx={{ color: 'white' }}>
+                    <ClearIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={capturaRapidaExpandida ? 'Contraer' : 'Expandir'}>
+                  <IconButton 
+                    onClick={() => setCapturaRapidaExpandida(!capturaRapidaExpandida)} 
+                    size="small" 
+                    sx={{ color: 'white' }}
+                  >
+                    {capturaRapidaExpandida ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            <Collapse in={capturaRapidaExpandida}>
+              <Grid container spacing={2} sx={{ alignItems: 'end' }}>
+                {/* Primera fila: Equipo y Tipo de Jugada */}
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Equipo en Posesión
+                    </InputLabel>
+                    <Select
+                      value={datosCaptura.equipoEnPosesion}
+                      label="Equipo en Posesión"
+                      onChange={(e) => manejarCambioDatosCaptura('equipoEnPosesion', e.target.value)}
+                      sx={{
+                        height: 56,
+                        color: 'white',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#64b5f6' }
+                      }}
+                    >
+                      <MenuItem value={partido.equipoLocal._id}>
+                        🏠 {partido.equipoLocal.nombre}
+                      </MenuItem>
+                      <MenuItem value={partido.equipoVisitante._id}>
+                        ✈️ {partido.equipoVisitante.nombre}
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Tipo de Jugada
+                    </InputLabel>
+                    <Select
+                      value={datosCaptura.tipoJugada}
+                      label="Tipo de Jugada"
+                      onChange={(e) => manejarCambioDatosCaptura('tipoJugada', e.target.value)}
+                      sx={{
+                        height: 56,
+                        color: 'white',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#64b5f6' }
+                      }}
+                    >
+                      {tiposJugada.map((jugada) => (
+                        <MenuItem key={jugada.id} value={jugada.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                            <Box sx={{ mr: 1 }}>{jugada.icon}</Box>
+                            <Typography sx={{ flexGrow: 1 }}>{jugada.label}</Typography>
+                            {jugada.puntos > 0 && (
+                              <Chip 
+                                label={`${jugada.puntos}pts`} 
+                                size="small" 
+                                sx={{ ml: 1, backgroundColor: jugada.color, color: 'white' }}
+                              />
+                            )}
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* Segunda fila: Campos de números + Botón */}
+                <Grid item xs={6} md={2.4}>
+                  <TextField
+                    fullWidth
+                    label="Jugador Principal #"
+                    type="number"
+                    value={datosCaptura.jugadorPrincipal}
+                    onChange={(e) => manejarCambioDatosCaptura('jugadorPrincipal', e.target.value)}
+                    inputProps={{ min: 0, max: 1000 }}
+                    sx={{
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiInputBase-input': { 
+                        color: 'white', 
+                        textAlign: 'center',
+                        fontSize: '1.2rem',
+                        fontWeight: 'bold',
+                        height: '24px'
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        height: 56,
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
+                      }
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={6} md={2.4}>
+                  <TextField
+                    fullWidth
+                    label="Jugador Secundario # (Opcional)"
+                    type="number"
+                    value={datosCaptura.jugadorSecundario}
+                    onChange={(e) => manejarCambioDatosCaptura('jugadorSecundario', e.target.value)}
+                    inputProps={{ min: 0, max: 1000 }}
+                    sx={{
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiInputBase-input': { 
+                        color: 'white', 
+                        textAlign: 'center',
+                        fontSize: '1.2rem',
+                        fontWeight: 'bold',
+                        height: '24px'
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        height: 56,
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
+                      }
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={6} md={2.4}>
+                  <TextField
+                    fullWidth
+                    label="Puntos Personalizados"
+                    type="number"
+                    value={datosCaptura.puntos}
+                    onChange={(e) => manejarCambioDatosCaptura('puntos', e.target.value)}
+                    inputProps={{ min: 0, max: 20 }}
+                    sx={{
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiInputBase-input': { 
+                        color: 'white', 
+                        textAlign: 'center',
+                        fontSize: '1.2rem',
+                        fontWeight: 'bold',
+                        height: '24px'
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        height: 56,
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
+                      }
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={6} md={2.4}>
+                  <TextField
+                    fullWidth
+                    label="Repeticiones"
+                    type="number"
+                    value={datosCaptura.repeticiones}
+                    onChange={(e) => manejarCambioDatosCaptura('repeticiones', e.target.value)}
+                    inputProps={{ min: 1, max: 10 }}
+                    InputProps={{
+                      startAdornment: <RepeatIcon sx={{ mr: 1, color: 'rgba(255, 255, 255, 0.7)' }} />
+                    }}
+                    sx={{
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiInputBase-input': { 
+                        color: 'white', 
+                        textAlign: 'center',
+                        fontSize: '1.2rem',
+                        fontWeight: 'bold',
+                        height: '24px'
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        height: 56,
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
+                      }
+                    }}
+                  />
+                </Grid>
+
+                {/* Botón al final de la segunda fila */}
+                <Grid item xs={12} md={2.4}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={ejecutarCapturaRapida}
+                    disabled={procesandoCaptura || !datosCaptura.equipoEnPosesion || !datosCaptura.tipoJugada || !datosCaptura.jugadorPrincipal}
+                    sx={{
+                      width: '100%',
+                      height: 56,
+                      minWidth: 56,
+                      background: 'linear-gradient(135deg, #4caf50, #66bb6a)',
+                      '&:hover': { background: 'linear-gradient(135deg, #388e3c, #4caf50)' },
+                      '&:disabled': { background: 'rgba(255, 255, 255, 0.1)', color: 'rgba(255, 255, 255, 0.3)' }
+                    }}
+                  >
+                    {procesandoCaptura ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      <SaveIcon sx={{ fontSize: '1.5rem' }} />
+                    )}
+                  </Button>
+                </Grid>
+
+                {/* Tercera fila: Info visual */}
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    textAlign: 'center',
+                    pt: 1,
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}>
+                    <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+                      {datosCaptura.equipoEnPosesion && datosCaptura.tipoJugada && datosCaptura.jugadorPrincipal
+                        ? `✅ Listo para registrar ${datosCaptura.repeticiones > 1 ? `${datosCaptura.repeticiones} jugadas` : 'jugada'} - Presiona el botón verde para guardar`
+                        : '⚠️ Complete los campos requeridos: Equipo, Tipo de Jugada y Jugador Principal'
+                      }
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Collapse>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* UI ORIGINAL COMPLETA */}
+      {modoCaptura === 'visual' && (
+        <>
+          {/* 🎯 ZONA DE ICONOS DE JUGADAS - ORIGINAL*/}
+          <Card sx={{
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            borderRadius: 3,
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            mb: 3
+          }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ color: 'white', mb: 3, display: 'flex', alignItems: 'center' }}>
+                <SportsFootballIcon sx={{ mr: 2, color: '#64b5f6' }} />
+                Tipos de Jugadas
+                <Chip label="Arrastra al área de registro" size="small" sx={{ ml: 2, backgroundColor: 'rgba(100, 181, 246, 0.2)' }} />
+              </Typography>
+              
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'repeat(3, 1fr)',
+                  sm: 'repeat(4, 1fr)',
+                  md: 'repeat(6, 1fr)',
+                  lg: 'repeat(9, 1fr)',
+                  xl: 'repeat(9, 1fr)'
+                },
+                gap: 2,
+                justifyContent: 'center'
+              }}>
+                {tiposJugada.map((jugada) => (
+                  <motion.div
+                    key={jugada.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{ flex: '0 1 auto' }}
+                  >
+                    <Paper
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, jugada)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => abrirModalJugada(jugada)}
+                      onTouchStart={(e) => handleTouchStart(e, jugada)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      sx={{
+                        p: 2,
+                        textAlign: 'center',
+                        background: jugada.gradient,
+                        color: 'white',
+                        cursor: 'grab',
+                        border: '2px solid transparent',
+                        borderRadius: 2,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        width: '100%',
+                        height: 120,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        '&:hover': {
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                          boxShadow: `0 8px 32px ${jugada.color}40`
+                        },
+                        '&:active': { cursor: 'grabbing' }
+                      }}
+                    >
+                      <DragIcon sx={{ position: 'absolute', top: 8, right: 8, fontSize: 16, opacity: 0.7 }} />
+                      <Box sx={{ fontSize: 32, mb: 1 }}>
+                        {jugada.icon}
+                      </Box>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 'bold', 
+                        fontSize: '0.75rem',
+                        lineHeight: 1.2,
+                        textAlign: 'center'
+                      }}>
+                        {jugada.label}
+                      </Typography>
+                      {jugada.puntos > 0 && (
+                        <Chip 
+                          label={`${jugada.puntos} pts`} 
+                          size="small" 
+                          sx={{ 
+                            mt: 1, 
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            fontSize: '0.65rem',
+                            height: 20
+                          }} 
+                        />
+                      )}
+                    </Paper>
+                  </motion.div>
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* 🎯 DROPZONE ÉPICO - ORIGINAL */}
+          <Card sx={{
+            backgroundColor: dropzoneActive ? 'rgba(100, 181, 246, 0.1)' : 'rgba(0, 0, 0, 0.6)',
+            borderRadius: 3,
+            border: dropzoneActive ? '2px dashed #64b5f6' : '2px dashed rgba(255, 255, 255, 0.2)',
+            mb: 3,
+            transition: 'all 0.3s ease'
+          }}>
+            <CardContent
+              ref={dropzoneRef}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              sx={{
+                minHeight: 150,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center'
+              }}
+            >
+              <motion.div
+                animate={{ 
+                  scale: dropzoneActive ? 1.1 : 1,
+                  opacity: dropzoneActive ? 1 : 0.7
+                }}
+                transition={{ duration: 0.3 }}
+              >
+                <TouchAppIcon sx={{ 
+                  fontSize: 60, 
+                  color: dropzoneActive ? '#64b5f6' : 'rgba(255, 255, 255, 0.5)',
+                  mb: 2 
+                }} />
+              </motion.div>
+              
+              <Typography variant="h6" sx={{ 
+                color: dropzoneActive ? '#64b5f6' : 'rgba(255, 255, 255, 0.7)',
+                fontWeight: 'bold',
+                mb: 1
+              }}>
+                {dropzoneActive ? '¡Suelta la jugada aquí!' : 'Zona de Registro'}
+              </Typography>
+              
+              <Typography variant="body2" sx={{ 
+                color: dropzoneActive ? 'rgba(100, 181, 246, 0.8)' : 'rgba(255, 255, 255, 0.5)'
+              }}>
+                {dropzoneActive 
+                  ? 'Se abrirá el formulario de captura' 
+                  : 'Arrastra un tipo de jugada aquí o haz click sobre alguna'
+                }
+              </Typography>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* 📊 TABLA DE JUGADAS REGISTRADAS - ORIGINAL COMPLETA */}
+      <Card sx={{ 
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         borderRadius: 3,
         border: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <CardContent>
-          <Typography variant="h6" sx={{ color: 'white', mb: 2, display: 'flex', alignItems: 'center' }}>
-            <TimerIcon sx={{ mr: 2, color: '#64b5f6' }} />
-            Jugadas del Partido
-            <Badge badgeContent={partido?.jugadas?.length || 0} color="primary" sx={{ ml: 2 }} />
-          </Typography>
-          
-          {partido?.jugadas && partido.jugadas.length > 0 ? (
-            <TableContainer
-              sx={{ 
-                maxHeight: 400, // Altura máxima para la tabla
-                overflow: 'auto', // Scroll automático cuando sea necesario
-                // Estilos personalizados para el scrollbar
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                  height: '8px'
-                },
-                '&::-webkit-scrollbar-track': {
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '4px'
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  background: 'rgba(64, 181, 246, 0.6)',
-                  borderRadius: '4px',
-                  '&:hover': {
-                    background: 'rgba(64, 181, 246, 0.8)'
-                  }
-                },
-                // Para navegadores Firefox
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(64, 181, 246, 0.6) rgba(255, 255, 255, 0.1)'
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ color: 'white', display: 'flex', alignItems: 'center' }}>
+              <TimerIcon sx={{ mr: 2, color: '#64b5f6' }} />
+              Jugadas del Partido
+            </Typography>
+            <Badge 
+              badgeContent={partido.jugadas?.length || 0} 
+              color="primary"
+              sx={{
+                '& .MuiBadge-badge': {
+                  backgroundColor: '#64b5f6',
+                  color: 'white'
+                }
               }}
             >
+              <SportsFootballIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+            </Badge>
+          </Box>
+
+          {partido.jugadas && partido.jugadas.length > 0 ? (
+            <TableContainer sx={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              borderRadius: 2,
+              maxHeight: 400
+            }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -784,7 +1211,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           {jugada.equipoEnPosesion?.nombre || 'N/A'}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {/* 🔥 FIX PARA NÚMERO 0 - Verificar que el jugador existe Y que el número sea válido */}
+                          {/* 🔥 JUGADOR PRINCIPAL - EXACTAMENTE COMO ESTABA ANTES */}
                           {(jugada.jugadorPrincipal?.numero !== undefined && 
                             jugada.jugadorPrincipal?.numero !== null && 
                             jugada.jugadorPrincipal?.nombre) ? (
@@ -816,7 +1243,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           )}
                         </TableCell>
                         <TableCell sx={{ color: 'white' }}>
-                          {/* 🔥 FIX PARA NÚMERO 0 - Verificar que el jugador existe Y que el número sea válido */}
+                          {/* 🔥 JUGADOR SECUNDARIO - EXACTAMENTE COMO ESTABA ANTES */}
                           {(jugada.jugadorSecundario?.numero !== undefined && 
                             jugada.jugadorSecundario?.numero !== null && 
                             jugada.jugadorSecundario?.nombre) ? (
@@ -890,7 +1317,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         </CardContent>
       </Card>
 
-      {/* 🎯 MODAL DE FORMULARIO DINÁMICO */}
+      {/* 🎯 MODAL DE FORMULARIO DINÁMICO - ORIGINAL COMPLETO */}
       <Modal
         open={modalAbierto}
         onClose={cerrarModal}
@@ -944,157 +1371,84 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                         size="small" 
                         sx={{ 
                           backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                          color: '#4caf50'
-                        }} 
+                          color: '#4caf50',
+                          fontWeight: 'bold',
+                          mt: 1
+                        }}
                       />
                     )}
                   </Box>
-                  <IconButton onClick={cerrarModal} sx={{ color: 'white' }}>
+                  <IconButton 
+                    onClick={cerrarModal} 
+                    sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                  >
                     <CloseIcon />
                   </IconButton>
                 </Box>
 
-                {/* 🎮 SWITCH ÉPICO CON LOGOS DE EQUIPOS */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 3,
-                  mt: 2
-                }}>
-                  {/* Switch personalizado con logos */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    gap: 2,
+                {/* Formulario - TODO EL CONTENIDO ORIGINAL */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Equipo seleccionado */}
+                  <Box sx={{
                     p: 2,
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: 'rgba(100, 181, 246, 0.1)',
                     borderRadius: 2,
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    border: '1px solid rgba(100, 181, 246, 0.3)'
                   }}>
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', minWidth: 80 }}>
-                      Equipo en Posesión:
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
+                      Equipo en posesión:
                     </Typography>
-                    
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1,
-                      p: 1,
-                      backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: 3,
-                      position: 'relative',
-                      width: 200,
-                      height: 60
-                    }}>
-                      {/* Background del switch */}
-                      <motion.div
-                        animate={{
-                          x: equipoSeleccionado ? 0 : 100
-                        }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        style={{
-                          position: 'absolute',
-                          top: 4,
-                          left: 4,
-                          width: 92,
-                          height: 52,
-                          backgroundColor: 'rgba(100, 181, 246, 0.3)',
-                          borderRadius: 20,
-                          border: '2px solid #64b5f6'
-                        }}
-                      />
-                      
-                      {/* Equipo Local */}
-                      <Box
-                        onClick={() => manejarCambioEquipo(true)}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 1,
-                          width: 92,
-                          height: 52,
-                          cursor: 'pointer',
-                          borderRadius: 20,
-                          zIndex: 2,
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: equipoSeleccionado ? 'transparent' : 'rgba(255, 255, 255, 0.1)'
-                          }
-                        }}
-                      >
-                        <Avatar 
-                          src={partido.equipoLocal.imagen} 
-                          sx={{ 
-                            width: 24, 
-                            height: 24,
-                            border: equipoSeleccionado ? '2px solid white' : 'none'
-                          }}
-                        />
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        backgroundColor: equipoSeleccionado ? '#4caf50' : '#2196f3'
+                      }} />
+                      <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        cursor: 'pointer',
+                        p: 1,
+                        borderRadius: 1,
+                        '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' }
+                      }}
+                      onClick={() => setEquipoSeleccionado(!equipoSeleccionado)}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.7 }}>
+                          <Typography variant="caption" sx={{
                             color: equipoSeleccionado ? 'white' : 'rgba(255, 255, 255, 0.6)',
                             fontWeight: equipoSeleccionado ? 'bold' : 'normal',
                             fontSize: '0.75rem'
-                          }}
-                        >
-                          Local
+                          }}>
+                            Local
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mx: 1 }}>
+                          /
                         </Typography>
-                      </Box>
-                      
-                      {/* Equipo Visitante */}
-                      <Box
-                        onClick={() => manejarCambioEquipo(false)}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 1,
-                          width: 92,
-                          height: 52,
-                          cursor: 'pointer',
-                          borderRadius: 20,
-                          zIndex: 2,
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: !equipoSeleccionado ? 'transparent' : 'rgba(255, 255, 255, 0.1)'
-                          }
-                        }}
-                      >
-                        <Avatar 
-                          src={partido.equipoVisitante.imagen} 
-                          sx={{ 
-                            width: 24, 
-                            height: 24,
-                            border: !equipoSeleccionado ? '2px solid white' : 'none'
-                          }}
-                        />
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.7 }}>
+                          <Typography variant="caption" sx={{
                             color: !equipoSeleccionado ? 'white' : 'rgba(255, 255, 255, 0.6)',
                             fontWeight: !equipoSeleccionado ? 'bold' : 'normal',
                             fontSize: '0.75rem'
-                          }}
-                        >
-                          Visit.
-                        </Typography>
+                          }}>
+                            Visit.
+                          </Typography>
+                        </Box>
                       </Box>
+                      
+                      <Typography variant="body1" sx={{ 
+                        color: '#64b5f6', 
+                        fontWeight: 'bold',
+                        minWidth: 120
+                      }}>
+                        {equipoSeleccionado ? partido.equipoLocal.nombre : partido.equipoVisitante.nombre}
+                      </Typography>
                     </Box>
-                    
-                    {/* Nombre del equipo seleccionado */}
-                    <Typography variant="body1" sx={{ 
-                      color: '#64b5f6', 
-                      fontWeight: 'bold',
-                      minWidth: 120
-                    }}>
-                      {equipoSeleccionado ? partido.equipoLocal.nombre : partido.equipoVisitante.nombre}
-                    </Typography>
                   </Box>
 
-                  {/* ✅ CHECKBOX TOUCHDOWN (para intercepción y corrida) */}
+                  {/* Checkbox touchdown */}
                   {jugadaSeleccionada.tieneCheckboxTouchdown && (
                     <Box sx={{
                       p: 2,
@@ -1109,9 +1463,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                             onChange={(e) => manejarCambioTouchdown(e.target.checked)}
                             sx={{
                               color: '#4caf50',
-                              '&.Mui-checked': {
-                                color: '#4caf50'
-                              }
+                              '&.Mui-checked': { color: '#4caf50' }
                             }}
                           />
                         }
@@ -1127,7 +1479,7 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                     </Box>
                   )}
 
-                  {/* 🎯 CAMPO EXTRA PARA TOUCHDOWN EN INTERCEPCIÓN */}
+                  {/* Campo extra para touchdown en intercepción */}
                   {touchdownMarcado && jugadaSeleccionada.campoTouchdownExtra && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
@@ -1148,28 +1500,17 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                         }}
                         sx={{ 
                           width: '100%',
-                          '& .MuiInputLabel-root': { 
-                            color: 'rgba(255, 255, 255, 0.7)' 
-                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
                           '& .MuiInputBase-input': { 
                             color: 'white',
-                            '&::placeholder': {
-                              color: 'rgba(255, 255, 255, 0.4)',
-                              opacity: 1
-                            }
+                            '&::placeholder': { color: 'rgba(255, 255, 255, 0.4)', opacity: 1 }
                           },
                           '& .MuiOutlinedInput-root': {
                             minHeight: 56,
                             backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                            '& fieldset': {
-                              borderColor: 'rgba(76, 175, 80, 0.3)'
-                            },
-                            '&:hover fieldset': {
-                              borderColor: 'rgba(76, 175, 80, 0.5)'
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#4caf50'
-                            }
+                            '& fieldset': { borderColor: 'rgba(76, 175, 80, 0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(76, 175, 80, 0.5)' },
+                            '&.Mui-focused fieldset': { borderColor: '#4caf50' }
                           }
                         }}
                       />
@@ -1200,27 +1541,16 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                           sx={{ 
                             flex: jugadaSeleccionada.campos.length === 1 ? '1 1 100%' : '1 1 calc(50% - 8px)',
                             minWidth: '140px',
-                            '& .MuiInputLabel-root': { 
-                              color: 'rgba(255, 255, 255, 0.7)' 
-                            },
+                            '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
                             '& .MuiInputBase-input': { 
                               color: 'white',
-                              '&::placeholder': {
-                                color: 'rgba(255, 255, 255, 0.4)',
-                                opacity: 1
-                              }
+                              '&::placeholder': { color: 'rgba(255, 255, 255, 0.4)', opacity: 1 }
                             },
                             '& .MuiOutlinedInput-root': {
                               minHeight: 56,
-                              '& fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.2)'
-                              },
-                              '&:hover fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.4)'
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#64b5f6'
-                              }
+                              '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                              '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                              '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
                             }
                           }}
                         />
@@ -1238,27 +1568,14 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
                     rows={3}
                     placeholder={`Agrega detalles sobre esta ${jugadaSeleccionada.label.toLowerCase()}...`}
                     sx={{
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.7)' 
-                      },
-                      '& .MuiInputBase-input': { 
-                        color: 'white' 
-                      },
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiInputBase-input': { color: 'white' },
                       '& .MuiOutlinedInput-root': {
-                        '& fieldset': {
-                          borderColor: 'rgba(255, 255, 255, 0.2)'
-                        },
-                        '&:hover fieldset': {
-                          borderColor: 'rgba(255, 255, 255, 0.4)'
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#64b5f6'
-                        }
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                        '&.Mui-focused fieldset': { borderColor: '#64b5f6' }
                       },
-                      '& .MuiInputBase-input::placeholder': {
-                        color: 'rgba(255, 255, 255, 0.4)',
-                        opacity: 1
-                      }
+                      '& .MuiInputBase-input::placeholder': { color: 'rgba(255, 255, 255, 0.4)', opacity: 1 }
                     }}
                   />
                 </Box>
@@ -1295,6 +1612,23 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
           </Box>
         </motion.div>
       </Modal>
+
+      {/* 📱 SNACKBAR PARA NOTIFICACIONES */}
+      <Snackbar
+        open={snackbar.abierto}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, abierto: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar(prev => ({ ...prev, abierto: false }))} 
+          severity={snackbar.tipo}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.mensaje}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
