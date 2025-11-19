@@ -16,7 +16,14 @@ import {
   Badge,
   Pagination,
   Tooltip,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Card,
+  CardContent,
+  Divider
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -28,7 +35,9 @@ import {
   ArrowDownward as ArrowDownwardIcon,
   ViewList as ViewListIcon,
   ViewModule as ViewModuleIcon,
-  CalendarToday as CalendarTodayIcon // 🔥 NUEVO ICONO
+  CalendarToday as CalendarTodayIcon, // 🔥 NUEVO ICONO
+  PlayArrow as PlayArrowIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -417,6 +426,15 @@ export const Partidos = () => {
   const [error, setError] = useState(null);
   const [tipoVista, setTipoVista] = useState('tarjeta'); // 🔥 NUEVO ESTADO
 
+  // 🚀 NUEVOS ESTADOS para modal de jugadas (carga separada)
+  const [modalJugadasOpen, setModalJugadasOpen] = useState(false);
+  const [partidoSeleccionado, setPartidoSeleccionado] = useState(null);
+  const [jugadas, setJugadas] = useState([]);
+  const [loadingJugadas, setLoadingJugadas] = useState(false);
+  const [errorJugadas, setErrorJugadas] = useState(null);
+  const [jugadasPage, setJugadasPage] = useState(1);
+  const [totalJugadas, setTotalJugadas] = useState(0);
+
   // Estados de paginación FRONTEND
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE);
@@ -435,18 +453,20 @@ export const Partidos = () => {
     return CATEGORIAS.filter(cat => categoriasEncontradas.includes(cat.value));
   }, [todosLosPartidos]);
 
-  // 🔥 FUNCIÓN OPTIMIZADA: Obtener TODOS los partidos una sola vez
+  // 🚀 FUNCIÓN ULTRA OPTIMIZADA: Obtener TODOS los partidos SIN JUGADAS
   const obtenerTodosLosPartidos = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🔄 Obteniendo TODOS los partidos para paginación frontend...');
+      console.time('⚡ Carga partidos optimizada');
+      console.log('🔄 Obteniendo TODOS los partidos SIN jugadas...');
       
-      // 🔥 OBTENER TODOS LOS PARTIDOS (límite alto)
-      const { data } = await axiosInstance.get('/partidos?limit=2000');
+      // 🚀 CLAVE: El backend ahora retorna partidos sin jugadas (.lean() + .select('-jugadas'))
+      const { data } = await axiosInstance.get('/partidos?limit=2000&optimized=true');
       
-      console.log(`✅ Obtenidos ${data.partidos?.length || 0} partidos total`);
+      console.timeEnd('⚡ Carga partidos optimizada');
+      console.log(`✅ Obtenidos ${data.partidos?.length || 0} partidos ultra rápido`);
       setTodosLosPartidos(data.partidos || []);
       
     } catch (error) {
@@ -456,6 +476,71 @@ export const Partidos = () => {
       setLoading(false);
     }
   }, []);
+
+  // 🚀 FUNCIÓN NUEVA: Cargar jugadas por separado (solo cuando se necesiten)
+  const cargarJugadasPartido = useCallback(async (partidoId, page = 1) => {
+    try {
+      setLoadingJugadas(true);
+      setErrorJugadas(null);
+      
+      console.log(`🏈 Cargando jugadas del partido ${partidoId}, página ${page}`);
+      
+      // 🚀 ENDPOINT OPTIMIZADO: Solo jugadas con paginación
+      const { data } = await axiosInstance.get(`/partidos/${partidoId}/jugadas?page=${page}&limit=50`);
+      
+      console.log(`✅ Obtenidas ${data.jugadas?.length || 0} jugadas de ${data.paginacion?.totalJugadas || 0} total`);
+      
+      if (page === 1) {
+        setJugadas(data.jugadas || []);
+      } else {
+        // Agregar más jugadas si es paginación
+        setJugadas(prev => [...prev, ...(data.jugadas || [])]);
+      }
+      
+      setTotalJugadas(data.paginacion?.totalJugadas || 0);
+      return data;
+      
+    } catch (error) {
+      console.error('❌ Error al cargar jugadas:', error);
+      setErrorJugadas('Error al cargar jugadas');
+      throw error;
+    } finally {
+      setLoadingJugadas(false);
+    }
+  }, []);
+
+  // 🚀 FUNCIÓN: Abrir modal de jugadas
+  const abrirModalJugadas = useCallback(async (partido) => {
+    setPartidoSeleccionado(partido);
+    setModalJugadasOpen(true);
+    setJugadas([]);
+    setJugadasPage(1);
+    setTotalJugadas(0);
+    setErrorJugadas(null);
+    
+    // Cargar jugadas solo cuando se abre el modal
+    try {
+      await cargarJugadasPartido(partido._id, 1);
+    } catch (error) {
+      console.error('Error al cargar jugadas iniciales:', error);
+    }
+  }, [cargarJugadasPartido]);
+
+  // 🚀 FUNCIÓN: Cargar más jugadas (paginación)
+  const cargarMasJugadas = useCallback(async () => {
+    if (!partidoSeleccionado || loadingJugadas) return;
+    
+    const nextPage = jugadasPage + 1;
+    try {
+      const data = await cargarJugadasPartido(partidoSeleccionado._id, nextPage);
+      
+      if (data.jugadas && data.jugadas.length > 0) {
+        setJugadasPage(nextPage);
+      }
+    } catch (error) {
+      console.error('Error al cargar más jugadas:', error);
+    }
+  }, [partidoSeleccionado, jugadasPage, loadingJugadas, cargarJugadasPartido]);
 
   // 🔥 Cargar datos al montar el componente
   useEffect(() => {
@@ -769,12 +854,14 @@ export const Partidos = () => {
                 <VistaJornada
                   partidos={partidosPaginados}
                   onEliminar={eliminarPartido}
+                  onVerJugadas={abrirModalJugadas}
                 />
               ) : tipoVista === 'lista' ? (
                 // Vista compacta existente
                 <ListaPartidosCompacta
                   partidos={partidosPaginados}
                   onEliminar={eliminarPartido}
+                  onVerJugadas={abrirModalJugadas}
                 />
               ) : (
                 // Vista de tarjetas existente
@@ -802,6 +889,7 @@ export const Partidos = () => {
                         <PartidoCard
                           partido={partido}
                           eliminarPartido={eliminarPartido}
+                          onVerJugadas={abrirModalJugadas}
                         />
                       </motion.div>
                     ))}
@@ -896,6 +984,189 @@ export const Partidos = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 🚀 Modal de Jugadas (carga separada optimizada) */}
+        <Dialog 
+          open={modalJugadasOpen} 
+          onClose={() => setModalJugadasOpen(false)}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              backgroundColor: 'rgba(18, 18, 18, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            color: 'white', 
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Box>
+              <Typography variant="h6">
+                🏈 Jugadas del Partido
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {partidoSeleccionado?.equipoLocal?.nombre} vs {partidoSeleccionado?.equipoVisitante?.nombre}
+              </Typography>
+            </Box>
+            <IconButton 
+              onClick={() => setModalJugadasOpen(false)}
+              sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 3, maxHeight: '70vh', overflow: 'auto' }}>
+            {errorJugadas ? (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {errorJugadas}
+              </Alert>
+            ) : (
+              <Box>
+                {/* Info del marcador */}
+                {partidoSeleccionado && (
+                  <Paper sx={{ 
+                    p: 2, 
+                    mb: 3, 
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <Typography variant="h6" sx={{ color: '#64b5f6' }}>
+                      {partidoSeleccionado.equipoLocal?.nombre}: {partidoSeleccionado.marcador?.local || 0}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'white' }}>
+                      VS
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: '#f48fb1' }}>
+                      {partidoSeleccionado.equipoVisitante?.nombre}: {partidoSeleccionado.marcador?.visitante || 0}
+                    </Typography>
+                  </Paper>
+                )}
+
+                {/* Lista de jugadas */}
+                {loadingJugadas && jugadas.length === 0 ? (
+                  <Box display="flex" justifyContent="center" p={3}>
+                    <CircularProgress sx={{ color: '#64b5f6' }} />
+                    <Typography sx={{ ml: 2, color: 'white' }}>
+                      Cargando jugadas...
+                    </Typography>
+                  </Box>
+                ) : jugadas.length > 0 ? (
+                  <Box>
+                    {/* Contador de jugadas */}
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+                      Mostrando {jugadas.length} de {totalJugadas} jugadas
+                    </Typography>
+
+                    {/* Lista de jugadas */}
+                    {jugadas.map((jugada, index) => (
+                      <Card key={index} sx={{ 
+                        mb: 1, 
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                            <Box flex={1}>
+                              <Typography variant="body2" sx={{ color: '#64b5f6', fontWeight: 'bold' }}>
+                                Jugada #{jugada.numero}: {jugada.tipoJugada?.replace('_', ' ')}
+                              </Typography>
+                              
+                              {jugada.descripcion && (
+                                <Typography variant="body2" sx={{ color: 'white', mt: 0.5 }}>
+                                  {jugada.descripcion}
+                                </Typography>
+                              )}
+                              
+                              <Box display="flex" gap={2} mt={1} flexWrap="wrap">
+                                {jugada.jugadorPrincipal && (
+                                  <Chip 
+                                    size="small" 
+                                    label={`${jugada.jugadorPrincipal.nombre} #${jugada.jugadorPrincipal.numero || 'N/A'}`}
+                                    sx={{ backgroundColor: '#64b5f6', color: 'white', fontSize: '0.75rem' }}
+                                  />
+                                )}
+                                
+                                {jugada.jugadorSecundario && (
+                                  <Chip 
+                                    size="small" 
+                                    label={`${jugada.jugadorSecundario.nombre} #${jugada.jugadorSecundario.numero || 'N/A'}`}
+                                    sx={{ backgroundColor: '#81c784', color: 'white', fontSize: '0.75rem' }}
+                                  />
+                                )}
+                                
+                                {jugada.equipoEnPosesion && (
+                                  <Chip 
+                                    size="small" 
+                                    label={jugada.equipoEnPosesion.nombre}
+                                    variant="outlined"
+                                    sx={{ borderColor: 'rgba(255, 255, 255, 0.3)', color: 'white', fontSize: '0.75rem' }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                            
+                            <Box textAlign="right">
+                              {jugada.resultado?.puntos > 0 && (
+                                <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                                  +{jugada.resultado.puntos}
+                                </Typography>
+                              )}
+                              
+                              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                                {jugada.tiempo ? `${jugada.tiempo.minuto || 0}:${String(jugada.tiempo.segundo || 0).padStart(2, '0')}` : 'Sin tiempo'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    
+                    {/* Botón para cargar más jugadas */}
+                    {jugadas.length < totalJugadas && (
+                      <Box display="flex" justifyContent="center" mt={3}>
+                        <Button 
+                          onClick={cargarMasJugadas} 
+                          variant="outlined"
+                          disabled={loadingJugadas}
+                          startIcon={loadingJugadas ? <CircularProgress size={16} /> : <PlayArrowIcon />}
+                          sx={{
+                            color: '#64b5f6',
+                            borderColor: '#64b5f6',
+                            '&:hover': {
+                              borderColor: '#5a9fd8',
+                              backgroundColor: 'rgba(100, 181, 246, 0.1)'
+                            }
+                          }}
+                        >
+                          {loadingJugadas ? 'Cargando...' : `Cargar más jugadas (${totalJugadas - jugadas.length} restantes)`}
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <SportsFootballIcon sx={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.3)', mb: 2 }} />
+                    <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      No hay jugadas registradas
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                      Este partido aún no tiene jugadas capturadas
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </Box>
   );

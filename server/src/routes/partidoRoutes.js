@@ -707,35 +707,23 @@ router.post('/:id/jugadas',
   partidoController.registrarJugada
 );
 
-// 📊 OBTENER JUGADAS DE UN PARTIDO
+// 🏈 OBTENER JUGADAS DE UN PARTIDO (OPTIMIZADO CON PAGINACIÓN)
 router.get('/:id/jugadas', 
   [
     auth,
     [
-      param('id', 'ID de partido debe ser válido').isMongoId()
+      param('id', 'ID de partido debe ser válido').isMongoId(),
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Página debe ser un entero positivo'),
+      query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Límite debe ser entre 1 y 100')
     ]
   ],
-  async (req, res) => {
-    try {
-      const partido = await Partido.findById(req.params.id)
-        .populate('jugadas.jugadorPrincipal', 'nombre numero')
-        .populate('jugadas.jugadorSecundario', 'nombre numero')
-        .populate('jugadas.equipoEnPosesion', 'nombre');
-      
-      if (!partido) {
-        return res.status(404).json({ mensaje: 'Partido no encontrado' });
-      }
-      
-      res.json({ 
-        jugadas: partido.jugadas || [],
-        total: partido.jugadas?.length || 0,
-        marcador: partido.marcador
-      });
-    } catch (error) {
-      console.error('Error al obtener jugadas:', error);
-      res.status(500).json({ mensaje: 'Error al obtener jugadas' });
-    }
-  }
+  partidoController.obtenerJugadasPartido
 );
 
 // 🗑️ ELIMINAR ÚLTIMA JUGADA (PARA CORREGIR ERRORES)

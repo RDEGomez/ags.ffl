@@ -314,19 +314,13 @@ exports.obtenerPartidos = async (req, res) => {
   console.log(`\n📋 [${timestamp}] INICIO - Obtener partidos`);
 
   try {
-    const { torneo, equipo, categoria, estado, fecha, temporada, page = 1, limit = 20 } = req.query;
+    const { torneo, equipo, categoria, estado, fecha, page = 1, limit = 20 } = req.query;
     
     console.log('🔍 Construyendo filtros de búsqueda...');
     const filtro = {};
     if (torneo) filtro.torneo = torneo;
     if (categoria) filtro.categoria = categoria;
     if (estado) filtro.estado = estado;
-    
-    // 🔥 NUEVO: Filtro por temporada
-    if (temporada) {
-      filtro.temporada = temporada;
-    }
-    
     if (equipo) {
       filtro.$or = [
         { equipoLocal: equipo },
@@ -348,10 +342,12 @@ exports.obtenerPartidos = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
     console.log('🔍 Consultando partidos en base de datos...');
+    
+    // 🔥 OPTIMIZACIÓN: usar .lean() y selectores específicos
     const partidos = await Partido.find(filtro)
       .populate('equipoLocal', 'nombre imagen categoria')
       .populate('equipoVisitante', 'nombre imagen categoria')
-      .populate('torneo', 'nombre temporada') // 🔥 AGREGAR temporada al populate
+      .populate('torneo', 'nombre')
       .populate({
         path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
         populate: {
@@ -359,6 +355,9 @@ exports.obtenerPartidos = async (req, res) => {
           select: 'nombre imagen'
         }
       })
+      // 🔥 CLAVE: No cargar jugadas en la lista, solo lo básico
+      .select('-jugadas') // ← EXCLUIR jugadas de la lista
+      .lean() // ← USAR LEAN para mejor performance
       .sort({ fechaHora: 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -367,39 +366,31 @@ exports.obtenerPartidos = async (req, res) => {
 
     console.log(`✅ Encontrados ${partidos.length} partidos (${total} total)`);
 
-    // Enriquecer con URLs
-    const partidosEnriquecidos = [];
-    for (let partido of partidos) {
-      const partidoEnriquecido = await enriquecerPartidoConUrls(partido, req);
-      partidosEnriquecidos.push(partidoEnriquecido);
-    }
+    // 🔥 OPTIMIZACIÓN: Enriquecer directamente sin función externa pesada
+    const partidosEnriquecidos = partidos.map(partido => ({
+      ...partido,
+      // Agregar campos calculados si los necesitas
+      duracionEstimada: partido.tiempoJuego?.duracion || 0,
+      tieneMarcador: !!(partido.marcador?.local || partido.marcador?.visitante)
+    }));
 
-    console.log('📤 Enviando respuesta exitosa');
-    console.log(`✅ [${timestamp}] FIN - Partidos obtenidos\n`);
+    console.log('📤 Enviando lista de partidos');
+    console.log(`✅ [${new Date().toISOString()}] FIN - Partidos obtenidos\n`);
 
     res.json({
-      mensaje: 'Partidos obtenidos exitosamente',
       partidos: partidosEnriquecidos,
       paginacion: {
         paginaActual: parseInt(page),
         totalPaginas: Math.ceil(total / parseInt(limit)),
         totalPartidos: total,
         partidosPorPagina: parseInt(limit)
-      },
-      filtrosAplicados: {
-        torneo: torneo || null,
-        equipo: equipo || null,
-        categoria: categoria || null,
-        estado: estado || null,
-        fecha: fecha || null,
-        temporada: temporada || null // 🔥 NUEVO: Incluir en respuesta
       }
     });
 
   } catch (error) {
-    console.log(`❌ [${timestamp}] ERROR al obtener partidos:`);
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener partidos:`);
     console.error('💥 Error completo:', error);
-    console.log(`❌ [${timestamp}] FIN - Obtener partidos fallido\n`);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener partidos fallido\n`);
     
     res.status(500).json({ 
       mensaje: 'Error al obtener partidos', 
@@ -489,6 +480,241 @@ exports.obtenerPartidoPorId = async (req, res) => {
     
     res.status(500).json({ 
       mensaje: 'Error al obtener partido', 
+      error: error.message 
+    });
+  }
+};
+
+exports.obtenerJugadasPartido = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🏈 [${timestamp}] INICIO - Obtener jugadas del partido`);
+  console.log('🆔 Partido ID:', req.params.id);
+
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    
+    // 🔥 CARGAR SOLO JUGADAS con paginación
+    const partido = await Partido.findById(req.params.id)
+      .select('jugadas equipoLocal equipoVisitante') // Solo jugadas y equipos
+      .lean();
+
+    if (!partido) {
+      console.log('❌ ERROR: Partido no encontrado');
+      return res.status(404).json({ mensaje: 'Partido no encontrado' });
+    }
+
+    // 🔥 PAGINACIÓN DE JUGADAS
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const jugadasPaginadas = partido.jugadas
+      .slice(skip, skip + parseInt(limit));
+
+    console.log(`✅ Obtenidas ${jugadasPaginadas.length} jugadas (${partido.jugadas.length} total)`);
+
+    // 🔥 ENRIQUECER JUGADAS con números de jugador (solo las paginadas)
+    let jugadasEnriquecidas = jugadasPaginadas;
+    
+    if (jugadasPaginadas.length > 0) {
+      console.log('🔄 Enriqueciendo jugadas con números de jugador...');
+      
+      // Usar la función existente pero solo para las jugadas paginadas
+      jugadasEnriquecidas = await enriquecerJugadasConNumeros(
+        jugadasPaginadas,
+        partido.equipoLocal,
+        partido.equipoVisitante
+      );
+    }
+
+    res.json({
+      jugadas: jugadasEnriquecidas,
+      paginacion: {
+        paginaActual: parseInt(page),
+        totalPaginas: Math.ceil(partido.jugadas.length / parseInt(limit)),
+        totalJugadas: partido.jugadas.length,
+        jugadasPorPagina: parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener jugadas:`);
+    console.error('💥 Error completo:', error);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener jugadas del partido', 
+      error: error.message 
+    });
+  }
+};
+
+exports.obtenerPartidosJornada = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n📅 [${timestamp}] INICIO - Obtener partidos por jornada`);
+
+  try {
+    const { torneo, categoria, jornada, incluirSinJornada = false } = req.query;
+    
+    if (!torneo) {
+      console.log('❌ ERROR: Parámetro torneo es requerido');
+      return res.status(400).json({ 
+        mensaje: 'El parámetro torneo es requerido'
+      });
+    }
+
+    const filtro = { torneo: torneo };
+    
+    if (categoria) {
+      filtro.categoria = categoria;
+    }
+
+    if (jornada) {
+      filtro.jornada = jornada;
+    } else if (!incluirSinJornada) {
+      filtro.jornada = { $ne: null };
+    }
+
+    console.log('📊 Filtro aplicado:', filtro);
+    console.log('🔍 Consultando partidos...');
+    
+    // 🔥 OPTIMIZACIÓN: usar lean() y excluir jugadas
+    const partidos = await Partido.find(filtro)
+      .populate('equipoLocal', 'nombre imagen categoria')
+      .populate('equipoVisitante', 'nombre imagen categoria')
+      .populate('torneo', 'nombre')
+      .populate({
+        path: 'arbitros.principal arbitros.backeador arbitros.estadistico',
+        populate: {
+          path: 'usuario',
+          select: 'nombre imagen'
+        }
+      })
+      .select('-jugadas') // ← EXCLUIR jugadas
+      .sort({ jornada: 1, fechaHora: 1 })
+      .lean(); // ← USAR LEAN
+
+    console.log(`✅ Encontrados ${partidos.length} partidos`);
+
+    // Agrupar por jornada
+    const partidosAgrupados = {};
+    
+    partidos.forEach(partido => {
+      const jornadaKey = partido.jornada || 'Sin jornada';
+      
+      if (!partidosAgrupados[jornadaKey]) {
+        partidosAgrupados[jornadaKey] = {
+          jornada: jornadaKey,
+          partidos: [],
+          estadisticas: {
+            total: 0,
+            programados: 0,
+            enCurso: 0,
+            finalizados: 0,
+            otros: 0
+          }
+        };
+      }
+      
+      partidosAgrupados[jornadaKey].partidos.push(partido);
+      partidosAgrupados[jornadaKey].estadisticas.total++;
+      
+      // Contar por estado
+      switch (partido.estado) {
+        case 'programado':
+          partidosAgrupados[jornadaKey].estadisticas.programados++;
+          break;
+        case 'en_curso':
+        case 'medio_tiempo':
+          partidosAgrupados[jornadaKey].estadisticas.enCurso++;
+          break;
+        case 'finalizado':
+          partidosAgrupados[jornadaKey].estadisticas.finalizados++;
+          break;
+        default:
+          partidosAgrupados[jornadaKey].estadisticas.otros++;
+      }
+    });
+
+    // Convertir a array y ordenar
+    const jornadasArray = Object.values(partidosAgrupados)
+      .sort((a, b) => {
+        if (a.jornada === 'Sin jornada') return 1;
+        if (b.jornada === 'Sin jornada') return -1;
+        
+        const numA = parseInt(a.jornada.replace(/\D/g, ''));
+        const numB = parseInt(b.jornada.replace(/\D/g, ''));
+        
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        
+        return a.jornada.localeCompare(b.jornada);
+      });
+
+    console.log('📤 Enviando partidos agrupados por jornada');
+    console.log(`✅ [${new Date().toISOString()}] FIN - Partidos por jornada obtenidos\n`);
+
+    res.json({
+      jornadas: jornadasArray,
+      resumen: {
+        totalJornadas: jornadasArray.length,
+        totalPartidos: partidos.length,
+        torneo: torneo,
+        categoria: categoria || 'Todas'
+      }
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener partidos por jornada:`);
+    console.error('💥 Error completo:', error);
+    console.log(`❌ [${new Date().toISOString()}] FIN - Obtener partidos por jornada fallido\n`);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener partidos por jornada', 
+      error: error.message 
+    });
+  }
+};
+
+exports.obtenerPartidosHoy = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`\n📅 [${timestamp}] INICIO - Obtener partidos de hoy`);
+
+  try {
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+    
+    const finHoy = new Date();
+    finHoy.setHours(23, 59, 59, 999);
+
+    console.log(`📅 Buscando partidos de hoy: ${inicioHoy} a ${finHoy}`);
+
+    // 🔥 OPTIMIZACIÓN: lean() y sin jugadas
+    const partidos = await Partido.find({
+      fechaHora: {
+        $gte: inicioHoy,
+        $lte: finHoy
+      }
+    })
+    .populate('equipoLocal', 'nombre imagen categoria')
+    .populate('equipoVisitante', 'nombre imagen categoria')
+    .populate('torneo', 'nombre')
+    .select('-jugadas') // ← EXCLUIR jugadas
+    .lean() // ← USAR LEAN
+    .sort({ fechaHora: 1 });
+
+    console.log(`✅ Encontrados ${partidos.length} partidos para hoy`);
+    console.log('📤 Enviando partidos de hoy');
+
+    res.json({ 
+      partidos: partidos,
+      fecha: inicioHoy.toISOString().split('T')[0],
+      total: partidos.length
+    });
+
+  } catch (error) {
+    console.log(`❌ [${new Date().toISOString()}] ERROR al obtener partidos de hoy:`);
+    console.error('💥 Error completo:', error);
+    
+    res.status(500).json({ 
+      mensaje: 'Error al obtener partidos de hoy', 
       error: error.message 
     });
   }
@@ -1397,9 +1623,17 @@ exports.registrarJugada = async (req, res) => {
         }
         break;
       case 'corrida':
+        // 🚀 AQUÍ ESTÁ EL PROBLEMA - NECESITA ESTA CORRECCIÓN:
         if (resultado.touchdown) {
           puntos = 6;
           touchdown = true;
+        }
+        else if (resultado.puntos !== undefined && resultado.puntos == 2) {
+          puntos = resultado.puntos;
+          if (puntos === 2) {
+            // Es una conversión de 2 puntos corriendo
+            touchdown = false; // No es TD, es conversión
+          }
         }
         break;
       // 🔥 NUEVO: agregar checkbox TD para pase_completo
