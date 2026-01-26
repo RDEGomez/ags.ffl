@@ -628,7 +628,7 @@ router.post('/:id/arbitros',
 router.post('/:id/jugadas', 
   [
     auth,
-    checkRole('admin', 'arbitro'),
+    checkRole('admin'),
     [
       // Validación de ID del partido
       param('id', 'ID de partido debe ser válido').isMongoId(),
@@ -730,7 +730,7 @@ router.get('/:id/jugadas',
 router.delete('/:id/jugadas/ultima', 
   [
     auth,
-    checkRole('admin', 'arbitro'),
+    checkRole('admin'),
     [
       param('id', 'ID de partido debe ser válido').isMongoId()
     ]
@@ -778,7 +778,7 @@ router.delete('/:id/jugadas/ultima',
 router.delete('/:partidoId/jugadas/:jugadaId', 
   [
     auth,
-    checkRole('admin', 'arbitro'),
+    checkRole('admin'),
     [
       param('partidoId', 'ID de partido debe ser válido').isMongoId(),
       param('jugadaId', 'ID de jugada debe ser válido').isMongoId()
