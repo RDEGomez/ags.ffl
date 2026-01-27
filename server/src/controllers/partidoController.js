@@ -1186,13 +1186,10 @@ exports.obtenerHistorialPartido = async (req, res) => {
 // 🔢 HELPER: CALCULAR QB RATING (REUTILIZAR DEL CÓDIGO EXISTENTE)
 const calcularQBRating = (completados, intentos, touchdowns, intercepciones) => {
   if (intentos === 0) return 0;
-
-  const a = Math.max(0, Math.min(2.375, (completados / intentos - 0.3) * 5));
-  const b = Math.max(0, Math.min(2.375, (touchdowns / intentos) * 20));
-  const c = Math.max(0, Math.min(2.375, 2.375 - (intercepciones / intentos) * 25));
-  const d = Math.max(0, Math.min(2.375, 2.375)); // Simplificado sin yardas
-
-  return Math.round(((a + b + c + d) / 6) * 100 * 10) / 10;
+  const FE = completados / intentos;
+  const PC_FE = completados * FE;
+  const rating = PC_FE + (intercepciones * -2) + (touchdowns * 3);
+  return Math.round(rating * 10) / 10;
 };
 
 // 🗑️ ELIMINAR PARTIDO

@@ -527,7 +527,6 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
               if (!esSecundario) {
                 stats.pases.intentos++;
                 stats.pases.completados++;
-                stats.pases.touchdowns++;
               } else {
                 stats.recepciones++;
                 stats.puntos += puntosConversion;
@@ -1076,7 +1075,6 @@ exports.obtenerEstadisticasTarjetaEquipo = async (req, res) => {
                     // QB: Contabilizar pase de conversión
                     stats.pases.intentos++;
                     stats.pases.completados++;
-                    stats.pases.touchdowns++;
                   } else {
                     // 🔥 RECEPTOR: Recibe los puntos Y la recepción
                     stats.recepciones++;
@@ -1491,7 +1489,6 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
                 // QB: Solo stats de pase, NO puntos
                 playerStats.stats.pases.intentos++;
                 playerStats.stats.pases.completados++;
-                playerStats.stats.pases.touchdowns++;
                 playerStats.stats.pases.conversiones++; // 🔥 NUEVO: Trackear conversiones
               } else if (esSecundario) {
                 // Receptor: Recepción + PUNTOS
@@ -2301,7 +2298,6 @@ exports.obtenerLideresPartido = async (req, res) => {
                 // QB: Solo stats de pase, NO puntos
                 playerStats.stats.pases.intentos++;
                 playerStats.stats.pases.completados++;
-                playerStats.stats.pases.touchdowns++;
               } else if (esSecundario) {
                 // Receptor: Recepción + PUNTOS
                 playerStats.stats.recepciones.total++;
@@ -2317,7 +2313,6 @@ exports.obtenerLideresPartido = async (req, res) => {
                 // QB: Solo stats de pase, NO puntos
                 playerStats.stats.pases.intentos++;
                 playerStats.stats.pases.completados++;
-                playerStats.stats.pases.touchdowns++;
               } else if (esSecundario) {
                 // Receptor: Recepción + PUNTOS
                 playerStats.stats.recepciones.total++;
@@ -2432,6 +2427,47 @@ exports.obtenerLideresPartido = async (req, res) => {
         if (tipo === 'qbrating') {
           return jugador.stats.pases.intentos >= 1;
         }
+
+        // 🔥 CALCULAR QB RATING PARA CADA JUGADOR - CON DEBUG COMPLETO
+        console.log('\n🏈 === CALCULANDO QB RATING CON DEBUG DETALLADO ===');
+        estadisticasJugadores.forEach((stats, jugadorId) => {
+          const { intentos, completados, touchdowns, intercepciones } = stats.stats.pases;
+          
+          // 🎯 DEBUG DETALLADO ANTES DEL CÁLCULO
+          if (intentos > 0) {
+            console.log(`\n🏈 === DEBUG QB RATING: ${stats.jugador.nombre} ===`);
+            console.log(`jugador: "${stats.jugador.nombre}"`);
+            console.log(`intentos: ${intentos}`);
+            console.log(`completos: ${completados}`);
+            console.log(`touchdowns: ${touchdowns}`);
+            console.log(`intercepciones: ${intercepciones}`);
+            
+            // 🔍 MOSTRAR LA FÓRMULA PASO A PASO
+            if (intentos === 0) {
+              console.log(`Rating: 0 (sin intentos)`);
+              stats.qbRating = 0;
+            } else {
+              const FE = completados / intentos;
+              const PC_FE = completados * FE;
+              const rating = PC_FE + (intercepciones * -2) + (touchdowns * 3);
+              
+              console.log(`📊 Cálculo paso a paso:`);
+              console.log(`   FE (Eficiencia) = ${completados}/${intentos} = ${FE.toFixed(4)}`);
+              console.log(`   PC_FE = ${completados} * ${FE.toFixed(4)} = ${PC_FE.toFixed(4)}`);
+              console.log(`   Penalización INTs = ${intercepciones} * -2 = ${intercepciones * -2}`);
+              console.log(`   Bonus TDs = ${touchdowns} * 3 = ${touchdowns * 3}`);
+              console.log(`   Rating = ${PC_FE.toFixed(4)} + (${intercepciones * -2}) + (${touchdowns * 3}) = ${rating.toFixed(4)}`);
+              console.log(`   Rating final = ${Math.round(rating * 10) / 10}`);
+              
+              stats.qbRating = Math.round(rating * 10) / 10;
+            }
+            
+            console.log(`qbRating final: ${stats.qbRating}`);
+            console.log(`=== FIN DEBUG: ${stats.jugador.nombre} ===\n`);
+          } else {
+            stats.qbRating = 0;
+          }
+        });
         
         const stat = tipo === 'puntos' ? jugador.stats.puntos.total :
                     tipo === 'tackleos' ? jugador.stats.tackleos.total :
@@ -2758,7 +2794,6 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
                   if (!esSecundario) {
                     stats.pases.intentos++;
                     stats.pases.completados++;
-                    stats.pases.touchdowns++;
                   } else {
                     stats.recepciones++;
                     stats.puntos += puntosConversion;

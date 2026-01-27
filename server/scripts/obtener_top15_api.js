@@ -210,7 +210,6 @@ async function obtenerClasificacionTop15(torneoId, categoria) {
                 // QB: Solo stats de pase, NO puntos
                 playerStats.stats.pases.intentos++;
                 playerStats.stats.pases.completados++;
-                playerStats.stats.pases.touchdowns++;
                 playerStats.stats.pases.conversiones++; // 🔥 NUEVO: Trackear conversiones
               } else if (esSecundario) {
                 // Receptor: Recepción + PUNTOS
