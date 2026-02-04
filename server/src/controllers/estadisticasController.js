@@ -414,7 +414,14 @@ exports.obtenerLideresEstadisticas = async (req, res) => {
     // Crear mapa de jugador -> número
     const numerosJugadores = new Map();
     jugadoresEquipo.forEach(jugador => {
-      const equipoData = jugador.equipos.find(e => e.equipo.toString() === equipoId.toString());
+      const equipoData = jugador.equipos.find(e => {
+        if (!e.equipo) {
+          console.warn(`⚠️  ADVERTENCIA: El jugador '${jugador.nombre}' (ID: ${jugador._id}) tiene una referencia de equipo NULL y podría causar problemas`);
+          return false;
+        }
+        return e.equipo.toString() === equipoId.toString();
+      });
+      
       if (equipoData) {
         numerosJugadores.set(jugador._id.toString(), equipoData.numero);
       }
@@ -1004,9 +1011,13 @@ exports.obtenerEstadisticasTarjetaEquipo = async (req, res) => {
     if (req.usuario) {
       try {
         const usuario = await Usuario.findById(req.usuario._id).select('equipos');
-        const equipoDelUsuario = usuario?.equipos?.find(e => 
-          e.equipo.toString() === equipoId.toString()
-        );
+        const equipoDelUsuario = usuario?.equipos?.find(e => {
+          if (!e.equipo) {
+            console.warn(`⚠️  ADVERTENCIA: El usuario actual '${usuario.nombre || 'Sin nombre'}' (ID: ${usuario._id}) tiene una referencia de equipo NULL en su perfil`);
+            return false;
+          }
+          return e.equipo.toString() === equipoId.toString();
+        });
         numeroJugador = equipoDelUsuario?.numero || null;
       } catch (userError) {
         console.log('⚠️ Error al obtener número de jugador:', userError.message);
@@ -1331,6 +1342,34 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
 
     console.log(`📊 Partidos encontrados: ${partidos.length}`);
 
+    // 🔍 AUDITORÍA PREVENTIVA: Verificar integridad de datos antes del procesamiento
+    console.log('\n🔍 === AUDITORÍA DE INTEGRIDAD DE DATOS ===');
+    
+    const allUsuarios = await Usuario.find({}).select('nombre equipos');
+    let totalUsuarios = allUsuarios.length;
+    let usuariosConProblemas = 0;
+    let totalReferenciasInvalidas = 0;
+    
+    allUsuarios.forEach(usuario => {
+      const referenciasInvalidas = usuario.equipos?.filter(e => !e.equipo) || [];
+      if (referenciasInvalidas.length > 0) {
+        usuariosConProblemas++;
+        totalReferenciasInvalidas += referenciasInvalidas.length;
+      }
+    });
+    
+    console.log(`📊 Total usuarios en sistema: ${totalUsuarios}`);
+    console.log(`⚠️  Usuarios con referencias inválidas: ${usuariosConProblemas}`);
+    console.log(`🚨 Total referencias NULL encontradas: ${totalReferenciasInvalidas}`);
+    
+    if (usuariosConProblemas > 0) {
+      console.warn(`\n🚨 ADVERTENCIA: Se detectaron ${usuariosConProblemas} usuarios con datos corruptos`);
+      console.warn(`💡 RECOMENDACIÓN: Ejecuta el script 'find-users-without-teams.js' para limpiar estos datos`);
+    } else {
+      console.log('✅ Integridad de datos: OK - No se encontraron referencias inválidas');
+    }
+    console.log('='.repeat(50));
+
     // 🔥 USAR LA MISMA LÓGICA EXACTA DEL DEBUG PARA TODOS LOS JUGADORES
     const estadisticasJugadores = new Map(); // jugadorId -> stats completas
 
@@ -1548,14 +1587,30 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
     });
 
     // Actualizar cada jugador con su equipo correcto
+    let jugadoresConProblemas = 0;
     usuarios.forEach(usuario => {
       if (estadisticasJugadores.has(usuario._id.toString())) {
         const stats = estadisticasJugadores.get(usuario._id.toString());
         
-        // Buscar el equipo correcto del jugador
-        const equipoData = usuario.equipos.find(e => 
-          equiposIds.includes(e.equipo.toString())
-        );
+        // 🔍 AUDITORÍA: Revisar TODOS los equipos del usuario
+        const equiposInvalidos = usuario.equipos.filter(e => !e.equipo);
+        if (equiposInvalidos.length > 0) {
+          console.warn(`⚠️  ADVERTENCIA: El jugador '${usuario.nombre}' (ID: ${usuario._id}) tiene ${equiposInvalidos.length} referencia(s) de equipo NULL y podría causar problemas`);
+          jugadoresConProblemas++;
+        }
+        
+        // 🔥 BUSCAR EL EQUIPO CON VALIDACIÓN NULL Y LOGGING DETALLADO
+        const equipoData = usuario.equipos.find(e => {
+          if (!e.equipo) {
+            return false; // Ya logueado arriba
+          }
+          try {
+            return equiposIds.includes(e.equipo.toString());
+          } catch (error) {
+            console.error(`❌ ERROR: El jugador '${usuario.nombre}' (ID: ${usuario._id}) tiene equipo con ID inválido que no se puede convertir a string: ${e.equipo}`);
+            return false;
+          }
+        });
         
         if (equipoData) {
           const equipoInfo = equiposMap.get(equipoData.equipo.toString());
@@ -1566,10 +1621,19 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
               imagen: equipoInfo.imagen
             };
             stats.jugador.numero = equipoData.numero;
+          } else {
+            console.warn(`⚠️  ADVERTENCIA: El jugador '${usuario.nombre}' está asignado al equipo ID: ${equipoData.equipo} pero ese equipo no existe en este torneo/categoría`);
           }
+        } else {
+          console.warn(`⚠️  ADVERTENCIA: El jugador '${usuario.nombre}' no tiene ningún equipo válido para este torneo/categoría (equipos en torneo: ${equiposIds.length})`);
         }
       }
     });
+
+    if (jugadoresConProblemas > 0) {
+      console.warn(`\n🚨 RESUMEN DE PROBLEMAS: Se encontraron ${jugadoresConProblemas} jugadores con referencias de equipos inválidas`);
+      console.warn(`💡 RECOMENDACIÓN: Considera ejecutar el script de limpieza de usuarios sin equipos válidos`);
+    }
 
     console.log('✅ Equipos corregidos');
 
@@ -1577,8 +1641,14 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
     const clasificacionGeneral = {};
 
     tiposEstadisticas.forEach(tipo => {
-      // 🔥 FILTRAR JUGADORES CON ESTADÍSTICAS DEL TIPO
+      // 🔥 FILTRAR JUGADORES CON ESTADÍSTICAS DEL TIPO Y EQUIPOS VÁLIDOS
       const jugadoresArray = Array.from(estadisticasJugadores.values()).filter(jugador => {
+        // 🔥 VERIFICAR QUE EL JUGADOR TENGA EQUIPO VÁLIDO
+        if (!jugador.equipo || !jugador.equipo._id) {
+          console.log(`⚠️ Jugador ${jugador.jugador.nombre} sin equipo válido - excluido`);
+          return false;
+        }
+
         if (tipo === 'qbrating') {
           // Solo QBs con al menos 5 intentos
           return jugador.stats.pases.intentos >= 5;
@@ -1628,10 +1698,14 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
           numero: jugador.jugador.numero,
           imagen: jugador.jugador.imagen
         },
-        equipo: {
+        equipo: jugador.equipo ? {
           _id: jugador.equipo._id,
           nombre: jugador.equipo.nombre,
           imagen: jugador.equipo.imagen
+        } : {
+          _id: null,
+          nombre: 'Sin equipo',
+          imagen: null
         },
         valor: tipo === 'qbrating' ? jugador.qbRating :
               tipo === 'puntos' ? jugador.stats.puntos.total :
@@ -2398,9 +2472,13 @@ exports.obtenerLideresPartido = async (req, res) => {
       if (estadisticasJugadores.has(usuario._id.toString())) {
         const stats = estadisticasJugadores.get(usuario._id.toString());
         
-        const equipoData = usuario.equipos.find(e => 
-          equiposIds.includes(e.equipo.toString())
-        );
+        const equipoData = usuario.equipos.find(e => {
+          if (!e.equipo) {
+            console.warn(`⚠️  ADVERTENCIA: El jugador '${usuario.nombre}' (ID: ${usuario._id}) tiene una referencia de equipo NULL y podría causar problemas`);
+            return false;
+          }
+          return equiposIds.includes(e.equipo.toString());
+        });
         
         if (equipoData) {
           const equipoInfo = equiposMap.get(equipoData.equipo.toString());
@@ -2690,7 +2768,13 @@ const obtenerLideresEquipo = async (equipoId, torneoId, tipo, req) => {
 
   const numerosJugadores = new Map();
   jugadoresEquipo.forEach(jugador => {
-    const equipoData = jugador.equipos.find(e => e.equipo.toString() === equipoId.toString());
+    const equipoData = jugador.equipos.find(e => {
+      if (!e.equipo) {
+        console.warn(`⚠️  ADVERTENCIA: El jugador '${jugador.nombre}' (ID: ${jugador._id}) tiene una referencia de equipo NULL y podría causar problemas`);
+        return false;
+      }
+      return e.equipo.toString() === equipoId.toString();
+    });
     if (equipoData) {
       numerosJugadores.set(jugador._id.toString(), equipoData.numero);
     }
