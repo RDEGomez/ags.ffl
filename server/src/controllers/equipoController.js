@@ -237,16 +237,16 @@ exports.registrarJugadores = async (req, res) => {
         }
 
         // Validar conflictos de tipo base
-        // const equiposJugador = jugador.equipos.map(e => e.equipo);
-        // const equiposDelJugador = await Equipo.find({ _id: { $in: equiposJugador } });
+        const equiposJugador = jugador.equipos.map(e => e.equipo);
+        const equiposDelJugador = await Equipo.find({ _id: { $in: equiposJugador } });
         
-        // for (const equipoActual of equiposDelJugador) {
-        //   const reglaActual = reglasCategorias[equipoActual.categoria];
+        for (const equipoActual of equiposDelJugador) {
+          const reglaActual = reglasCategorias[equipoActual.categoria];
           
-        //   if (reglaActual && reglaActual.tipoBase === reglaNueva.tipoBase) {
-        //     throw new Error(`No puede inscribirse a ${equipo.categoria} porque ya está inscrito en ${equipoActual.categoria}. Ambas pertenecen al mismo tipo base (${reglaNueva.tipoBase}).`);
-        //   }
-        // }
+          if (reglaActual && reglaActual.tipoBase === reglaNueva.tipoBase) {
+            throw new Error(`No puede inscribirse a ${equipo.categoria} porque ya está inscrito en ${equipoActual.categoria}. Ambas pertenecen al mismo tipo base (${reglaNueva.tipoBase}).`);
+          }
+        }
 
         // Validar edad y sexo desde CURP
         const curp = jugador.documento;

@@ -652,21 +652,21 @@ exports.agregarJugadorAEquipo = async (req, res) => {
     }
 
     // 🔥 VALIDACIÓN 8: Verificar que no esté en otro equipo de la misma categoría
-    // console.log('🔍 Verificando conflictos de categoría...');
-    // const equiposJugador = await Usuario.findById(usuarioId).populate('equipos.equipo', 'categoria nombre');
+    console.log('🔍 Verificando conflictos de categoría...');
+    const equiposJugador = await Usuario.findById(usuarioId).populate('equipos.equipo', 'categoria nombre');
     
-    // if (equiposJugador && equiposJugador.equipos) {
-    //   const equipoMismaCategoria = equiposJugador.equipos.find(eq => 
-    //     eq.equipo && eq.equipo.categoria === equipo.categoria
-    //   );
+    if (equiposJugador && equiposJugador.equipos) {
+      const equipoMismaCategoria = equiposJugador.equipos.find(eq => 
+        eq.equipo && eq.equipo.categoria === equipo.categoria
+      );
       
-    //   if (equipoMismaCategoria) {
-    //     console.log('❌ ERROR: Ya inscrito en equipo de la misma categoría');
-    //     return res.status(400).json({ 
-    //       mensaje: `Ya estás inscrito en el equipo "${equipoMismaCategoria.equipo.nombre}" de la categoría ${getCategoryName(equipo.categoria)}. No puedes estar en dos equipos de la misma categoría.` 
-    //     });
-    //   }
-    // }
+      if (equipoMismaCategoria) {
+        console.log('❌ ERROR: Ya inscrito en equipo de la misma categoría');
+        return res.status(400).json({ 
+          mensaje: `Ya estás inscrito en el equipo "${equipoMismaCategoria.equipo.nombre}" de la categoría ${getCategoryName(equipo.categoria)}. No puedes estar en dos equipos de la misma categoría.` 
+        });
+      }
+    }
 
     console.log('✅ Todas las validaciones pasaron');
 

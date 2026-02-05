@@ -1573,11 +1573,32 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
       ...new Set(partidos.flatMap(p => [p.equipoLocal._id.toString(), p.equipoVisitante._id.toString()]))
     ];
 
-    // Obtener usuarios con sus equipos reales
+    // 🔥 CORREGIDO: Solo obtener usuarios que REALMENTE tienen jugadas
+    console.log(`🔍 Buscando información de ${jugadoresIds.length} jugadores que tienen estadísticas...`);
     const usuarios = await Usuario.find({
-      '_id': { $in: jugadoresIds },
-      'equipos.equipo': { $in: equiposIds }
+      '_id': { $in: jugadoresIds }  // 🔥 SOLO los jugadores que aparecen en jugadas
     }).select('nombre imagen equipos');
+    
+    console.log(`✅ Encontrados ${usuarios.length} usuarios con jugadas registradas`);
+    
+    // 🔍 DEBUG: Verificar si hay discrepancia entre jugadores esperados y usuarios encontrados
+    if (usuarios.length !== jugadoresIds.length) {
+      console.warn(`⚠️  DISCREPANCIA: Se esperaban ${jugadoresIds.length} usuarios pero se encontraron ${usuarios.length}`);
+      
+      const usuariosEncontradosIds = usuarios.map(u => u._id.toString());
+      const jugadoresFaltantes = jugadoresIds.filter(id => !usuariosEncontradosIds.includes(id));
+      
+      if (jugadoresFaltantes.length > 0) {
+        console.warn(`❌ Jugadores con estadísticas pero sin datos de usuario (posiblemente eliminados):`);
+        jugadoresFaltantes.slice(0, 5).forEach(id => {
+          const stats = estadisticasJugadores.get(id);
+          console.warn(`  - ${stats?.jugador?.nombre || 'Nombre desconocido'} (ID: ${id})`);
+        });
+        if (jugadoresFaltantes.length > 5) {
+          console.warn(`  ... y ${jugadoresFaltantes.length - 5} más`);
+        }
+      }
+    }
 
     // Crear mapa de equipos para acceso rápido
     const equiposMap = new Map();
@@ -1626,6 +1647,87 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
           }
         } else {
           console.warn(`⚠️  ADVERTENCIA: El jugador '${usuario.nombre}' no tiene ningún equipo válido para este torneo/categoría (equipos en torneo: ${equiposIds.length})`);
+          
+          // 🔍 DEBUG: Mostrar de qué partidos/jugadas viene este jugador
+          const statsDelJugador = estadisticasJugadores.get(usuario._id.toString());
+          if (statsDelJugador) {
+            console.log(`🔍 DEBUG: Este jugador tiene estadísticas registradas:`);
+            console.log(`   - Pases: ${statsDelJugador.stats.pases.intentos} intentos, ${statsDelJugador.stats.pases.completados} completados`);
+            console.log(`   - Puntos: ${statsDelJugador.stats.puntos.total}`);
+            console.log(`   - Recepciones: ${statsDelJugador.stats.recepciones.total}`);
+            console.log(`   - Tackleos: ${statsDelJugador.stats.tackleos.total}`);
+            
+            // 🔍 NUEVO: Rastrear exactamente de qué partidos vienen sus estadísticas
+            console.log(`\n🏈 RASTREANDO ORIGEN DE LAS ESTADÍSTICAS:`);
+            let partidosConJugadas = [];
+            
+            partidos.forEach(partido => {
+              let jugadasEnEstePartido = 0;
+              let equiposEncontrados = new Set();
+              
+              if (partido.jugadas) {
+                partido.jugadas.forEach(jugada => {
+                  const esJugadorPrincipal = jugada.jugadorPrincipal && jugada.jugadorPrincipal._id.toString() === usuario._id.toString();
+                  const esJugadorSecundario = jugada.jugadorSecundario && jugada.jugadorSecundario._id.toString() === usuario._id.toString();
+                  const esJugadorTouchdown = jugada.jugadorTouchdown && jugada.jugadorTouchdown._id.toString() === usuario._id.toString();
+                  
+                  if (esJugadorPrincipal || esJugadorSecundario || esJugadorTouchdown) {
+                    jugadasEnEstePartido++;
+                    
+                    // Determinar en qué equipo estaba jugando
+                    let equipoJugando = null;
+                    if (jugada.equipoEnPosesion) {
+                      const equipoId = jugada.equipoEnPosesion.toString();
+                      if (equipoId === partido.equipoLocal._id.toString()) {
+                        equipoJugando = partido.equipoLocal.nombre;
+                        equiposEncontrados.add(`${partido.equipoLocal.nombre} (Local)`);
+                      } else if (equipoId === partido.equipoVisitante._id.toString()) {
+                        equipoJugando = partido.equipoVisitante.nombre;
+                        equiposEncontrados.add(`${partido.equipoVisitante.nombre} (Visitante)`);
+                      }
+                    }
+                    
+                    console.log(`     📝 Jugada: ${jugada.tipoJugada} - Rol: ${esJugadorPrincipal ? 'Principal' : esJugadorSecundario ? 'Secundario' : 'Touchdown'} - Equipo en posesión: ${equipoJugando || 'Desconocido'}`);
+                  }
+                });
+              }
+              
+              if (jugadasEnEstePartido > 0) {
+                partidosConJugadas.push({
+                  partidoId: partido._id,
+                  equipoLocal: partido.equipoLocal.nombre,
+                  equipoVisitante: partido.equipoVisitante.nombre,
+                  fecha: partido.fechaHora,
+                  jugadas: jugadasEnEstePartido,
+                  equipos: Array.from(equiposEncontrados)
+                });
+              }
+            });
+            
+            console.log(`\n📊 RESUMEN DE PARTIDOS CON ESTADÍSTICAS:`);
+            partidosConJugadas.forEach((partidoInfo, index) => {
+              const fechaFormateada = partidoInfo.fecha ? new Date(partidoInfo.fecha).toLocaleDateString() : 'Sin fecha';
+              console.log(`   ${index + 1}. ${partidoInfo.equipoLocal} vs ${partidoInfo.equipoVisitante}`);
+              console.log(`      - Partido ID: ${partidoInfo.partidoId}`);
+              console.log(`      - Fecha: ${fechaFormateada}`);
+              console.log(`      - Jugadas del jugador: ${partidoInfo.jugadas}`);
+              console.log(`      - Equipos donde jugó: ${partidoInfo.equipos.join(', ') || 'No determinado'}`);
+            });
+            
+            console.log(`💡 CAUSA: Este jugador participó en ${partidosConJugadas.length} partido(s) pero después se le eliminaron los equipos`);
+          }
+          
+          // 🔍 DEBUG: Mostrar sus equipos actuales (incluso si son inválidos)
+          console.log(`\n🔍 DEBUG: Equipos actuales del jugador '${usuario.nombre}':`);
+          if (!usuario.equipos || usuario.equipos.length === 0) {
+            console.log(`   - No tiene equipos asignados (array vacío o null)`);
+          } else {
+            usuario.equipos.forEach((equipoRef, index) => {
+              console.log(`   - Equipo ${index + 1}: ${equipoRef.equipo ? equipoRef.equipo.toString() : 'NULL'} (Número: ${equipoRef.numero || 'Sin número'})`);
+            });
+          }
+          
+          console.log(`\n💡 SOLUCIÓN RECOMENDADA: Ejecutar 'node find-users-without-teams.js --execute' para limpiar este usuario\n`);
         }
       }
     });
@@ -1633,6 +1735,21 @@ exports.obtenerClasificacionGeneral = async (req, res) => {
     if (jugadoresConProblemas > 0) {
       console.warn(`\n🚨 RESUMEN DE PROBLEMAS: Se encontraron ${jugadoresConProblemas} jugadores con referencias de equipos inválidas`);
       console.warn(`💡 RECOMENDACIÓN: Considera ejecutar el script de limpieza de usuarios sin equipos válidos`);
+      
+      // 🔥 OPCIÓN: Filtrar jugadores sin equipos válidos de las estadísticas
+      console.log(`\n🧹 LIMPIEZA AUTOMÁTICA: Removiendo jugadores sin equipos válidos de las estadísticas...`);
+      let jugadoresRemovidos = 0;
+      
+      for (const [jugadorId, stats] of estadisticasJugadores.entries()) {
+        if (!stats.equipo || !stats.equipo._id) {
+          estadisticasJugadores.delete(jugadorId);
+          jugadoresRemovidos++;
+          console.log(`   - Removido: ${stats.jugador.nombre} (sin equipo válido)`);
+        }
+      }
+      
+      console.log(`✅ Removidos ${jugadoresRemovidos} jugadores sin equipos válidos`);
+      console.log(`📊 Jugadores restantes para clasificación: ${estadisticasJugadores.size}`);
     }
 
     console.log('✅ Equipos corregidos');
