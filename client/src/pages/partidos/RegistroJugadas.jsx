@@ -265,19 +265,28 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
   };
 
   const manejarCambioDatosCaptura = (campo, valor) => {
-    setDatosCaptura(prev => ({ ...prev, [campo]: valor }));
+  setDatosCaptura(prev => ({ ...prev, [campo]: valor }));
 
-    if (campo === 'equipoEnPosesion') {
-      guardarHistorial(valor, datosCaptura.tipoJugada);
-    } else if (campo === 'tipoJugada') {
-      guardarHistorial(datosCaptura.equipoEnPosesion, valor);
-      
-      const jugadaInfo = tiposJugada.find(j => j.id === valor);
-      if (jugadaInfo && jugadaInfo.puntos > 0) {
-        setDatosCaptura(prev => ({ ...prev, puntos: jugadaInfo.puntos.toString() }));
-      }
+  if (campo === 'equipoEnPosesion') {
+    guardarHistorial(valor, datosCaptura.tipoJugada);
+  } else if (campo === 'tipoJugada') {
+    guardarHistorial(datosCaptura.equipoEnPosesion, valor);
+    
+    const jugadaInfo = tiposJugada.find(j => j.id === valor);
+    if (jugadaInfo && jugadaInfo.puntos > 0) {
+      setDatosCaptura(prev => ({ ...prev, puntos: jugadaInfo.puntos.toString() }));
     }
-  };
+  }
+
+  // 🚨 ALERTA: pase_incompleto no debería llevar jugador secundario
+  if (campo === 'jugadorSecundario' && valor !== '' && datosCaptura.tipoJugada === 'pase_incompleto') {
+    setSnackbar({
+      abierto: true,
+      mensaje: '⚠️ Estás capturando un receptor en un Pase Incompleto. ¿Olvidaste cambiar el tipo de jugada a Pase Completo?',
+      tipo: 'warning'
+    });
+  }
+};
 
   const limpiarFormularioCaptura = () => {
     setDatosCaptura({
@@ -1618,13 +1627,17 @@ const RegistroJugadas = ({ partido, onActualizar }) => {
         open={snackbar.abierto}
         autoHideDuration={4000}
         onClose={() => setSnackbar(prev => ({ ...prev, abierto: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} 
       >
         <Alert 
           onClose={() => setSnackbar(prev => ({ ...prev, abierto: false }))} 
           severity={snackbar.tipo}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            fontSize: '1rem',     
+            fontWeight: 'bold'    
+          }}
         >
           {snackbar.mensaje}
         </Alert>
